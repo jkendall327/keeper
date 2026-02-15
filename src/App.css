@@ -264,6 +264,7 @@
   margin: 0 0 4px;
   font-size: 1rem;
   font-weight: 600;
+  padding-right: 64px;
 }
 
 .note-card-body {
@@ -276,6 +277,7 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 10;
   overflow: hidden;
+  padding-right: 64px;
 }
 
 .note-card-time {
@@ -356,7 +358,6 @@
 .modal-body-input {
   width: 100%;
   box-sizing: border-box;
-  flex: 1;
   padding: 0;
   font-family: inherit;
   font-size: 0.9rem;
@@ -366,6 +367,9 @@
   color: inherit;
   resize: none;
   outline: none;
+  min-height: 200px;
+  max-height: 60vh;
+  overflow-y: auto;
 }
 
 .modal-tags {

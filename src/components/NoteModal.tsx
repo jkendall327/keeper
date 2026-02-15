@@ -26,6 +26,7 @@ export function NoteModal({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const noteTagNames = new Set(note.tags.map((t) => t.name));
 
@@ -88,6 +89,17 @@ export function NoteModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, body]);
 
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    const textarea = bodyTextareaRef.current;
+    if (textarea) {
+      // Reset height to auto to get accurate scrollHeight
+      textarea.style.height = 'auto';
+      // Set height to scrollHeight, capped by CSS max-height
+      textarea.style.height = `${textarea.scrollHeight}px`;
+    }
+  }, [body]);
+
   return (
     <div className="modal-backdrop" onClick={handleBackdropClick}>
       <div
@@ -104,11 +116,11 @@ export function NoteModal({
             onChange={(e) => { setTitle(e.target.value); }}
           />
           <textarea
+            ref={bodyTextareaRef}
             className="modal-body-input"
             placeholder="Note"
             value={body}
             onChange={(e) => { setBody(e.target.value); }}
-            rows={8}
           />
         </div>
         <div className="modal-tags">

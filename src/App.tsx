@@ -4,6 +4,7 @@ import { useDB } from './hooks/useDB.ts';
 import { QuickAdd } from './components/QuickAdd.tsx';
 import { NoteGrid } from './components/NoteGrid.tsx';
 import { NoteModal } from './components/NoteModal.tsx';
+import { ExportModal } from './components/ExportModal.tsx';
 import { SearchBar } from './components/SearchBar.tsx';
 import { Sidebar, type FilterType } from './components/Sidebar.tsx';
 import type { NoteWithTags } from './db/types.ts';
@@ -39,6 +40,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
+  const [showExportModal, setShowExportModal] = useState(false);
   useEffect(() => {
     onFilterChange(activeFilter.type === 'archive');
     setSelectedNoteIds(new Set());
@@ -104,11 +106,14 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
   useEffect(() => {
     const onBulkDelete = () => { void handleBulkDelete(); };
     const onBulkArchive = () => { void handleBulkArchive(); };
+    const onExport = () => { setShowExportModal(true); };
     window.addEventListener('keeper:bulk-delete', onBulkDelete);
     window.addEventListener('keeper:bulk-archive', onBulkArchive);
+    window.addEventListener('keeper:export', onExport);
     return () => {
       window.removeEventListener('keeper:bulk-delete', onBulkDelete);
       window.removeEventListener('keeper:bulk-archive', onBulkArchive);
+      window.removeEventListener('keeper:export', onExport);
     };
   }, [handleBulkDelete, handleBulkArchive]);
 
@@ -157,6 +162,13 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           previewMode={previewMode}
         />
       )}
+      {showExportModal && selectedNoteIds.size > 0 && (
+        <ExportModal
+          notes={displayedNotes.filter((n) => selectedNoteIds.has(n.id))}
+          onClose={() => { setShowExportModal(false); }}
+          onDelete={() => { void handleBulkDelete(); }}
+        />
+      )}
     </div>
   );
 }
@@ -184,6 +196,14 @@ function App() {
                   Archive
                 </button>
               )}
+              <button
+                className="bulk-action-btn bulk-export-btn"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('keeper:export'));
+                }}
+              >
+                Export
+              </button>
               <button
                 className="bulk-action-btn bulk-delete-btn"
                 onClick={() => {

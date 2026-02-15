@@ -1,0 +1,136 @@
+import type { KeeperDB, NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput, SearchResult } from '../db/types';
+
+export interface MockDB extends KeeperDB {
+  reset(): void;
+}
+
+/**
+ * Simple in-memory mock DB for UI integration tests.
+ * Implements core KeeperDB interface without SQLite.
+ */
+export function createMockDB(): MockDB {
+  let noteId = 1;
+  let tagId = 1;
+  const notes = new Map<string, NoteWithTags>();
+  const tags = new Map<string, Tag>();
+
+  const generateId = () => `n${noteId++}`;
+  const generateTagId = () => `t${tagId++}`;
+  const now = () => new Date().toISOString();
+
+  const reset = () => {
+    noteId = 1;
+    tagId = 1;
+    notes.clear();
+    tags.clear();
+  };
+
+  return {
+    reset,
+
+    async createNote(input: CreateNoteInput): Promise<NoteWithTags> {
+      const id = generateId();
+      const note: NoteWithTags = {
+        id,
+        title: input.title ?? '',
+        body: input.body,
+        has_links: false,
+        created_at: now(),
+        updated_at: now(),
+        tags: [],
+      };
+      notes.set(id, note);
+      return note;
+    },
+
+    async getNote(id: string): Promise<NoteWithTags | null> {
+      return notes.get(id) ?? null;
+    },
+
+    async getAllNotes(): Promise<NoteWithTags[]> {
+      return Array.from(notes.values());
+    },
+
+    async updateNote(input: UpdateNoteInput): Promise<NoteWithTags> {
+      const note = notes.get(input.id);
+      if (!note) throw new Error(`Note ${input.id} not found`);
+
+      const updated = {
+        ...note,
+        title: input.title ?? note.title,
+        body: input.body ?? note.body,
+        updated_at: now(),
+      };
+      notes.set(input.id, updated);
+      return updated;
+    },
+
+    async deleteNote(id: string): Promise<void> {
+      notes.delete(id);
+    },
+
+    async deleteNotes(ids: string[]): Promise<void> {
+      for (const id of ids) {
+        notes.delete(id);
+      }
+    },
+
+    async addTag(noteId: string, tagName: string): Promise<NoteWithTags> {
+      const note = notes.get(noteId);
+      if (!note) throw new Error(`Note ${noteId} not found`);
+
+      // Get or create tag
+      let tag = Array.from(tags.values()).find(t => t.name === tagName);
+      if (!tag) {
+        tag = { id: generateTagId(), name: tagName };
+        tags.set(tag.id, tag);
+      }
+
+      // Add to note if not already present
+      if (!note.tags.some(t => t.name === tagName)) {
+        note.tags = [...note.tags, tag];
+      }
+
+      return note;
+    },
+
+    async removeTag(noteId: string, tagName: string): Promise<NoteWithTags> {
+      const note = notes.get(noteId);
+      if (!note) throw new Error(`Note ${noteId} not found`);
+
+      note.tags = note.tags.filter(t => t.name !== tagName);
+      return note;
+    },
+
+    async renameTag(oldName: string, newName: string): Promise<void> {
+      for (const note of notes.values()) {
+        for (const tag of note.tags) {
+          if (tag.name === oldName) {
+            tag.name = newName;
+          }
+        }
+      }
+      const tag = Array.from(tags.values()).find(t => t.name === oldName);
+      if (tag) {
+        tag.name = newName;
+      }
+    },
+
+    async getAllTags(): Promise<Tag[]> {
+      return Array.from(tags.values());
+    },
+
+    async search(_query: string): Promise<SearchResult[]> {
+      // Simple mock: return empty for now
+      return [];
+    },
+
+    async getUntaggedNotes(): Promise<NoteWithTags[]> {
+      return Array.from(notes.values()).filter(n => n.tags.length === 0);
+    },
+
+    async getLinkedNotes(): Promise<NoteWithTags[]> {
+      return Array.from(notes.values()).filter(n => n.has_links);
+    },
+  };
+}

@@ -7,14 +7,17 @@ Read SPEC.md to understand the project and its goals.
 - `npm run dev` — start dev server (requires COOP/COEP headers, configured in vite.config.ts)
 - `npm run build` — typecheck + production build
 - `npm run lint` — ESLint
-- `npm test` — run all tests (85 integration + property-based tests)
+- `npm test` — run all tests (85 data layer + 2 UI integration tests)
 - `npm run test:watch` — run tests in watch mode
 
 ## Testing
 
-This project prioritizes **high-value integration and property-based tests** over fastidious unit tests with mocks. The data layer (`src/db/`) has comprehensive test coverage (85 tests) using real SQLite (better-sqlite3) to verify actual behavior including FTS5, triggers, and foreign key constraints.
+This project prioritizes **high-value integration and property-based tests** over fastidious unit tests with mocks.
 
-**Always run tests before committing** to validate your changes haven't broken existing functionality. When modifying the data layer, update or add tests as needed.
+- **Data layer** (`src/db/__tests__/`): 85 tests using real SQLite (better-sqlite3) to verify actual behavior including FTS5, triggers, and foreign key constraints.
+- **UI layer** (`src/__tests__/App.test.tsx`): 2 integration tests using React Testing Library with a mock DB, covering modal interactions (close on backdrop click, delete on body clear).
+
+**Always run tests before committing** to validate your changes haven't broken existing functionality. When modifying code, update or add tests as needed.
 
 ## React Compiler — `'use no memo'` for non-React files
 

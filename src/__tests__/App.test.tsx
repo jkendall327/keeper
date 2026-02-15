@@ -302,4 +302,125 @@ describe('App Integration Tests', () => {
       expect(screen.queryByText('This note will be deleted when closed.')).not.toBeInTheDocument();
     });
   });
+
+  it('ctrl-click toggles note selection without opening modal', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    for (const text of ['Note A', 'Note B', 'Note C']) {
+      await user.type(input, text);
+      await user.keyboard('{Enter}');
+      await screen.findByText(text);
+    }
+
+    // Ctrl-click Note A (hold Ctrl, click, release)
+    const noteA = await screen.findByText('Note A');
+    await user.keyboard('{Control>}');
+    await user.click(noteA);
+    await user.keyboard('{/Control}');
+
+    // Note A should be selected
+    const cardA = noteA.closest('.note-card');
+    if (cardA === null) throw new Error('Card A not found');
+    expect(cardA).toHaveClass('note-card-selected');
+
+    // Modal should NOT open
+    expect(screen.queryByPlaceholderText('Title')).not.toBeInTheDocument();
+
+    // Ctrl-click Note B
+    const noteB = await screen.findByText('Note B');
+    await user.keyboard('{Control>}');
+    await user.click(noteB);
+    await user.keyboard('{/Control}');
+
+    // Both A and B should be selected
+    const cardB = noteB.closest('.note-card');
+    if (cardB === null) throw new Error('Card B not found');
+    expect(cardA).toHaveClass('note-card-selected');
+    expect(cardB).toHaveClass('note-card-selected');
+
+    // Ctrl-click A again to deselect
+    await user.keyboard('{Control>}');
+    await user.click(noteA);
+    await user.keyboard('{/Control}');
+
+    // A deselected, B still selected
+    await waitFor(() => {
+      expect(cardA).not.toHaveClass('note-card-selected');
+      expect(cardB).toHaveClass('note-card-selected');
+    });
+  });
+
+  it('shift-click selects a range of notes', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    for (const text of ['Note A', 'Note B', 'Note C', 'Note D', 'Note E']) {
+      await user.type(input, text);
+      await user.keyboard('{Enter}');
+      await screen.findByText(text);
+    }
+
+    // Ctrl-click Note A to select it (and set lastClicked)
+    const noteA = await screen.findByText('Note A');
+    await user.keyboard('{Control>}');
+    await user.click(noteA);
+    await user.keyboard('{/Control}');
+
+    // Shift-click Note C to select range A-C
+    const noteC = await screen.findByText('Note C');
+    await user.keyboard('{Shift>}');
+    await user.click(noteC);
+    await user.keyboard('{/Shift}');
+
+    // Exactly notes A, B, C should be selected
+    await waitFor(() => {
+      const checks = screen.getAllByLabelText('Selected');
+      expect(checks).toHaveLength(3);
+    });
+
+    // D and E should not be selected
+    const cardD = screen.getByText('Note D').closest('.note-card');
+    const cardE = screen.getByText('Note E').closest('.note-card');
+    if (cardD === null) throw new Error('Card D not found');
+    if (cardE === null) throw new Error('Card E not found');
+    expect(cardD).not.toHaveClass('note-card-selected');
+    expect(cardE).not.toHaveClass('note-card-selected');
+  });
+
+  it('plain click clears selection and opens modal', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    for (const text of ['Note A', 'Note B']) {
+      await user.type(input, text);
+      await user.keyboard('{Enter}');
+      await screen.findByText(text);
+    }
+
+    // Ctrl-click to select Note A
+    const noteA = await screen.findByText('Note A');
+    await user.keyboard('{Control>}');
+    await user.click(noteA);
+    await user.keyboard('{/Control}');
+
+    const cardA = noteA.closest('.note-card');
+    if (cardA === null) throw new Error('Card A not found');
+    expect(cardA).toHaveClass('note-card-selected');
+
+    // Plain click on Note B — should clear selection and open modal
+    const noteB = await screen.findByText('Note B');
+    await user.click(noteB);
+
+    // Modal should open
+    await screen.findByPlaceholderText('Title');
+
+    // Selection should be cleared (no check marks visible)
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Selected')).not.toBeInTheDocument();
+    });
+  });
 });

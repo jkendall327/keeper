@@ -5,7 +5,7 @@ import { MarkdownPreview } from './MarkdownPreview.tsx';
 
 interface NoteCardProps {
   note: NoteWithTags;
-  onSelect: (note: NoteWithTags) => void;
+  onSelect: (note: NoteWithTags, e?: React.MouseEvent) => void;
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
   onToggleArchive: (id: string) => Promise<void>;
@@ -41,7 +41,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
         // Don't open modal when clicking a link in preview mode
         const target = e.target as HTMLElement;
         if (target.tagName === 'A' || target.closest('a') !== null) return;
-        onSelect(note);
+        onSelect(note, e);
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

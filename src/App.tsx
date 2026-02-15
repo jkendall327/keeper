@@ -39,7 +39,10 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
-  useEffect(() => { onFilterChange(activeFilter.type === 'archive'); }, [activeFilter, onFilterChange]);
+  useEffect(() => {
+    onFilterChange(activeFilter.type === 'archive');
+    setSelectedNoteIds(new Set());
+  }, [activeFilter, onFilterChange, setSelectedNoteIds]);
   const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(notes);
 
   // Update displayed notes based on search query and active filter

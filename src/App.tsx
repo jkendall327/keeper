@@ -118,8 +118,16 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
         tags={allTags}
         activeFilter={activeFilter}
         onFilterChange={setActiveFilter}
-        onRenameTag={renameTag}
-        onDeleteTag={deleteTag}
+        onRenameTag={(old, new_) => {
+          renameTag(old, new_).catch((err: unknown) => {
+            console.error('Failed to rename tag:', err);
+          });
+        }}
+        onDeleteTag={(id) => {
+          deleteTag(id).catch((err: unknown) => {
+            console.error('Failed to delete tag:', err);
+          });
+        }}
       />
       <div className="app-content">
         <SearchBar value={searchQuery} onChange={setSearchQuery} />

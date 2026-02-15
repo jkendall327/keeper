@@ -94,7 +94,10 @@ describe('CRUD Invariants (Property-Based)', () => {
               const n = await api.createNote({ body: 'x' });
               ids.push(n.id);
             } else if (ids.length > 0) {
-              await api.deleteNote(ids.pop()!);
+              const id = ids.pop();
+              if (id !== undefined) {
+                await api.deleteNote(id);
+              }
             }
           }
           const all = await api.getAllNotes();

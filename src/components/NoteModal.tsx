@@ -196,7 +196,11 @@ export function NoteModal({
                 placeholder="Note"
                 value={body}
                 onChange={(e) => { setBody(e.target.value); }}
-                onPaste={handlePaste}
+                onPaste={(e) => {
+                  handlePaste(e).catch((err: unknown) => {
+                    console.error('Failed to handle paste:', err);
+                  });
+                }}
               />
               {body.includes('media://') && (
                 <div className="modal-body-live-preview">

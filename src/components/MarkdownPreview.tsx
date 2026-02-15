@@ -17,6 +17,8 @@ export function MarkdownPreview({
 }: MarkdownPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [mediaUrls, setMediaUrls] = useState<Map<string, string>>(new Map());
+  // Track URLs for cleanup without triggering re-renders
+  const mediaUrlsRef = useRef<Map<string, string>>(new Map());
 
   // Load media and create blob URLs
   useEffect(() => {
@@ -29,10 +31,13 @@ export function MarkdownPreview({
     );
     if (mediaIds.length === 0) {
       // Clean up any existing blob URLs if no media in content
-      mediaUrls.forEach((url) => { URL.revokeObjectURL(url); });
+      mediaUrlsRef.current.forEach((url) => { URL.revokeObjectURL(url); });
+      mediaUrlsRef.current = new Map();
       setMediaUrls(new Map());
       return;
     }
+
+    const createdUrls: string[] = [];
 
     const loadMedia = async () => {
       const db = getDB();
@@ -48,8 +53,10 @@ export function MarkdownPreview({
           const blob = new Blob([buffer], { type: mediaItem.mime_type });
           const url = URL.createObjectURL(blob);
           blobUrlMap.set(mediaId, url);
+          createdUrls.push(url);
         }
       }
+      mediaUrlsRef.current = blobUrlMap;
       setMediaUrls(blobUrlMap);
     };
 
@@ -57,7 +64,7 @@ export function MarkdownPreview({
 
     // CRITICAL: Cleanup to prevent memory leaks
     return () => {
-      mediaUrls.forEach((url) => { URL.revokeObjectURL(url); });
+      createdUrls.forEach((url) => { URL.revokeObjectURL(url); });
     };
   }, [content, noteId]);
 

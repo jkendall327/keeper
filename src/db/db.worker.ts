@@ -10,6 +10,7 @@ import type { KeeperDB, Media, StoreMediaInput } from './types.ts';
 
 let db: OpfsDatabase;
 let sqlite3: Sqlite3Static;
+let baseApi: KeeperDB;
 
 function mimeToExt(mime: string): string {
   const map: Record<string, string> = {
@@ -28,38 +29,94 @@ function mimeToExt(mime: string): string {
 const ready: Promise<void> = (async () => {
   sqlite3 = await sqlite3InitModule();
   db = new sqlite3.oo1.OpfsDb('/keeper.sqlite3', 'cw');
-})();
 
-// Create the base DB implementation with OpfsDatabase adapter
-const baseApi = createKeeperDB({
-  db: {
-    run(sql: string, bind?: SqlValue[]) {
-      if (bind !== undefined) {
-        db.exec({ sql, bind });
-      } else {
-        db.exec({ sql });
-      }
-    },
-    query(sql: string, bind?: SqlValue[]): SqlRow[] {
-      const rows: SqlRow[] = [];
-      if (bind !== undefined) {
-        db.exec({ sql, bind, rowMode: 'object', resultRows: rows });
-      } else {
-        db.exec({ sql, rowMode: 'object', resultRows: rows });
-      }
-      return rows;
-    },
-    execRaw(sql: string) {
-      db.exec(sql);
-    },
-  } satisfies SqliteDb,
-  generateId: () => crypto.randomUUID(),
-  now: () => new Date().toISOString().replace('T', ' ').slice(0, 19),
-});
+  // Create the base DB implementation after OpfsDatabase is initialized
+  baseApi = createKeeperDB({
+    db: {
+      run(sql: string, bind?: SqlValue[]) {
+        if (bind !== undefined) {
+          db.exec({ sql, bind });
+        } else {
+          db.exec({ sql });
+        }
+      },
+      query(sql: string, bind?: SqlValue[]): SqlRow[] {
+        const rows: SqlRow[] = [];
+        if (bind !== undefined) {
+          db.exec({ sql, bind, rowMode: 'object', resultRows: rows });
+        } else {
+          db.exec({ sql, rowMode: 'object', resultRows: rows });
+        }
+        return rows;
+      },
+      execRaw(sql: string) {
+        db.exec(sql);
+      },
+    } satisfies SqliteDb,
+    generateId: () => crypto.randomUUID(),
+    now: () => new Date().toISOString().replace('T', ' ').slice(0, 19),
+  });
+})();
 
 // Extend base implementation with OPFS-backed media operations
 const api: KeeperDB = {
-  ...baseApi,
+  // Delegate to baseApi (initialized in ready promise)
+  async createNote(input) {
+    await ready;
+    return baseApi.createNote(input);
+  },
+  async getNote(id) {
+    await ready;
+    return baseApi.getNote(id);
+  },
+  async getAllNotes() {
+    await ready;
+    return baseApi.getAllNotes();
+  },
+  async updateNote(input) {
+    await ready;
+    return baseApi.updateNote(input);
+  },
+  async addTag(noteId, tagName) {
+    await ready;
+    return baseApi.addTag(noteId, tagName);
+  },
+  async removeTag(noteId, tagName) {
+    await ready;
+    return baseApi.removeTag(noteId, tagName);
+  },
+  async renameTag(oldName, newName) {
+    await ready;
+    return baseApi.renameTag(oldName, newName);
+  },
+  async getAllTags() {
+    await ready;
+    return baseApi.getAllTags();
+  },
+  async search(query) {
+    await ready;
+    return baseApi.search(query);
+  },
+  async getUntaggedNotes() {
+    await ready;
+    return baseApi.getUntaggedNotes();
+  },
+  async getLinkedNotes() {
+    await ready;
+    return baseApi.getLinkedNotes();
+  },
+  async getNotesForTag(tagId) {
+    await ready;
+    return baseApi.getNotesForTag(tagId);
+  },
+  async deleteNotes(ids) {
+    await ready;
+    return baseApi.deleteNotes(ids);
+  },
+  async getMediaForNote(noteId) {
+    await ready;
+    return baseApi.getMediaForNote(noteId);
+  },
 
   async deleteNote(id: string): Promise<void> {
     await ready;

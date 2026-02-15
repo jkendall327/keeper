@@ -77,6 +77,7 @@ export interface KeeperDB {
   // Smart views
   getUntaggedNotes(): Promise<NoteWithTags[]>;
   getLinkedNotes(): Promise<NoteWithTags[]>;
+  getNotesForTag(tagId: number): Promise<NoteWithTags[]>;
 
   // Media
   storeMedia(input: StoreMediaInput): Promise<Media>;

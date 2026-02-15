@@ -61,5 +61,29 @@ export function useDB() {
     [refresh],
   );
 
-  return { notes, allTags, refresh, createNote, updateNote, deleteNote, addTag, removeTag };
+  const search = useCallback(async (query: string) => {
+    return await getDB().search(query);
+  }, []);
+
+  const getUntaggedNotes = useCallback(async () => {
+    return await getDB().getUntaggedNotes();
+  }, []);
+
+  const getNotesForTag = useCallback(async (tagId: number) => {
+    return await getDB().getNotesForTag(tagId);
+  }, []);
+
+  return {
+    notes,
+    allTags,
+    refresh,
+    createNote,
+    updateNote,
+    deleteNote,
+    addTag,
+    removeTag,
+    search,
+    getUntaggedNotes,
+    getNotesForTag,
+  };
 }

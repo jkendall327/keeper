@@ -1,14 +1,56 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useEffect } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { QuickAdd } from './components/QuickAdd.tsx';
 import { NoteGrid } from './components/NoteGrid.tsx';
 import { NoteModal } from './components/NoteModal.tsx';
+import { SearchBar } from './components/SearchBar.tsx';
+import { Sidebar, type FilterType } from './components/Sidebar.tsx';
 import type { NoteWithTags } from './db/types.ts';
 
 function AppContent() {
-  const { notes, allTags, createNote, updateNote, deleteNote, addTag, removeTag } = useDB();
+  const {
+    notes,
+    allTags,
+    createNote,
+    updateNote,
+    deleteNote,
+    addTag,
+    removeTag,
+    search,
+    getUntaggedNotes,
+    getNotesForTag,
+  } = useDB();
+
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
+  const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(notes);
+
+  // Update displayed notes based on search query and active filter
+  useEffect(() => {
+    const loadNotes = async () => {
+      if (searchQuery.trim() !== '') {
+        // Use FTS5 search
+        const results = await search(searchQuery);
+        setDisplayedNotes(results);
+      } else {
+        // Apply filter
+        switch (activeFilter.type) {
+          case 'all':
+            setDisplayedNotes(notes);
+            break;
+          case 'untagged':
+            setDisplayedNotes(await getUntaggedNotes());
+            break;
+          case 'tag':
+            setDisplayedNotes(await getNotesForTag(activeFilter.tagId));
+            break;
+        }
+      }
+    };
+    void loadNotes();
+  }, [searchQuery, activeFilter, notes, search, getUntaggedNotes, getNotesForTag]);
 
   // Keep selectedNote in sync with latest data from notes array
   const currentNote = selectedNote
@@ -16,13 +58,17 @@ function AppContent() {
     : null;
 
   return (
-    <>
-      <QuickAdd onCreate={createNote} />
-      <NoteGrid
-        notes={notes}
-        onSelect={setSelectedNote}
-        onDelete={deleteNote}
-      />
+    <div className="app-layout">
+      <Sidebar tags={allTags} activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+      <div className="app-content">
+        <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        <QuickAdd onCreate={createNote} />
+        <NoteGrid
+          notes={displayedNotes}
+          onSelect={setSelectedNote}
+          onDelete={deleteNote}
+        />
+      </div>
       {currentNote && (
         <NoteModal
           note={currentNote}
@@ -34,7 +80,7 @@ function AppContent() {
           onClose={() => { setSelectedNote(null); }}
         />
       )}
-    </>
+    </div>
   );
 }
 

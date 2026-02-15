@@ -197,6 +197,17 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return rows.map((r) => withTags(rowToNote(r)));
     },
 
+    async getNotesForTag(tagId: number): Promise<NoteWithTags[]> {
+      const rows = db.query(
+        `SELECT n.* FROM notes n
+         JOIN note_tags nt ON nt.note_id = n.id
+         WHERE nt.tag_id = ?
+         ORDER BY n.updated_at DESC`,
+        [tagId],
+      );
+      return rows.map((r) => withTags(rowToNote(r)));
+    },
+
     async storeMedia(_input: StoreMediaInput): Promise<Media> {
       throw new Error('storeMedia: must be implemented by worker with OPFS access');
     },

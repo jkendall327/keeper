@@ -12,10 +12,10 @@ export function createMockDB(): MockDB {
   let noteId = 1;
   let tagId = 1;
   const notes = new Map<string, NoteWithTags>();
-  const tags = new Map<string, Tag>();
+  const tags = new Map<number, Tag>();
 
   const generateId = () => `n${noteId++}`;
-  const generateTagId = () => `t${tagId++}`;
+  const generateTagId = () => tagId++;
   const now = () => new Date().toISOString();
 
   const reset = () => {
@@ -131,6 +131,26 @@ export function createMockDB(): MockDB {
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
       return Array.from(notes.values()).filter(n => n.has_links);
+    },
+
+    async getNotesForTag(tagId: number): Promise<NoteWithTags[]> {
+      return Array.from(notes.values()).filter(n => n.tags.some(t => t.id === tagId));
+    },
+
+    async storeMedia(): Promise<never> {
+      throw new Error('storeMedia not implemented in mock');
+    },
+
+    async getMedia(): Promise<never> {
+      throw new Error('getMedia not implemented in mock');
+    },
+
+    async deleteMedia(): Promise<never> {
+      throw new Error('deleteMedia not implemented in mock');
+    },
+
+    async getMediaForNote(): Promise<never> {
+      throw new Error('getMediaForNote not implemented in mock');
     },
   };
 }

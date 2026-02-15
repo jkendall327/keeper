@@ -125,7 +125,7 @@ export function createMockDB(): MockDB {
       // Get or create tag
       let tag = Array.from(tags.values()).find(t => t.name === tagName);
       if (tag === undefined) {
-        tag = { id: generateTagId(), name: tagName };
+        tag = { id: generateTagId(), name: tagName, icon: null };
         tags.set(tag.id, tag);
       }
 
@@ -160,6 +160,22 @@ export function createMockDB(): MockDB {
       return Promise.resolve();
     },
 
+    async updateTagIcon(tagId: number, icon: string | null): Promise<void> {
+      const tag = tags.get(tagId);
+      if (tag !== undefined) {
+        tag.icon = icon;
+        // Update icon on all notes that have this tag
+        for (const note of notes.values()) {
+          for (const t of note.tags) {
+            if (t.id === tagId) {
+              t.icon = icon;
+            }
+          }
+        }
+      }
+      return Promise.resolve();
+    },
+
     async deleteTag(tagId: number): Promise<void> {
       // Remove tag from all notes
       for (const note of notes.values()) {
@@ -177,9 +193,9 @@ export function createMockDB(): MockDB {
     async search(query: string): Promise<SearchResult[]> {
       const q = query.toLowerCase();
       return Promise.resolve(
-        Array.from(notes.values()).filter(
-          (n) => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q),
-        ),
+        Array.from(notes.values())
+          .filter((n) => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q))
+          .map((n, i) => ({ ...n, rank: -(i + 1) })),
       );
     },
 

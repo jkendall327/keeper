@@ -107,7 +107,10 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
       {note.tags.length > 0 && (
         <div className="note-card-tags">
           {note.tags.map((tag) => (
-            <span key={tag.id} className="note-card-tag">{tag.name}</span>
+            <span key={tag.id} className="note-card-tag">
+              <Icon name={tag.icon ?? 'label'} size={14} />
+              {tag.name}
+            </span>
           ))}
         </div>
       )}

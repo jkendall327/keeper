@@ -44,6 +44,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
     addTag,
     removeTag,
     renameTag,
+    updateTagIcon,
     deleteTag,
     search,
     toggleArchiveNote,
@@ -151,6 +152,11 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
         onDeleteTag={(id) => {
           deleteTag(id).catch((err: unknown) => {
             console.error('Failed to delete tag:', err);
+          });
+        }}
+        onUpdateTagIcon={(id, icon) => {
+          updateTagIcon(id, icon).catch((err: unknown) => {
+            console.error('Failed to update tag icon:', err);
           });
         }}
       />

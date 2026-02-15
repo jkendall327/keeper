@@ -583,4 +583,123 @@ describe('App Integration Tests', () => {
 
     window.confirm = originalConfirm;
   });
+
+  it('tag chips in note cards show a material icon', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note and add a tag
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Tag icon test');
+    await user.keyboard('{Enter}');
+
+    const noteCard = await screen.findByText('Tag icon test');
+    await user.click(noteCard);
+
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'work');
+    await user.keyboard('{Enter}');
+
+    // Close modal
+    await user.keyboard('{Escape}');
+
+    // The tag chip in the card should contain a material icon
+    await waitFor(() => {
+      const chip = document.querySelector('.note-card-tag');
+      if (chip === null) throw new Error('Tag chip not found');
+      const icon = chip.querySelector('.material-symbols-outlined');
+      if (icon === null) throw new Error('Material icon not found in tag chip');
+      expect(icon.textContent).toBe('label');
+    });
+  });
+
+  it('double-click sidebar tag enters inline rename mode', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note and add a tag
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Rename tag test');
+    await user.keyboard('{Enter}');
+
+    const noteCard = await screen.findByText('Rename tag test');
+    await user.click(noteCard);
+
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'oldname');
+    await user.keyboard('{Enter}');
+
+    await user.keyboard('{Escape}');
+
+    // Wait for the tag to appear in the sidebar
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    await waitFor(() => {
+      expect(sidebar.textContent).toContain('oldname');
+    });
+    const sidebarTag = Array.from(sidebar.querySelectorAll('.sidebar-tag-name')).find(
+      (el) => el.textContent === 'oldname',
+    );
+    if (sidebarTag === undefined) throw new Error('Sidebar tag not found');
+
+    // Double-click the tag name to rename
+    await user.dblClick(sidebarTag);
+
+    // An input should appear with the tag name
+    const renameInput = await screen.findByDisplayValue('oldname');
+    expect(renameInput).toBeInTheDocument();
+    expect(renameInput.tagName).toBe('INPUT');
+
+    // Type new name and press Enter
+    await user.clear(renameInput);
+    await user.type(renameInput, 'newname');
+    await user.keyboard('{Enter}');
+
+    // The tag should now be renamed in the sidebar
+    await waitFor(() => {
+      const sidebarEl = document.querySelector('.sidebar');
+      if (sidebarEl === null) throw new Error('Sidebar not found');
+      const tagNames = Array.from(sidebarEl.querySelectorAll('.sidebar-tag-name')).map((el) => el.textContent);
+      expect(tagNames).toContain('newname');
+      expect(tagNames).not.toContain('oldname');
+    });
+  });
+
+  it('sidebar tag shows delete button on hover that removes the tag', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note and add a tag
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Delete tag test');
+    await user.keyboard('{Enter}');
+
+    const noteCard = await screen.findByText('Delete tag test');
+    await user.click(noteCard);
+
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'removeme');
+    await user.keyboard('{Enter}');
+
+    await user.keyboard('{Escape}');
+
+    // Wait for tag in sidebar
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    await waitFor(() => {
+      expect(sidebar.textContent).toContain('removeme');
+    });
+
+    // Find the delete button (it's always in the DOM, just hidden with opacity)
+    const deleteBtn = screen.getByLabelText('Delete tag removeme');
+    expect(deleteBtn).toBeInTheDocument();
+
+    // Click the delete button
+    await user.click(deleteBtn);
+
+    // Tag should be removed from sidebar
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Delete tag removeme')).not.toBeInTheDocument();
+    });
+  });
 });

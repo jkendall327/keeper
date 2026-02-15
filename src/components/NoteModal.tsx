@@ -215,6 +215,7 @@ export function NoteModal({
           <div className="modal-tag-list">
             {note.tags.map((tag) => (
               <span key={tag.id} className="modal-tag-chip">
+                <Icon name={tag.icon ?? 'label'} size={14} />
                 {tag.name}
                 <button
                   className="modal-tag-remove"

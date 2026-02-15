@@ -14,6 +14,7 @@ export interface Note {
 export interface Tag {
   id: number;
   name: string;
+  icon: string | null;
 }
 
 export interface NoteTag {
@@ -74,6 +75,7 @@ export interface KeeperDB {
   addTag(noteId: string, tagName: string): Promise<NoteWithTags>;
   removeTag(noteId: string, tagName: string): Promise<NoteWithTags>;
   renameTag(oldName: string, newName: string): Promise<void>;
+  updateTagIcon(tagId: number, icon: string | null): Promise<void>;
   deleteTag(tagId: number): Promise<void>;
   getAllTags(): Promise<Tag[]>;
 

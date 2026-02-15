@@ -122,18 +122,54 @@
   outline: none;
 }
 
-.sidebar-tag-delete {
-  padding: 4px 8px;
-  font-family: inherit;
-  font-size: 1.2rem;
+.sidebar-tag-icon-wrapper {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sidebar-tag-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
   border: none;
   border-radius: 4px;
   background: transparent;
   color: inherit;
   cursor: pointer;
-  opacity: 0.5;
+  opacity: 0.6;
+  transition: opacity 0.15s;
+}
+
+.sidebar-tag-icon-btn:hover {
+  opacity: 1;
+  background: rgba(128, 128, 128, 0.15);
+}
+
+.sidebar-tag-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-tag-delete {
+  padding: 4px;
+  font-family: inherit;
+  font-size: 1rem;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  opacity: 0;
   transition: opacity 0.15s, background-color 0.15s;
   line-height: 1;
+  flex-shrink: 0;
+}
+
+.sidebar-tag-item:hover .sidebar-tag-delete {
+  opacity: 0.5;
 }
 
 .sidebar-tag-delete:hover {
@@ -371,6 +407,9 @@
 }
 
 .note-card-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 0.7rem;
   padding: 2px 8px;
   border-radius: 10px;
@@ -913,4 +952,108 @@ body.is-drag-selecting {
 .export-burn-btn:hover {
   background: rgba(255, 68, 68, 0.25);
   border-color: #ff4444;
+}
+
+/* ── Icon Picker ──────────────────────────────────────────── */
+
+.icon-picker {
+  position: absolute;
+  z-index: 100;
+  left: 0;
+  top: 100%;
+  width: 280px;
+  max-height: 320px;
+  overflow-y: auto;
+  background: #2a2a2a;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  padding: 8px;
+}
+
+.icon-picker-search {
+  width: 100%;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 0.85rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: inherit;
+  outline: none;
+  margin-bottom: 8px;
+  box-sizing: border-box;
+}
+
+.icon-picker-search:focus {
+  border-color: #646cff;
+}
+
+.icon-picker-section {
+  margin-bottom: 4px;
+}
+
+.icon-picker-section-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  padding-left: 2px;
+}
+
+.icon-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.icon-picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.icon-picker-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.icon-picker-empty {
+  text-align: center;
+  padding: 16px;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+@media (prefers-color-scheme: light) {
+  .icon-picker {
+    background: #fff;
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  }
+
+  .icon-picker-search {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.15);
+  }
+
+  .icon-picker-section-label {
+    color: rgba(0, 0, 0, 0.4);
+  }
+
+  .icon-picker-item:hover {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  .icon-picker-empty {
+    color: rgba(0, 0, 0, 0.4);
+  }
 }

@@ -29,10 +29,18 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
 
   const output = mode === 'text' ? textOutput : urlOutput;
 
+  const [copyFailed, setCopyFailed] = useState(false);
+
   const handleCopy = useCallback(async () => {
-    await navigator.clipboard.writeText(output);
-    setCopied(true);
-    setTimeout(() => { setCopied(false); }, 1500);
+    try {
+      await navigator.clipboard.writeText(output);
+      setCopied(true);
+      setCopyFailed(false);
+      setTimeout(() => { setCopied(false); }, 1500);
+    } catch {
+      setCopyFailed(true);
+      setTimeout(() => { setCopyFailed(false); }, 2000);
+    }
   }, [output]);
 
   const handleDownload = useCallback(() => {
@@ -47,7 +55,8 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
 
   const handleDelete = useCallback(() => {
     // Close modal first so it unmounts via its own flag,
-    // not from selectedNoteIds clearing during onDelete
+    // not from selectedNoteIds clearing during onDelete.
+    // Confirmation is handled by the onDelete callback (handleBulkDelete).
     onClose();
     onDelete();
   }, [onDelete, onClose]);
@@ -89,7 +98,7 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
 
         <div className="export-actions">
           <button className="export-action-btn export-copy-btn" onClick={() => { void handleCopy(); }}>
-            {copied ? 'Copied!' : 'Copy to clipboard'}
+            {copied ? 'Copied!' : copyFailed ? 'Copy failed' : 'Copy to clipboard'}
           </button>
           <button className="export-action-btn export-download-btn" onClick={handleDownload}>
             Download .txt

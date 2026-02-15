@@ -91,6 +91,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedNoteIds);
     if (ids.length === 0) return;
+    if (!window.confirm(`Delete ${String(ids.length)} selected note${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
     await deleteNotes(ids);
     setSelectedNoteIds(new Set());
   }, [selectedNoteIds, deleteNotes, setSelectedNoteIds]);

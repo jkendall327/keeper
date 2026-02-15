@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@motioneffector/llm": "^1.0.1",
     "@sqlite.org/sqlite-wasm": "^3.51.2-build6",
     "comlink": "^4.4.2",
     "markdown-it": "^14.1.1",

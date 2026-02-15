@@ -84,12 +84,17 @@ export function NoteGrid({
     const handleMouseUp = () => {
       const wasDragging = isDraggingRef.current;
       const drag = dragRef.current;
+
+      // If no drag was initiated from the wrapper, ignore this mouseup
+      // (e.g. clicks on header buttons should not clear selection).
+      if (!drag) return;
+
       dragRef.current = null;
       isDraggingRef.current = false;
       setSelRect(null);
       document.body.classList.remove('is-drag-selecting');
 
-      if (wasDragging && drag) {
+      if (wasDragging) {
         const wrapper = wrapperRef.current;
         if (!wrapper) return;
         const wrapperRect = wrapper.getBoundingClientRect();

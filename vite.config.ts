@@ -6,7 +6,19 @@ export default defineConfig({
   plugins: [
     react({
       babel: {
-        plugins: [['babel-plugin-react-compiler']],
+        plugins: [
+          [
+            'babel-plugin-react-compiler',
+            {
+              compilationMode: 'all',
+              panicThreshold: 'NONE',
+              environment: {
+                enableTreatRefLikeIdentifiersAsRefs: true,
+                enableTreatFunctionDepsAsConst: false,
+              },
+            },
+          ],
+        ],
       },
     }),
   ],

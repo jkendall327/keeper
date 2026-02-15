@@ -377,15 +377,18 @@ describe('App Integration Tests', () => {
 
     // Exactly notes A, B, C should be selected — verified via count + identity
     await waitFor(() => {
-      // Count via semantic query
+      // Count via semantic query and verify each check is inside a selected card
       const checks = screen.getAllByLabelText('Selected');
       expect(checks).toHaveLength(3);
-      // Verify each check mark belongs to the correct card
-      for (const check of checks) {
-        const card = check.closest('.note-card');
-        if (card === null) throw new Error('Check mark not inside a note card');
-        expect(card).toHaveClass('note-card-selected');
-      }
+      const checkCard0 = checks[0].closest('.note-card');
+      const checkCard1 = checks[1].closest('.note-card');
+      const checkCard2 = checks[2].closest('.note-card');
+      if (checkCard0 === null) throw new Error('Check 0 not inside a note card');
+      if (checkCard1 === null) throw new Error('Check 1 not inside a note card');
+      if (checkCard2 === null) throw new Error('Check 2 not inside a note card');
+      expect(checkCard0).toHaveClass('note-card-selected');
+      expect(checkCard1).toHaveClass('note-card-selected');
+      expect(checkCard2).toHaveClass('note-card-selected');
       // Verify the specific cards are the right ones
       const cardA2 = screen.getByText('Note A').closest('.note-card');
       const cardB2 = screen.getByText('Note B').closest('.note-card');
@@ -524,5 +527,60 @@ describe('App Integration Tests', () => {
       expect(screen.getByText('Check https://example.com for details')).toBeInTheDocument();
       expect(screen.queryByText('No links here')).not.toBeInTheDocument();
     });
+  });
+
+  it('burn button appears only after export and deletes notes on click', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+
+    // Create two notes
+    await user.type(input, 'Burn note 1');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Burn note 1');
+
+    await user.type(input, 'Burn note 2');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Burn note 2');
+
+    // Ctrl-click both to select
+    await user.keyboard('{Control>}');
+    await user.click(screen.getByText('Burn note 1'));
+    await user.click(screen.getByText('Burn note 2'));
+    await user.keyboard('{/Control}');
+
+    // Open export modal
+    await waitFor(() => {
+      expect(screen.getByText('Export')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('Export'));
+
+    // Export modal should open
+    await screen.findByText('Copy to clipboard');
+
+    // Burn button should NOT be visible before export
+    expect(screen.queryByText(/Permanently delete/)).not.toBeInTheDocument();
+
+    // Click download (triggers export completion)
+    await user.click(screen.getByText('Download .txt'));
+
+    // Burn button should now appear
+    const burnBtn = await screen.findByText(/Permanently delete/);
+    expect(burnBtn).toBeInTheDocument();
+
+    // Click burn — notes should be deleted after confirmation
+    // The handleBulkDelete uses window.confirm; jsdom doesn't provide it by default
+    const originalConfirm = window.confirm;
+    window.confirm = vi.fn(() => true);
+    await user.click(burnBtn);
+
+    // Notes should be deleted
+    await waitFor(() => {
+      expect(screen.queryByText('Burn note 1')).not.toBeInTheDocument();
+      expect(screen.queryByText('Burn note 2')).not.toBeInTheDocument();
+    });
+
+    window.confirm = originalConfirm;
   });
 });

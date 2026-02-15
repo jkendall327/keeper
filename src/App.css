@@ -904,8 +904,13 @@ body.is-drag-selecting {
   background: rgba(100, 108, 255, 0.25);
 }
 
-.export-delete-btn:hover {
+.export-burn-btn {
   background: rgba(255, 68, 68, 0.1);
   border-color: rgba(255, 68, 68, 0.5);
   color: #ff4444;
+}
+
+.export-burn-btn:hover {
+  background: rgba(255, 68, 68, 0.25);
+  border-color: #ff4444;
 }

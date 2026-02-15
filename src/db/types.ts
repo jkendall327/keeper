@@ -66,6 +66,7 @@ export interface KeeperDB {
   updateNote(input: UpdateNoteInput): Promise<NoteWithTags>;
   deleteNote(id: string): Promise<void>;
   deleteNotes(ids: string[]): Promise<void>;
+  archiveNotes(ids: string[]): Promise<void>;
   togglePinNote(id: string): Promise<NoteWithTags>;
   toggleArchiveNote(id: string): Promise<NoteWithTags>;
 

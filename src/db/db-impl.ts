@@ -180,6 +180,12 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       }
     },
 
+    async archiveNotes(ids: string[]): Promise<void> {
+      if (ids.length === 0) return;
+      const placeholders = ids.map(() => '?').join(',');
+      db.run(`UPDATE notes SET archived = 1 WHERE id IN (${placeholders})`, ids);
+    },
+
     async togglePinNote(id: string): Promise<NoteWithTags> {
       const existing = await api.getNote(id);
       if (existing === null) throw new Error(`Note not found: ${id}`);

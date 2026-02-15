@@ -77,6 +77,15 @@ export function createMockDB(): MockDB {
       }
     },
 
+    async archiveNotes(ids: string[]): Promise<void> {
+      for (const id of ids) {
+        const note = notes.get(id);
+        if (note) {
+          notes.set(id, { ...note, archived: true });
+        }
+      }
+    },
+
     async togglePinNote(id: string): Promise<NoteWithTags> {
       const note = notes.get(id);
       if (!note) throw new Error(`Note ${id} not found`);

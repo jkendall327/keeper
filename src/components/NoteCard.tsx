@@ -9,14 +9,27 @@ interface NoteCardProps {
   onToggleArchive: (id: string) => Promise<void>;
   previewMode: boolean;
   onUpdate: (input: UpdateNoteInput) => Promise<void>;
+  isSelected?: boolean;
 }
 
-export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, previewMode, onUpdate }: NoteCardProps) {
+export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, previewMode, onUpdate, isSelected }: NoteCardProps) {
   const handleCheckboxToggle = (newBody: string) => {
     void onUpdate({ id: note.id, body: newBody });
   };
   return (
-    <div className="note-card" onClick={() => { onSelect(note); }}>
+    <div
+      className={`note-card${isSelected ? ' note-card-selected' : ''}`}
+      data-note-id={note.id}
+      onClick={() => { onSelect(note); }}
+    >
+      {isSelected && (
+        <span className="note-card-check" aria-label="Selected">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="10" fill="#646cff" />
+            <path d="M6 10l3 3 5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+      )}
       <div className="note-card-actions">
         <button
           className="note-card-pin"

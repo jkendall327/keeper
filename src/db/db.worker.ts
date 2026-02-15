@@ -83,6 +83,7 @@ const api: KeeperDB = {
   getLinkedNotes: delegate('getLinkedNotes'),
   getNotesForTag: delegate('getNotesForTag'),
   deleteNotes: delegate('deleteNotes'),
+  archiveNotes: delegate('archiveNotes'),
   togglePinNote: delegate('togglePinNote'),
   toggleArchiveNote: delegate('toggleArchiveNote'),
   getArchivedNotes: delegate('getArchivedNotes'),

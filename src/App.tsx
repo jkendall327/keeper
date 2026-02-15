@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect } from 'react';
+import { Suspense, useState, useEffect, useCallback } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { QuickAdd } from './components/QuickAdd.tsx';
@@ -10,15 +10,19 @@ import type { NoteWithTags } from './db/types.ts';
 
 interface AppContentProps {
   previewMode: boolean;
+  selectedNoteIds: Set<string>;
+  setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
 }
 
-function AppContent({ previewMode }: AppContentProps) {
+function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds }: AppContentProps) {
   const {
     notes,
     allTags,
     createNote,
     updateNote,
     deleteNote,
+    deleteNotes,
+    archiveNotes,
     togglePinNote,
     addTag,
     removeTag,
@@ -69,6 +73,40 @@ function AppContent({ previewMode }: AppContentProps) {
     ? notes.find((n) => n.id === selectedNote.id) ?? null
     : null;
 
+  const clearSelection = useCallback(() => {
+    setSelectedNoteIds(new Set());
+  }, [setSelectedNoteIds]);
+
+  const handleBulkSelect = useCallback((ids: Set<string>) => {
+    setSelectedNoteIds(ids);
+  }, [setSelectedNoteIds]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = Array.from(selectedNoteIds);
+    if (ids.length === 0) return;
+    await deleteNotes(ids);
+    setSelectedNoteIds(new Set());
+  }, [selectedNoteIds, deleteNotes, setSelectedNoteIds]);
+
+  const handleBulkArchive = useCallback(async () => {
+    const ids = Array.from(selectedNoteIds);
+    if (ids.length === 0) return;
+    await archiveNotes(ids);
+    setSelectedNoteIds(new Set());
+  }, [selectedNoteIds, archiveNotes, setSelectedNoteIds]);
+
+  // Listen for bulk action events from header buttons
+  useEffect(() => {
+    const onBulkDelete = () => { void handleBulkDelete(); };
+    const onBulkArchive = () => { void handleBulkArchive(); };
+    window.addEventListener('keeper:bulk-delete', onBulkDelete);
+    window.addEventListener('keeper:bulk-archive', onBulkArchive);
+    return () => {
+      window.removeEventListener('keeper:bulk-delete', onBulkDelete);
+      window.removeEventListener('keeper:bulk-archive', onBulkArchive);
+    };
+  }, [handleBulkDelete, handleBulkArchive]);
+
   return (
     <div className="app-layout">
       <Sidebar
@@ -89,6 +127,9 @@ function AppContent({ previewMode }: AppContentProps) {
           onToggleArchive={toggleArchiveNote}
           previewMode={previewMode}
           onUpdateNote={updateNote}
+          selectedNoteIds={selectedNoteIds}
+          onBulkSelect={handleBulkSelect}
+          onClearSelection={clearSelection}
         />
       </div>
       {currentNote && (
@@ -109,22 +150,51 @@ function AppContent({ previewMode }: AppContentProps) {
 
 function App() {
   const [previewMode, setPreviewMode] = useState(false);
+  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>Keeper</h1>
-        <button
-          className="preview-toggle"
-          onClick={() => { setPreviewMode(!previewMode); }}
-          title={previewMode ? 'Switch to edit mode' : 'Switch to preview mode'}
-        >
-          {previewMode ? '📝' : '👁️'}
-        </button>
+        <div className="app-header-actions">
+          {selectedNoteIds.size > 0 && (
+            <div className="bulk-actions">
+              <span className="bulk-count">{selectedNoteIds.size} selected</span>
+              <button
+                className="bulk-action-btn bulk-archive-btn"
+                onClick={() => {
+                  // Dispatch a custom event that AppContent listens for
+                  window.dispatchEvent(new CustomEvent('keeper:bulk-archive'));
+                }}
+              >
+                Archive
+              </button>
+              <button
+                className="bulk-action-btn bulk-delete-btn"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('keeper:bulk-delete'));
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          )}
+          <button
+            className="preview-toggle"
+            onClick={() => { setPreviewMode(!previewMode); }}
+            title={previewMode ? 'Switch to edit mode' : 'Switch to preview mode'}
+          >
+            {previewMode ? '📝' : '👁️'}
+          </button>
+        </div>
       </header>
       <main className="app-main">
         <Suspense fallback={<p className="loading">Loading...</p>}>
-          <AppContent previewMode={previewMode} />
+          <AppContent
+            previewMode={previewMode}
+            selectedNoteIds={selectedNoteIds}
+            setSelectedNoteIds={setSelectedNoteIds}
+          />
         </Suspense>
       </main>
     </div>

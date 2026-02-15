@@ -45,6 +45,22 @@ export function useDB() {
     [refresh],
   );
 
+  const deleteNotes = useCallback(
+    async (ids: string[]) => {
+      await getDB().deleteNotes(ids);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const archiveNotes = useCallback(
+    async (ids: string[]) => {
+      await getDB().archiveNotes(ids);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const togglePinNote = useCallback(
     async (id: string) => {
       await getDB().togglePinNote(id);
@@ -116,6 +132,8 @@ export function useDB() {
     createNote,
     updateNote,
     deleteNote,
+    deleteNotes,
+    archiveNotes,
     togglePinNote,
     addTag,
     removeTag,

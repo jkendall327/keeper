@@ -270,4 +270,36 @@ describe('App Integration Tests', () => {
       expect(updatedCard).toHaveClass('note-card-pinned');
     });
   });
+
+  it('shows empty-note deletion warning when body is cleared', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Warning test');
+    await user.keyboard('{Enter}');
+
+    // Open modal
+    const noteCard = await screen.findByText('Warning test');
+    await user.click(noteCard);
+
+    // Warning should not be visible initially
+    expect(screen.queryByText('This note will be deleted when closed.')).not.toBeInTheDocument();
+
+    // Clear body
+    const bodyInput = await screen.findByPlaceholderText('Note');
+    await user.clear(bodyInput);
+
+    // Warning should appear
+    expect(await screen.findByText('This note will be deleted when closed.')).toBeInTheDocument();
+
+    // Type something back
+    await user.type(bodyInput, 'Saved');
+
+    // Warning should disappear
+    await waitFor(() => {
+      expect(screen.queryByText('This note will be deleted when closed.')).not.toBeInTheDocument();
+    });
+  });
 });

@@ -206,6 +206,9 @@ export function NoteModal({
               )}
             </>
           )}
+          {body.trim() === '' && (
+            <p className="modal-empty-warning">This note will be deleted when closed.</p>
+          )}
         </div>
         <div className="modal-tags">
           <h4 className="modal-tags-title">Tags</h4>

@@ -1,3 +1,4 @@
+import { useRef, useState, useEffect } from 'react';
 import type { NoteWithTags, UpdateNoteInput } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
@@ -14,6 +15,19 @@ interface NoteCardProps {
 }
 
 export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, previewMode, onUpdate, isSelected }: NoteCardProps) {
+  const bodyRef = useRef<HTMLParagraphElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (el === null) return;
+    const check = () => { setIsTruncated(el.scrollHeight > el.clientHeight); };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => { observer.disconnect(); };
+  }, [note.body]);
+
   const handleCheckboxToggle = (newBody: string) => {
     void onUpdate({ id: note.id, body: newBody });
   };
@@ -87,8 +101,9 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
           className="note-card-body"
         />
       ) : (
-        <p className="note-card-body">{note.body}</p>
+        <p ref={bodyRef} className="note-card-body">{note.body}</p>
       )}
+      {isTruncated && <span className="note-card-truncation">[...]</span>}
       {note.tags.length > 0 && (
         <div className="note-card-tags">
           {note.tags.map((tag) => (

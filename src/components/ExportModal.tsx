@@ -14,10 +14,11 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
   const [mode, setMode] = useState<Mode>('text');
   const [sorted, setSorted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [separator, setSeparator] = useState<'\n' | '\n\n'>('\n');
 
   const textOutput = useMemo(
-    () => notes.map((n) => n.body).join('\n'),
-    [notes],
+    () => notes.map((n) => n.body).join(separator),
+    [notes, separator],
   );
 
   const urlOutput = useMemo(() => {
@@ -78,6 +79,29 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
             URLs
           </button>
         </div>
+
+        {mode === 'text' && (
+          <div className="export-separator-toggle" role="radiogroup" aria-label="Note separator">
+            <label>
+              <input
+                type="radio"
+                name="separator"
+                checked={separator === '\n'}
+                onChange={() => { setSeparator('\n'); }}
+              />
+              Compact
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="separator"
+                checked={separator === '\n\n'}
+                onChange={() => { setSeparator('\n\n'); }}
+              />
+              Spaced
+            </label>
+          </div>
+        )}
 
         {mode === 'urls' && (
           <label className="export-sort-toggle">

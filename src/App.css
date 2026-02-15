@@ -340,6 +340,14 @@
   padding-right: 64px;
 }
 
+.note-card-truncation {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.4;
+  text-align: center;
+  margin-top: 4px;
+}
+
 .note-card-time {
   display: block;
   margin-top: 8px;
@@ -439,6 +447,13 @@
   overflow-y: auto;
   font-size: 0.9rem;
   line-height: 1.6;
+}
+
+.modal-empty-warning {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  color: #ff9800;
+  opacity: 0.9;
 }
 
 .modal-tags {
@@ -803,6 +818,21 @@ body.is-drag-selecting {
   background: rgba(100, 108, 255, 0.15);
   border-color: #646cff;
   color: #646cff;
+}
+
+.export-separator-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.export-separator-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
 }
 
 .export-sort-toggle {

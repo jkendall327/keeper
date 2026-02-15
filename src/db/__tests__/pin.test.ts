@@ -118,7 +118,7 @@ describe('Note pinning', () => {
     const notesForTag = await api.getNotesForTag(workTag.id);
 
     // Note 2 should be first because it's pinned
-    expect(notesForTag.length).toBeGreaterThan(0);
+    expect(notesForTag.length).toBe(3);
     expect(notesForTag[0]?.id).toBe(note2.id);
     expect(notesForTag[0]?.pinned).toBe(true);
   });
@@ -135,7 +135,7 @@ describe('Note pinning', () => {
     const untagged = await api.getUntaggedNotes();
 
     // Note 1 should be first because it's pinned
-    expect(untagged.length).toBeGreaterThan(0);
+    expect(untagged.length).toBe(3);
     expect(untagged[0]?.id).toBe(note1.id);
     expect(untagged[0]?.pinned).toBe(true);
   });
@@ -152,7 +152,7 @@ describe('Note pinning', () => {
     const linked = await api.getLinkedNotes();
 
     // Note 3 should be first because it's pinned
-    expect(linked.length).toBeGreaterThan(0);
+    expect(linked.length).toBe(3);
     expect(linked[0]?.id).toBe(note3.id);
     expect(linked[0]?.pinned).toBe(true);
   });

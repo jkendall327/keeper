@@ -65,8 +65,8 @@ describe('containsUrl', () => {
         fc.property(
           fc.stringMatching(/^[a-zA-Z0-9 ]*$/),
           (text) => {
-            // Skip if text accidentally contains 'http' or 'https'
-            if (text.includes('http')) return;
+            // Declare precondition: skip if text accidentally contains 'http'
+            fc.pre(!text.includes('http'));
             expect(containsUrl(text)).toBe(false);
           },
         ),

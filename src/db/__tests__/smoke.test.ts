@@ -21,7 +21,6 @@ describe('Smoke test', () => {
     expect(created.body).toBe('Hello, world!');
     expect(created.id).toBe('test-id-1');
     expect(created.created_at).toBe('2025-01-15 12:00:00');
-    expect(created.tags).toEqual([]);
 
     const retrieved = await api.getNote(created.id);
     expect(retrieved).toEqual(created);

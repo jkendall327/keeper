@@ -92,11 +92,20 @@ describe('Smart Views', () => {
     });
 
     it('excludes notes without links', async () => {
-      await api.createNote({ body: 'Plain text' });
-      await api.createNote({ body: 'More text' });
+      const note1 = await api.createNote({ body: 'Plain text' });
+      const note2 = await api.createNote({ body: 'More text' });
+      const allNotes = await api.getAllNotes();
+      expect(allNotes.length).toBe(2);
+      expect(allNotes.some(n => n.id === note1.id)).toBe(true);
+      expect(allNotes.some(n => n.id === note2.id)).toBe(true);
 
       const linked = await api.getLinkedNotes();
       expect(linked).toEqual([]);
+      // Positive case: adding a URL makes a note appear in linked view
+      await api.updateNote({ id: note1.id, body: 'Visit https://example.com' });
+      const afterLink = await api.getLinkedNotes();
+      expect(afterLink).toHaveLength(1);
+      expect(afterLink[0]?.id).toBe(note1.id);
     });
 
     it('note appears after update adds URL to body', async () => {

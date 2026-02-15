@@ -41,6 +41,8 @@ describe('CRUD Invariants (Property-Based)', () => {
     await fc.assert(
       fc.asyncProperty(fc.string({ minLength: 1, maxLength: 500 }), async (body) => {
         const note = await api.createNote({ body });
+        expect(note.body).toBe(body);
+        expect(note.id).toBeTruthy();
         await api.deleteNote(note.id);
         const result = await api.getNote(note.id);
         expect(result).toBeNull();

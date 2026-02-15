@@ -47,9 +47,17 @@ describe('Note CRUD', () => {
       expect(note.has_links).toBe(false);
     });
 
-    it('returns empty tags array for new note', async () => {
+    it('starts with no tags, gains tags after addTag', async () => {
       const note = await api.createNote({ body: 'test' });
-      expect(note.tags).toEqual([]);
+      expect(note).toMatchObject({
+        body: 'test',
+        id: 'test-id-1',
+        tags: [],
+      });
+      // After addTag, exactly one tag present
+      const tagged = await api.addTag(note.id, 'hello');
+      expect(tagged.tags).toHaveLength(1);
+      expect(tagged.tags[0]?.name).toBe('hello');
     });
   });
 
@@ -61,8 +69,14 @@ describe('Note CRUD', () => {
     });
 
     it('returns null for nonexistent id', async () => {
+      // Positive case: valid ID returns the note
+      const created = await api.createNote({ body: 'test' });
+      const fetched = await api.getNote(created.id);
+      expect(fetched?.body).toBe('test');
+      expect(fetched?.id).toBe(created.id);
+      // Negative case: invalid ID returns null
       const result = await api.getNote('nonexistent');
-      expect(result).toBeNull();
+      expect(result).toBe(null);
     });
   });
 
@@ -70,6 +84,11 @@ describe('Note CRUD', () => {
     it('returns empty array when no notes exist', async () => {
       const notes = await api.getAllNotes();
       expect(notes).toEqual([]);
+      // Positive case: adding a note makes it non-empty
+      await api.createNote({ body: 'first' });
+      const after = await api.getAllNotes();
+      expect(after).toHaveLength(1);
+      expect(after[0]?.body).toBe('first');
     });
 
     it('returns notes ordered by updated_at DESC', async () => {
@@ -146,6 +165,8 @@ describe('Note CRUD', () => {
   describe('deleteNote', () => {
     it('deletes note by id', async () => {
       const note = await api.createNote({ body: 'test' });
+      expect(note.id).toBe('test-id-1');
+      expect(note.body).toBe('test');
       await api.deleteNote(note.id);
       const retrieved = await api.getNote(note.id);
       expect(retrieved).toBeNull();
@@ -153,18 +174,28 @@ describe('Note CRUD', () => {
 
     it('getNote returns null after delete', async () => {
       const note = await api.createNote({ body: 'test' });
+      expect(note.body).toBe('test');
+      expect(note.id).toBe('test-id-1');
       await api.deleteNote(note.id);
       expect(await api.getNote(note.id)).toBeNull();
     });
 
     it('cascade deletes note_tags entries', async () => {
       const note = await api.createNote({ body: 'test' });
+      expect(note.body).toBe('test');
       await api.addTag(note.id, 'tag1');
-      expect((await api.getNote(note.id))?.tags.length).toBe(1);
+      const noteWithTag = await api.getNote(note.id);
+      expect(noteWithTag?.tags).toHaveLength(1);
+      expect(noteWithTag?.tags[0]).toEqual({ id: 1, name: 'tag1' });
+
+      // Verify note exists in getAllNotes before delete
+      const allNotes = await api.getAllNotes();
+      expect(allNotes).toHaveLength(1);
+      expect(allNotes[0]?.id).toBe(note.id);
 
       await api.deleteNote(note.id);
-      const allNotes = await api.getAllNotes();
-      expect(allNotes).toEqual([]);
+      const remaining = await api.getAllNotes();
+      expect(remaining).toHaveLength(0);
     });
   });
 
@@ -185,6 +216,7 @@ describe('Note CRUD', () => {
       await api.deleteNotes([]);
       const notes = await api.getAllNotes();
       expect(notes.length).toBe(1);
+      expect(notes[0]?.body).toBe('test');
     });
   });
 });

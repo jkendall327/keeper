@@ -36,6 +36,9 @@ describe('FTS5 Search', () => {
 
   it('returns empty array for no matches', async () => {
     await api.createNote({ title: 'Test', body: 'Content' });
+    const matchResults = await api.search('test');
+    expect(matchResults).toHaveLength(1);
+    expect(matchResults[0]?.title).toBe('Test');
     const results = await api.search('nonexistent');
     expect(results).toEqual([]);
   });
@@ -48,15 +51,19 @@ describe('FTS5 Search', () => {
     const results3 = await api.search('JaVaScRiPt');
 
     expect(results1).toHaveLength(1);
+    expect(results1[0]?.title).toBe('JavaScript Tutorial');
     expect(results2).toHaveLength(1);
+    expect(results2[0]?.title).toBe('JavaScript Tutorial');
     expect(results3).toHaveLength(1);
+    expect(results3[0]?.title).toBe('JavaScript Tutorial');
   });
 
   it('returns results with rank', async () => {
     await api.createNote({ title: 'Test', body: 'Content' });
     const results = await api.search('test');
-    expect(results[0]).toHaveProperty('rank');
-    expect(typeof results[0]?.rank).toBe('number');
+    expect(results).toHaveLength(1);
+    // FTS5 ranks are negative (lower = better match)
+    expect(results[0]?.rank).toBeLessThan(0);
   });
 
   it('re-indexes after note update (finds new content)', async () => {
@@ -69,6 +76,7 @@ describe('FTS5 Search', () => {
 
     const afterResults = await api.search('updated');
     expect(afterResults).toHaveLength(1);
+    expect(afterResults[0]?.body).toBe('Updated content');
   });
 
   it('removes from index after note delete (no stale results)', async () => {
@@ -76,6 +84,7 @@ describe('FTS5 Search', () => {
 
     const beforeResults = await api.search('delete');
     expect(beforeResults).toHaveLength(1);
+    expect(beforeResults[0]?.title).toBe('To Delete');
 
     await api.deleteNote(note.id);
 
@@ -89,6 +98,7 @@ describe('FTS5 Search', () => {
     // Should not throw
     const results = await api.search('special');
     expect(results).toHaveLength(1);
+    expect(results[0]?.title).toBe('Special @#$%');
   });
 
   it('returns results with tags attached', async () => {
@@ -104,6 +114,7 @@ describe('FTS5 Search', () => {
 
     const results = await api.search('react');
     expect(results).toHaveLength(1);
+    expect(results[0]?.title).toBe('React Tutorial');
   });
 
   it('partial word matching works with explicit wildcard', async () => {
@@ -111,6 +122,7 @@ describe('FTS5 Search', () => {
 
     const results = await api.search('develop*');
     expect(results).toHaveLength(1);
+    expect(results[0]?.title).toBe('Development');
   });
 
   it('automatic prefix matching on last word', async () => {
@@ -119,6 +131,7 @@ describe('FTS5 Search', () => {
     // 'develop' should automatically match 'development'
     const results = await api.search('develop');
     expect(results).toHaveLength(1);
+    expect(results[0]?.title).toBe('Development');
   });
 
   it('prefix matching works on single long token', async () => {
@@ -141,14 +154,22 @@ describe('FTS5 Search', () => {
 
   it('handles empty query gracefully', async () => {
     await api.createNote({ title: 'Test', body: 'Content' });
-
+    // Positive case: non-empty query finds the note
+    const found = await api.search('test');
+    expect(found).toHaveLength(1);
+    expect(found[0]?.title).toBe('Test');
+    // Empty query returns nothing
     const results = await api.search('');
     expect(results).toEqual([]);
   });
 
   it('handles whitespace-only query gracefully', async () => {
     await api.createNote({ title: 'Test', body: 'Content' });
-
+    // Positive case: normal query finds the note
+    const found = await api.search('content');
+    expect(found).toHaveLength(1);
+    expect(found[0]?.body).toBe('Content');
+    // Whitespace-only returns nothing
     const results = await api.search('   ');
     expect(results).toEqual([]);
   });
@@ -168,5 +189,6 @@ describe('FTS5 Search', () => {
     // Quotes should be escaped and not cause syntax errors
     const results = await api.search('"best"');
     expect(results).toHaveLength(1);
+    expect(results[0]?.title).toBe('The "Best" Tutorial');
   });
 });

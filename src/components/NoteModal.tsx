@@ -27,6 +27,7 @@ export function NoteModal({
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
   const [tagInput, setTagInput] = useState('');
+  const tagInputValueRef = useRef(tagInput);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -143,15 +144,10 @@ export function NoteModal({
     }
   };
 
+  // Focus the modal panel on mount so keyboard events (Escape) are captured
   useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        void saveAndClose();
-      }
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => { document.removeEventListener('keydown', onKeyDown); };
-  }, [saveAndClose]);
+    panelRef.current?.focus();
+  }, []);
 
   // Auto-resize textarea based on content
   useEffect(() => {
@@ -169,6 +165,7 @@ export function NoteModal({
       <div
         className="modal-panel"
         ref={panelRef}
+        tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
         <div className="modal-editor">
@@ -234,13 +231,14 @@ export function NoteModal({
               value={tagInput}
               onChange={(e) => {
                 setTagInput(e.target.value);
+                tagInputValueRef.current = e.target.value;
                 setShowSuggestions(true);
               }}
               onFocus={() => { setShowSuggestions(true); }}
               onBlur={() => {
                 // Delay to allow click on suggestion
                 setTimeout(() => {
-                  void handleAddTag(tagInput);
+                  void handleAddTag(tagInputValueRef.current);
                   setShowSuggestions(false);
                 }, 150);
               }}

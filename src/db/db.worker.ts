@@ -26,6 +26,13 @@ function mimeToExt(mime: string): string {
   return map[mime] ?? 'bin';
 }
 
+/** Remove a file from the OPFS media directory. Non-critical — logs and returns on failure. */
+async function removeOpfsFile(filename: string): Promise<void> {
+  const root = await navigator.storage.getDirectory();
+  const mediaDir = await root.getDirectoryHandle('media');
+  await mediaDir.removeEntry(filename);
+}
+
 const ready: Promise<void> = (async () => {
   sqlite3 = await sqlite3InitModule();
   db = new sqlite3.oo1.OpfsDb('/keeper.sqlite3', 'cw');
@@ -92,7 +99,7 @@ const api: KeeperDB = {
   // Override methods that need special OPFS handling
   async deleteNote(id: string): Promise<void> {
     await ready;
-    // Clean up OPFS media files
+    // Collect media filenames before SQL delete removes the rows
     const mediaRows: Record<string, SqlValue>[] = [];
     db.exec({
       sql: 'SELECT id, mime_type FROM media WHERE note_id = ?',
@@ -100,18 +107,20 @@ const api: KeeperDB = {
       rowMode: 'object',
       resultRows: mediaRows,
     });
-    for (const m of mediaRows) {
-      const filename = `${m['id'] as string}.${mimeToExt(m['mime_type'] as string)}`;
+    const filenames = mediaRows.map(
+      (m) => `${m['id'] as string}.${mimeToExt(m['mime_type'] as string)}`,
+    );
+    // SQL delete first (cascade removes media table rows)
+    await baseApi.deleteNote(id);
+    // Then clean up OPFS files — safe even if some are missing
+    for (const filename of filenames) {
       try {
-        const root = await navigator.storage.getDirectory();
-        const mediaDir = await root.getDirectoryHandle('media');
-        await mediaDir.removeEntry(filename);
-      } catch {
-        // file may not exist
+        await removeOpfsFile(filename);
+      } catch (err: unknown) {
+        console.warn(`OPFS cleanup skipped for ${filename}:`, err);
+        continue;
       }
     }
-    // Perform SQL delete (cascade handles media table rows)
-    await baseApi.deleteNote(id);
   },
 
   async storeMedia(input: StoreMediaInput): Promise<Media> {
@@ -172,13 +181,16 @@ const api: KeeperDB = {
       resultRows: rows,
     });
     const row = rows[0];
+    // Remove OPFS file first, then DB row
     if (row !== undefined) {
+      const fname = row['filename'] as string;
       try {
-        const root = await navigator.storage.getDirectory();
-        const mediaDir = await root.getDirectoryHandle('media');
-        await mediaDir.removeEntry(row['filename'] as string);
-      } catch {
-        // file may not exist
+        await removeOpfsFile(fname);
+      } catch (err: unknown) {
+        console.warn(`OPFS cleanup skipped for ${fname}:`, err);
+        // Proceed to delete DB record even if file removal failed
+        db.exec({ sql: 'DELETE FROM media WHERE id = ?', bind: [id] });
+        return;
       }
     }
     db.exec({ sql: 'DELETE FROM media WHERE id = ?', bind: [id] });

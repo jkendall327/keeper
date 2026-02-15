@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { createMockDB } from './mock-db';
 import type { MockDB } from './mock-db';
@@ -14,23 +14,27 @@ vi.mock('../db/db-client', () => ({
 // Now import App after the mock is set up
 const { default: App } = await import('../App');
 
-/*
- * UI Integration Tests
- *
- * Note: Some tests that rely on empty initial state are skipped due to a known
- * limitation with React 19's use() hook + Suspense in vitest. The actual app works
- * fine - this is purely a test environment issue. Tests that create data first work reliably.
+/**
+ * Render App and flush the Suspense boundary created by the `use()` hook
+ * in useDB. Without `act`, the initial data-loading promise resolves as a
+ * microtask that React's test scheduler never processes, leaving the
+ * Suspense fallback stuck on screen.
  */
+async function renderApp() {
+  // Passing an async callback makes act() return a Promise that resolves
+  // once React finishes processing the Suspense boundary from useDB's use() hook.
+  // eslint-disable-next-line @typescript-eslint/require-await
+  await act(async () => { render(<App />); });
+}
 
 describe('App Integration Tests', () => {
   beforeEach(() => {
     mockDB.reset();
   });
 
-  // Covered by other tests; skipped to avoid Suspense timing issues
-  it.skip('creates and displays a note', async () => {
+  it('creates and displays a note', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    await renderApp();
 
     const input = await screen.findByPlaceholderText('Take a note...');
     await user.type(input, 'Test note');
@@ -42,10 +46,9 @@ describe('App Integration Tests', () => {
     expect(input).toHaveValue('');
   });
 
-  // Covered by other tests; skipped to avoid Suspense timing issues
-  it.skip('opens and edits a note in modal', async () => {
+  it('opens and edits a note in modal', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    await renderApp();
 
     // Create a note
     const input = await screen.findByPlaceholderText('Take a note...');
@@ -73,10 +76,9 @@ describe('App Integration Tests', () => {
     expect(await screen.findByText('Updated text')).toBeInTheDocument();
   });
 
-  // Covered by other tests; skipped to avoid Suspense timing issues
-  it.skip('adds and removes tags', async () => {
+  it('adds and removes tags', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    await renderApp();
 
     // Create note
     const input = await screen.findByPlaceholderText('Take a note...');
@@ -92,10 +94,10 @@ describe('App Integration Tests', () => {
     await user.type(tagInput, 'work');
     await user.keyboard('{Enter}');
 
-    // Verify tag appears
-    await waitFor(() => {
-      expect(screen.getAllByText('work').length).toBeGreaterThan(0);
-    });
+    // Verify tag appears (exactly one tag chip with remove button)
+    const tagChips = await screen.findAllByLabelText(/Remove tag/);
+    expect(tagChips).toHaveLength(1);
+    expect(tagChips[0]).toHaveAttribute('aria-label', 'Remove tag work');
 
     // Remove tag
     const removeButton = await screen.findByLabelText('Remove tag work');
@@ -107,10 +109,9 @@ describe('App Integration Tests', () => {
     });
   });
 
-  // Covered by other tests; skipped to avoid Suspense timing issues
-  it.skip('deletes a note', async () => {
+  it('deletes a note', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    await renderApp();
 
     // Create note
     const input = await screen.findByPlaceholderText('Take a note...');
@@ -132,10 +133,9 @@ describe('App Integration Tests', () => {
     });
   });
 
-  // Covered by other tests; skipped to avoid Suspense timing issues
-  it.skip('shows multiple notes', async () => {
+  it('shows multiple notes', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    await renderApp();
 
     const input = await screen.findByPlaceholderText('Take a note...');
 
@@ -152,9 +152,9 @@ describe('App Integration Tests', () => {
     expect(screen.getByText('Note 3')).toBeInTheDocument();
   });
 
-  it.skip('closes modal by clicking backdrop', async () => {
+  it('closes modal by clicking backdrop', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    await renderApp();
 
     // Create and open note
     const input = await screen.findByPlaceholderText('Take a note...');
@@ -178,9 +178,9 @@ describe('App Integration Tests', () => {
     });
   });
 
-  it.skip('deletes note when body cleared in modal', async () => {
+  it('deletes note when body cleared in modal', async () => {
     const user = userEvent.setup();
-    render(<App />);
+    await renderApp();
 
     // Create note
     const input = await screen.findByPlaceholderText('Take a note...');

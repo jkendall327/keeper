@@ -245,7 +245,31 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     },
 
     async renameTag(oldName: string, newName: string): Promise<void> {
-      db.run('UPDATE tags SET name = ? WHERE name = ?', [newName, oldName]);
+      if (oldName === newName) return Promise.resolve();
+
+      const existingRows = db.query('SELECT id FROM tags WHERE name = ?', [newName]);
+      if (existingRows.length > 0) {
+        // newName already exists — merge: move note_tags from old to new, then delete old
+        const oldRows = db.query('SELECT id FROM tags WHERE name = ?', [oldName]);
+        const oldRow = oldRows[0];
+        if (oldRow === undefined) return Promise.resolve();
+        const oldTagId = oldRow['id'] as number;
+        const existingRow = existingRows[0];
+        if (existingRow === undefined) return Promise.resolve();
+        const newTagId = existingRow['id'] as number;
+
+        // Reassign note associations (ignore duplicates)
+        db.run(
+          'UPDATE OR IGNORE note_tags SET tag_id = ? WHERE tag_id = ?',
+          [newTagId, oldTagId],
+        );
+        // Remove any remaining links that were duplicates (already pointed to newTagId)
+        db.run('DELETE FROM note_tags WHERE tag_id = ?', [oldTagId]);
+        // Delete the now-orphaned old tag
+        db.run('DELETE FROM tags WHERE id = ?', [oldTagId]);
+      } else {
+        db.run('UPDATE tags SET name = ? WHERE name = ?', [newName, oldName]);
+      }
       return Promise.resolve();
     },
 

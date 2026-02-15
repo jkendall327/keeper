@@ -46,8 +46,10 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
   }, [output, mode]);
 
   const handleDelete = useCallback(() => {
-    onDelete();
+    // Close modal first so it unmounts via its own flag,
+    // not from selectedNoteIds clearing during onDelete
     onClose();
+    onDelete();
   }, [onDelete, onClose]);
 
   return (

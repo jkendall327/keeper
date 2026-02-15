@@ -24,15 +24,6 @@ interface DragState {
 
 const DRAG_THRESHOLD = 5;
 
-/** Convert a page-level mouse event to wrapper-relative coordinates. */
-function toWrapperCoords(e: MouseEvent, wrapper: HTMLElement) {
-  const rect = wrapper.getBoundingClientRect();
-  return {
-    x: e.clientX - rect.left + wrapper.scrollLeft,
-    y: e.clientY - rect.top + wrapper.scrollTop,
-  };
-}
-
 export function NoteGrid({
   notes, onSelect, onDelete, onTogglePin, onToggleArchive,
   previewMode, onUpdateNote, selectedNoteIds, onBulkSelect, onClearSelection,
@@ -50,13 +41,15 @@ export function NoteGrid({
 
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-    const pos = toWrapperCoords(e.nativeEvent, wrapper);
+    const rect = wrapper.getBoundingClientRect();
+    const wx = e.clientX - rect.left + wrapper.scrollLeft;
+    const wy = e.clientY - rect.top + wrapper.scrollTop;
 
     dragRef.current = {
-      startX: pos.x,
-      startY: pos.y,
-      currentX: pos.x,
-      currentY: pos.y,
+      startX: wx,
+      startY: wy,
+      currentX: wx,
+      currentY: wy,
     };
     isDraggingRef.current = false;
   }, []);
@@ -70,9 +63,9 @@ export function NoteGrid({
       const wrapper = wrapperRef.current;
       if (!wrapper) return;
 
-      const pos = toWrapperCoords(e, wrapper);
-      drag.currentX = pos.x;
-      drag.currentY = pos.y;
+      const rect = wrapper.getBoundingClientRect();
+      drag.currentX = e.clientX - rect.left + wrapper.scrollLeft;
+      drag.currentY = e.clientY - rect.top + wrapper.scrollTop;
 
       const dx = drag.currentX - drag.startX;
       const dy = drag.currentY - drag.startY;

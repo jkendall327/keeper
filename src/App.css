@@ -160,13 +160,14 @@
 /* ── Search Bar ────────────────────────────────────────── */
 
 .search-bar {
+  position: relative;
   margin-bottom: 16px;
 }
 
 .search-bar-input {
   width: 100%;
   box-sizing: border-box;
-  padding: 10px 16px;
+  padding: 10px 36px 10px 16px;
   font-family: inherit;
   font-size: 0.95rem;
   border: 1px solid rgba(128, 128, 128, 0.3);
@@ -179,6 +180,25 @@
 
 .search-bar-input:focus {
   border-color: #646cff;
+}
+
+.search-bar-clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: rgba(128, 128, 128, 0.6);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 2px 6px;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.search-bar-clear:hover {
+  color: inherit;
 }
 
 /* ── Quick Add ─────────────────────────────────────────── */

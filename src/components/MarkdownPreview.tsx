@@ -69,6 +69,21 @@ export function MarkdownPreview({
       linkify: true, // Auto-detect URLs
     });
 
+    // Open external links in new tab
+    const defaultLinkOpen =
+      mdInstance.renderer.rules['link_open'] ||
+      ((tokens, idx, options, _env, self) =>
+        self.renderToken(tokens, idx, options));
+
+    mdInstance.renderer.rules['link_open'] = (tokens, idx, options, env, self) => {
+      const token = tokens[idx];
+      if (token) {
+        token.attrSet('target', '_blank');
+        token.attrSet('rel', 'noopener noreferrer');
+      }
+      return defaultLinkOpen(tokens, idx, options, env, self);
+    };
+
     // Override image renderer to handle media:// protocol
     const defaultImageRender =
       mdInstance.renderer.rules.image ||

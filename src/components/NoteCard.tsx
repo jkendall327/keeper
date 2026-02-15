@@ -20,7 +20,12 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
     <div
       className={`note-card${isSelected ? ' note-card-selected' : ''}`}
       data-note-id={note.id}
-      onClick={() => { onSelect(note); }}
+      onClick={(e) => {
+        // Don't open modal when clicking a link in preview mode
+        const target = e.target as HTMLElement;
+        if (target.tagName === 'A' || target.closest('a')) return;
+        onSelect(note);
+      }}
     >
       {isSelected && (
         <span className="note-card-check" aria-label="Selected">

@@ -141,7 +141,10 @@ export function NoteModal({
               onFocus={() => { setShowSuggestions(true); }}
               onBlur={() => {
                 // Delay to allow click on suggestion
-                setTimeout(() => { setShowSuggestions(false); }, 150);
+                setTimeout(() => {
+                  void handleAddTag(tagInput);
+                  setShowSuggestions(false);
+                }, 150);
               }}
               onKeyDown={handleTagKeyDown}
             />

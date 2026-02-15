@@ -145,6 +145,10 @@ const api: KeeperDB = {
     // Perform SQL delete (cascade handles media table rows)
     await baseApi.deleteNote(id);
   },
+  async togglePinNote(id) {
+    await ready;
+    return baseApi.togglePinNote(id);
+  },
 
   async storeMedia(input: StoreMediaInput): Promise<Media> {
     await ready;

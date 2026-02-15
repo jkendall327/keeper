@@ -33,3 +33,15 @@ When creating new non-React files (workers, shared utilities used by workers), a
 
 - Read the git log briefly to see what work's been done already.
 - Always create a git commit when you're done working.
+
+
+## ClaudeCatcher
+
+This project uses ClaudeCatcher to enforce code quality. You MUST run it after writing or modifying code.
+
+```bash
+./claudecatcher <paths> --severity warning
+./claudecatcher --help  # Full option and rule reference
+```
+
+**Fix all reported errors and warnings before committing.** Do not dismiss, skip, or ignore findings. If a finding seems incorrect, investigate it — do not assume it is a false positive.

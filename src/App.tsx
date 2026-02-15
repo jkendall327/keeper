@@ -7,6 +7,7 @@ import { NoteModal } from './components/NoteModal.tsx';
 import { ExportModal } from './components/ExportModal.tsx';
 import { SearchBar } from './components/SearchBar.tsx';
 import { Sidebar, type FilterType } from './components/Sidebar.tsx';
+import { SettingsModal } from './components/SettingsModal.tsx';
 import { Icon } from './components/Icon.tsx';
 import type { NoteWithTags } from './db/types.ts';
 
@@ -58,6 +59,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   useEffect(() => {
     onFilterChange(activeFilter.type === 'archive');
     setSelectedNoteIds(new Set());
@@ -159,6 +161,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
             console.error('Failed to update tag icon:', err);
           });
         }}
+        onOpenSettings={() => { setShowSettings(true); }}
       />
       <div className="app-content">
         <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
@@ -208,6 +211,9 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           onClose={() => { setShowExportModal(false); }}
           onDelete={() => { void handleBulkDelete(); }}
         />
+      )}
+      {showSettings && (
+        <SettingsModal onClose={() => { setShowSettings(false); }} />
       )}
     </div>
   );

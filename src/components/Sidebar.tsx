@@ -17,9 +17,10 @@ interface SidebarProps {
   onRenameTag: (oldName: string, newName: string) => void;
   onDeleteTag: (tagId: number) => void;
   onUpdateTagIcon: (tagId: number, icon: string | null) => void;
+  onOpenSettings: () => void;
 }
 
-export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDeleteTag, onUpdateTagIcon }: SidebarProps) {
+export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDeleteTag, onUpdateTagIcon, onOpenSettings }: SidebarProps) {
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [iconPickerTagId, setIconPickerTagId] = useState<number | null>(null);
@@ -151,6 +152,11 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
           Archive
         </button>
       </nav>
+      <div className="sidebar-footer">
+        <button className="sidebar-settings-btn" onClick={onOpenSettings} aria-label="Open settings">
+          <Icon name="settings" size={20} />
+        </button>
+      </div>
     </aside>
   );
 }

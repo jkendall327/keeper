@@ -780,4 +780,81 @@ describe('App Integration Tests', () => {
     await screen.findByText('No results found');
     expect(screen.queryByText('No notes yet')).not.toBeInTheDocument();
   });
+
+  describe('Settings modal', () => {
+    it('opens settings modal when gear icon is clicked', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      const settingsBtn = screen.getByLabelText('Open settings');
+      await user.click(settingsBtn);
+
+      const heading = screen.getByText('Settings');
+      expect(heading).toBeInTheDocument();
+      const keyLabel = screen.getByLabelText('OpenRouter API Key');
+      expect(keyLabel).toBeInTheDocument();
+    });
+
+    it('API key input has type=password', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      const settingsBtn = screen.getByLabelText('Open settings');
+      await user.click(settingsBtn);
+
+      const keyInput = screen.getByLabelText('OpenRouter API Key');
+      expect(keyInput).toHaveAttribute('type', 'password');
+    });
+
+    it('closes settings modal on backdrop click', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      const settingsBtn = screen.getByLabelText('Open settings');
+      await user.click(settingsBtn);
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+
+      // Click the backdrop (modal-backdrop element)
+      const backdrop = document.querySelector('.modal-backdrop');
+      if (backdrop === null) throw new Error('Backdrop not found');
+      await user.click(backdrop);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Settings')).not.toBeInTheDocument();
+      });
+    });
+
+    it('saves and clears API key via settings UI', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      const settingsBtn = screen.getByLabelText('Open settings');
+      await user.click(settingsBtn);
+
+      const keyInput = screen.getByLabelText('OpenRouter API Key');
+      await user.type(keyInput, 'sk-or-test-key');
+
+      const saveBtn = screen.getByText('Save');
+      await user.click(saveBtn);
+
+      // Should show saved confirmation and configured status
+      await screen.findByText('Saved!');
+      const status = screen.getByText('Configured');
+      expect(status).toBeInTheDocument();
+
+      // Should be stored in localStorage
+      const storedKey = localStorage.getItem('keeper-openrouter-key');
+      expect(storedKey).toBe('sk-or-test-key');
+
+      // Clear the key
+      const clearBtn = screen.getByText('Clear key');
+      await user.click(clearBtn);
+
+      // Status should change to not configured
+      const notConfigured = screen.getByText('Not configured');
+      expect(notConfigured).toBeInTheDocument();
+      const clearedKey = localStorage.getItem('keeper-openrouter-key');
+      expect(clearedKey).toBeNull();
+    });
+  });
 });

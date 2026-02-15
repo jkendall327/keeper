@@ -259,6 +259,7 @@
 }
 
 .note-card-pin,
+.note-card-archive,
 .note-card-delete {
   background: none;
   border: none;
@@ -272,12 +273,18 @@
 }
 
 .note-card-pin:hover,
+.note-card-archive:hover,
 .note-card-delete:hover {
   opacity: 1;
 }
 
-.note-card-pin {
+.note-card-pin,
+.note-card-archive {
   font-size: 1rem;
+}
+
+.note-card-archive {
+  padding: 4px 4px;
 }
 
 .note-card-title {

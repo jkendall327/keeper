@@ -58,70 +58,35 @@ const ready: Promise<void> = (async () => {
   });
 })();
 
+// Helper to auto-delegate a method to baseApi
+function delegate<K extends keyof KeeperDB>(method: K): KeeperDB[K] {
+  return (async (...args: any[]) => {
+    await ready;
+    return (baseApi[method] as any)(...args);
+  }) as KeeperDB[K];
+}
+
 // Extend base implementation with OPFS-backed media operations
 const api: KeeperDB = {
-  // Delegate to baseApi (initialized in ready promise)
-  async createNote(input) {
-    await ready;
-    return baseApi.createNote(input);
-  },
-  async getNote(id) {
-    await ready;
-    return baseApi.getNote(id);
-  },
-  async getAllNotes() {
-    await ready;
-    return baseApi.getAllNotes();
-  },
-  async updateNote(input) {
-    await ready;
-    return baseApi.updateNote(input);
-  },
-  async addTag(noteId, tagName) {
-    await ready;
-    return baseApi.addTag(noteId, tagName);
-  },
-  async removeTag(noteId, tagName) {
-    await ready;
-    return baseApi.removeTag(noteId, tagName);
-  },
-  async renameTag(oldName, newName) {
-    await ready;
-    return baseApi.renameTag(oldName, newName);
-  },
-  async deleteTag(tagId) {
-    await ready;
-    return baseApi.deleteTag(tagId);
-  },
-  async getAllTags() {
-    await ready;
-    return baseApi.getAllTags();
-  },
-  async search(query) {
-    await ready;
-    return baseApi.search(query);
-  },
-  async getUntaggedNotes() {
-    await ready;
-    return baseApi.getUntaggedNotes();
-  },
-  async getLinkedNotes() {
-    await ready;
-    return baseApi.getLinkedNotes();
-  },
-  async getNotesForTag(tagId) {
-    await ready;
-    return baseApi.getNotesForTag(tagId);
-  },
-  async deleteNotes(ids) {
-    await ready;
-    return baseApi.deleteNotes(ids);
-  },
-  async getMediaForNote(noteId) {
-    await ready;
-    return baseApi.getMediaForNote(noteId);
-  },
+  // Auto-delegate all baseApi methods
+  createNote: delegate('createNote'),
+  getNote: delegate('getNote'),
+  getAllNotes: delegate('getAllNotes'),
+  updateNote: delegate('updateNote'),
+  addTag: delegate('addTag'),
+  removeTag: delegate('removeTag'),
+  renameTag: delegate('renameTag'),
+  deleteTag: delegate('deleteTag'),
+  getAllTags: delegate('getAllTags'),
+  search: delegate('search'),
+  getUntaggedNotes: delegate('getUntaggedNotes'),
+  getLinkedNotes: delegate('getLinkedNotes'),
+  getNotesForTag: delegate('getNotesForTag'),
+  deleteNotes: delegate('deleteNotes'),
+  togglePinNote: delegate('togglePinNote'),
+  getMediaForNote: delegate('getMediaForNote'),
 
+  // Override methods that need special OPFS handling
   async deleteNote(id: string): Promise<void> {
     await ready;
     // Clean up OPFS media files
@@ -144,10 +109,6 @@ const api: KeeperDB = {
     }
     // Perform SQL delete (cascade handles media table rows)
     await baseApi.deleteNote(id);
-  },
-  async togglePinNote(id) {
-    await ready;
-    return baseApi.togglePinNote(id);
   },
 
   async storeMedia(input: StoreMediaInput): Promise<Media> {

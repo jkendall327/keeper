@@ -8,7 +8,11 @@ import { SearchBar } from './components/SearchBar.tsx';
 import { Sidebar, type FilterType } from './components/Sidebar.tsx';
 import type { NoteWithTags } from './db/types.ts';
 
-function AppContent() {
+interface AppContentProps {
+  previewMode: boolean;
+}
+
+function AppContent({ previewMode }: AppContentProps) {
   const {
     notes,
     allTags,
@@ -77,6 +81,8 @@ function AppContent() {
           onSelect={setSelectedNote}
           onDelete={deleteNote}
           onTogglePin={togglePinNote}
+          previewMode={previewMode}
+          onUpdateNote={updateNote}
         />
       </div>
       {currentNote && (
@@ -88,6 +94,7 @@ function AppContent() {
           onAddTag={addTag}
           onRemoveTag={removeTag}
           onClose={() => { setSelectedNote(null); }}
+          previewMode={previewMode}
         />
       )}
     </div>
@@ -95,14 +102,23 @@ function AppContent() {
 }
 
 function App() {
+  const [previewMode, setPreviewMode] = useState(false);
+
   return (
     <div className="app">
       <header className="app-header">
         <h1>Keeper</h1>
+        <button
+          className="preview-toggle"
+          onClick={() => { setPreviewMode(!previewMode); }}
+          title={previewMode ? 'Switch to edit mode' : 'Switch to preview mode'}
+        >
+          {previewMode ? '📝' : '👁️'}
+        </button>
       </header>
       <main className="app-main">
         <Suspense fallback={<p className="loading">Loading...</p>}>
-          <AppContent />
+          <AppContent previewMode={previewMode} />
         </Suspense>
       </main>
     </div>

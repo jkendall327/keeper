@@ -1,13 +1,19 @@
-import type { NoteWithTags } from '../db/types.ts';
+import type { NoteWithTags, UpdateNoteInput } from '../db/types.ts';
+import { MarkdownPreview } from './MarkdownPreview.tsx';
 
 interface NoteCardProps {
   note: NoteWithTags;
   onSelect: (note: NoteWithTags) => void;
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
+  previewMode: boolean;
+  onUpdate: (input: UpdateNoteInput) => Promise<void>;
 }
 
-export function NoteCard({ note, onSelect, onDelete, onTogglePin }: NoteCardProps) {
+export function NoteCard({ note, onSelect, onDelete, onTogglePin, previewMode, onUpdate }: NoteCardProps) {
+  const handleCheckboxToggle = (newBody: string) => {
+    void onUpdate({ id: note.id, body: newBody });
+  };
   return (
     <div className="note-card" onClick={() => { onSelect(note); }}>
       <div className="note-card-actions">
@@ -34,7 +40,15 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin }: NoteCardProp
         </button>
       </div>
       {note.title !== '' && <h3 className="note-card-title">{note.title}</h3>}
-      <p className="note-card-body">{note.body}</p>
+      {previewMode ? (
+        <MarkdownPreview
+          content={note.body}
+          onCheckboxToggle={handleCheckboxToggle}
+          className="note-card-body"
+        />
+      ) : (
+        <p className="note-card-body">{note.body}</p>
+      )}
       {note.tags.length > 0 && (
         <div className="note-card-tags">
           {note.tags.map((tag) => (

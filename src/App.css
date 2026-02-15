@@ -8,12 +8,32 @@
 
 .app-header {
   padding: 24px 0 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .app-header h1 {
   font-size: 1.6rem;
   font-weight: 600;
   margin: 0;
+}
+
+.preview-toggle {
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 1.2rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.preview-toggle:hover {
+  background: rgba(128, 128, 128, 0.1);
+  border-color: rgba(128, 128, 128, 0.5);
 }
 
 .app-main {
@@ -372,6 +392,15 @@
   overflow-y: auto;
 }
 
+.modal-body-preview {
+  width: 100%;
+  min-height: 200px;
+  max-height: 60vh;
+  overflow-y: auto;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
 .modal-tags {
   width: 200px;
   border-left: 1px solid rgba(128, 128, 128, 0.2);
@@ -474,4 +503,88 @@
 
 .modal-tag-suggestion:hover {
   background: rgba(100, 108, 255, 0.1);
+}
+
+/* ── Markdown Preview ─────────────────────────────────── */
+
+.markdown-preview {
+  word-break: break-word;
+}
+
+.markdown-preview h1,
+.markdown-preview h2,
+.markdown-preview h3,
+.markdown-preview h4,
+.markdown-preview h5,
+.markdown-preview h6 {
+  margin: 0.5em 0 0.25em;
+  font-weight: 600;
+}
+
+.markdown-preview h1 { font-size: 1.4rem; }
+.markdown-preview h2 { font-size: 1.2rem; }
+.markdown-preview h3 { font-size: 1.05rem; }
+.markdown-preview h4 { font-size: 1rem; }
+.markdown-preview h5 { font-size: 0.95rem; }
+.markdown-preview h6 { font-size: 0.9rem; }
+
+.markdown-preview p {
+  margin: 0.5em 0;
+}
+
+.markdown-preview ul,
+.markdown-preview ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.markdown-preview li {
+  margin: 0.25em 0;
+}
+
+.markdown-preview a {
+  color: #646cff;
+  text-decoration: underline;
+}
+
+.markdown-preview a:hover {
+  text-decoration: none;
+}
+
+.markdown-preview code {
+  padding: 2px 6px;
+  font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+  font-size: 0.85em;
+  background: rgba(128, 128, 128, 0.15);
+  border-radius: 3px;
+}
+
+.markdown-preview pre {
+  padding: 12px;
+  background: rgba(128, 128, 128, 0.1);
+  border-radius: 6px;
+  overflow-x: auto;
+}
+
+.markdown-preview pre code {
+  padding: 0;
+  background: none;
+}
+
+.markdown-preview blockquote {
+  margin: 0.5em 0;
+  padding-left: 1em;
+  border-left: 3px solid rgba(128, 128, 128, 0.3);
+  opacity: 0.8;
+}
+
+.markdown-preview input[type="checkbox"] {
+  cursor: pointer;
+  margin-right: 0.5em;
+}
+
+.markdown-preview hr {
+  border: none;
+  border-top: 1px solid rgba(128, 128, 128, 0.3);
+  margin: 1em 0;
 }

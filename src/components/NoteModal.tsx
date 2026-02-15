@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import type { NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
+import { MarkdownPreview } from './MarkdownPreview.tsx';
 
 interface NoteModalProps {
   note: NoteWithTags;
@@ -9,6 +10,7 @@ interface NoteModalProps {
   onAddTag: (noteId: string, tagName: string) => Promise<void>;
   onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
   onClose: () => void;
+  previewMode: boolean;
 }
 
 export function NoteModal({
@@ -19,6 +21,7 @@ export function NoteModal({
   onAddTag,
   onRemoveTag,
   onClose,
+  previewMode,
 }: NoteModalProps) {
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
@@ -40,6 +43,11 @@ export function NoteModal({
               !noteTagNames.has(t.name),
           )
           .slice(0, 8);
+
+  const handleCheckboxToggle = (newBody: string) => {
+    setBody(newBody);
+    void onUpdate({ id: note.id, body: newBody });
+  };
 
   const saveAndClose = async () => {
     const trimmedBody = body.trim();
@@ -115,13 +123,22 @@ export function NoteModal({
             value={title}
             onChange={(e) => { setTitle(e.target.value); }}
           />
-          <textarea
-            ref={bodyTextareaRef}
-            className="modal-body-input"
-            placeholder="Note"
-            value={body}
-            onChange={(e) => { setBody(e.target.value); }}
-          />
+          {previewMode ? (
+            <div className="modal-body-preview">
+              <MarkdownPreview
+                content={body}
+                onCheckboxToggle={handleCheckboxToggle}
+              />
+            </div>
+          ) : (
+            <textarea
+              ref={bodyTextareaRef}
+              className="modal-body-input"
+              placeholder="Note"
+              value={body}
+              onChange={(e) => { setBody(e.target.value); }}
+            />
+          )}
         </div>
         <div className="modal-tags">
           <h4 className="modal-tags-title">Tags</h4>

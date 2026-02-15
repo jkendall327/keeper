@@ -1,4 +1,4 @@
-import type { NoteWithTags } from '../db/types.ts';
+import type { NoteWithTags, UpdateNoteInput } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 
 interface NoteGridProps {
@@ -6,9 +6,11 @@ interface NoteGridProps {
   onSelect: (note: NoteWithTags) => void;
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
+  previewMode: boolean;
+  onUpdateNote: (input: UpdateNoteInput) => Promise<void>;
 }
 
-export function NoteGrid({ notes, onSelect, onDelete, onTogglePin }: NoteGridProps) {
+export function NoteGrid({ notes, onSelect, onDelete, onTogglePin, previewMode, onUpdateNote }: NoteGridProps) {
   if (notes.length === 0) {
     return <p className="empty-state">No notes yet. Start typing above.</p>;
   }
@@ -27,6 +29,8 @@ export function NoteGrid({ notes, onSelect, onDelete, onTogglePin }: NoteGridPro
               onSelect={onSelect}
               onDelete={onDelete}
               onTogglePin={onTogglePin}
+              previewMode={previewMode}
+              onUpdate={onUpdateNote}
             />
           ))}
         </div>
@@ -43,6 +47,8 @@ export function NoteGrid({ notes, onSelect, onDelete, onTogglePin }: NoteGridPro
               onSelect={onSelect}
               onDelete={onDelete}
               onTogglePin={onTogglePin}
+              previewMode={previewMode}
+              onUpdate={onUpdateNote}
             />
           ))}
         </div>

@@ -25,7 +25,7 @@ export interface KeeperDBDeps {
 export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
   const { db, generateId, now } = deps;
 
-  // Initialize schema
+  // Initialize base schema
   db.execRaw(SCHEMA_SQL);
 
   // Migration: Add pinned column if it doesn't exist (for existing databases)
@@ -33,8 +33,10 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
   const hasPinnedColumn = columns.some((col) => col['name'] === 'pinned');
   if (!hasPinnedColumn) {
     db.execRaw('ALTER TABLE notes ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0');
-    db.execRaw('CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned)');
   }
+
+  // Create the pinned index (handled separately from main schema for migration compatibility)
+  db.execRaw('CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned)');
 
   // ── Helpers ───────────────────────────────────────────────────
 

@@ -24,13 +24,6 @@ interface DragState {
 
 const DRAG_THRESHOLD = 5;
 
-function rectsIntersect(
-  a: { left: number; top: number; right: number; bottom: number },
-  b: { left: number; top: number; right: number; bottom: number },
-): boolean {
-  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
-}
-
 export function NoteGrid({
   notes, onSelect, onDelete, onTogglePin, onToggleArchive,
   previewMode, onUpdateNote, selectedNoteIds, onBulkSelect, onClearSelection,
@@ -110,7 +103,7 @@ export function NoteGrid({
           right: cardRect.right - wrapperRect.left + wrapper.scrollLeft,
           bottom: cardRect.bottom - wrapperRect.top + wrapper.scrollTop,
         };
-        if (rectsIntersect({ left: selLeft, top: selTop, right: selRight, bottom: selBottom }, cardRel)) {
+        if (selLeft < cardRel.right && selRight > cardRel.left && selTop < cardRel.bottom && selBottom > cardRel.top) {
           const id = card.getAttribute('data-note-id');
           if (id) matched.add(id);
         }

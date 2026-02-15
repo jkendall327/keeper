@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import type { NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { getDB } from '../db/db-client.ts';
@@ -106,7 +106,7 @@ export function NoteModal({
     }
   };
 
-  const saveAndClose = async () => {
+  const saveAndClose = useCallback(async () => {
     const trimmedBody = body.trim();
     if (trimmedBody === '') {
       await onDelete(note.id);
@@ -114,7 +114,7 @@ export function NoteModal({
       await onUpdate({ id: note.id, title, body });
     }
     onClose();
-  };
+  }, [body, title, note, onDelete, onUpdate, onClose]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -151,8 +151,7 @@ export function NoteModal({
     };
     document.addEventListener('keydown', onKeyDown);
     return () => { document.removeEventListener('keydown', onKeyDown); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [title, body]);
+  }, [saveAndClose]);
 
   // Auto-resize textarea based on content
   useEffect(() => {

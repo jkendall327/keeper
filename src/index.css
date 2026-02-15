@@ -1,11 +1,11 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Inter', sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #1a1a1a;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -54,12 +54,29 @@ button:focus-visible {
 @media (prefers-color-scheme: light) {
   :root {
     color: #213547;
-    background-color: #ffffff;
+    background-color: #f5f5f5;
   }
   a:hover {
     color: #747bff;
   }
   button {
     background-color: #f9f9f9;
+  }
+  .note-card {
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+  .note-card-pinned {
+    background: #f8f8ff;
+  }
+  .sidebar {
+    background: #eef0f4;
+  }
+  .modal-panel,
+  .export-modal {
+    background: #ffffff;
+  }
+  .modal-tag-suggestions {
+    background: #ffffff;
   }
 }

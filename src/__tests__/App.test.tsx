@@ -201,4 +201,32 @@ describe('App Integration Tests', () => {
       expect(screen.queryByText('Clear me')).not.toBeInTheDocument();
     });
   });
+
+  it('pinned notes get the pinned CSS class', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Pin me');
+    await user.keyboard('{Enter}');
+
+    const noteText = await screen.findByText('Pin me');
+    const noteCard = noteText.closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
+
+    // Initially not pinned
+    expect(noteCard).not.toHaveClass('note-card-pinned');
+
+    // Pin the note
+    const pinBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Pin note"]');
+    if (pinBtn === null) throw new Error('Pin button not found');
+    await user.click(pinBtn);
+
+    // After pinning, the card should have the pinned class
+    await waitFor(() => {
+      const updatedCard = screen.getByText('Pin me').closest('.note-card');
+      expect(updatedCard).toHaveClass('note-card-pinned');
+    });
+  });
 });

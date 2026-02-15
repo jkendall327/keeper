@@ -18,7 +18,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
   };
   return (
     <div
-      className={`note-card${isSelected === true ? ' note-card-selected' : ''}`}
+      className={`note-card${note.pinned ? ' note-card-pinned' : ''}${isSelected === true ? ' note-card-selected' : ''}`}
       data-note-id={note.id}
       role="button"
       tabIndex={0}

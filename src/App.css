@@ -272,6 +272,10 @@
   word-break: break-word;
   font-size: 0.9rem;
   line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 10;
+  overflow: hidden;
 }
 
 .note-card-time {

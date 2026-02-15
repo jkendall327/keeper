@@ -43,6 +43,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, previewMode, o
       {previewMode ? (
         <MarkdownPreview
           content={note.body}
+          noteId={note.id}
           onCheckboxToggle={handleCheckboxToggle}
           className="note-card-body"
         />

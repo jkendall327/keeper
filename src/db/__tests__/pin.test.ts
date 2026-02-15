@@ -48,14 +48,15 @@ describe('Note pinning', () => {
     const allNotes = await api.getAllNotes();
 
     // Note 2 should be first because it's pinned
-    expect(allNotes[0].id).toBe(note2.id);
-    expect(allNotes[0].pinned).toBe(true);
+    expect(allNotes.length).toBe(3);
+    expect(allNotes[0]?.id).toBe(note2.id);
+    expect(allNotes[0]?.pinned).toBe(true);
 
     // Notes 3 and 1 should follow (most recent first)
-    expect(allNotes[1].id).toBe(note3.id);
-    expect(allNotes[1].pinned).toBe(false);
-    expect(allNotes[2].id).toBe(note1.id);
-    expect(allNotes[2].pinned).toBe(false);
+    expect(allNotes[1]?.id).toBe(note3.id);
+    expect(allNotes[1]?.pinned).toBe(false);
+    expect(allNotes[2]?.id).toBe(note1.id);
+    expect(allNotes[2]?.pinned).toBe(false);
   });
 
   it('should maintain pinned sort within pinned notes by updated_at', async () => {
@@ -72,10 +73,11 @@ describe('Note pinning', () => {
     const allNotes = await api.getAllNotes();
 
     // All should be pinned, sorted by most recent first
+    expect(allNotes.length).toBe(3);
     expect(allNotes.every((n) => n.pinned)).toBe(true);
-    expect(allNotes[0].id).toBe(note3.id);
-    expect(allNotes[1].id).toBe(note2.id);
-    expect(allNotes[2].id).toBe(note1.id);
+    expect(allNotes[0]?.id).toBe(note3.id);
+    expect(allNotes[1]?.id).toBe(note2.id);
+    expect(allNotes[2]?.id).toBe(note1.id);
   });
 
   it('should preserve pinned status across queries', async () => {
@@ -116,15 +118,16 @@ describe('Note pinning', () => {
     const notesForTag = await api.getNotesForTag(workTag.id);
 
     // Note 2 should be first because it's pinned
-    expect(notesForTag[0].id).toBe(note2.id);
-    expect(notesForTag[0].pinned).toBe(true);
+    expect(notesForTag.length).toBeGreaterThan(0);
+    expect(notesForTag[0]?.id).toBe(note2.id);
+    expect(notesForTag[0]?.pinned).toBe(true);
   });
 
   it('should sort pinned notes first in untagged view', async () => {
 
     const note1 = await api.createNote({ body: 'Note 1' });
-    const note2 = await api.createNote({ body: 'Note 2' });
-    const note3 = await api.createNote({ body: 'Note 3' });
+    await api.createNote({ body: 'Note 2' });
+    await api.createNote({ body: 'Note 3' });
 
     // Pin note 1
     await api.togglePinNote(note1.id);
@@ -132,14 +135,15 @@ describe('Note pinning', () => {
     const untagged = await api.getUntaggedNotes();
 
     // Note 1 should be first because it's pinned
-    expect(untagged[0].id).toBe(note1.id);
-    expect(untagged[0].pinned).toBe(true);
+    expect(untagged.length).toBeGreaterThan(0);
+    expect(untagged[0]?.id).toBe(note1.id);
+    expect(untagged[0]?.pinned).toBe(true);
   });
 
   it('should sort pinned notes first in links view', async () => {
 
-    const note1 = await api.createNote({ body: 'Check https://example1.com' });
-    const note2 = await api.createNote({ body: 'Check https://example2.com' });
+    await api.createNote({ body: 'Check https://example1.com' });
+    await api.createNote({ body: 'Check https://example2.com' });
     const note3 = await api.createNote({ body: 'Check https://example3.com' });
 
     // Pin note 3
@@ -148,8 +152,9 @@ describe('Note pinning', () => {
     const linked = await api.getLinkedNotes();
 
     // Note 3 should be first because it's pinned
-    expect(linked[0].id).toBe(note3.id);
-    expect(linked[0].pinned).toBe(true);
+    expect(linked.length).toBeGreaterThan(0);
+    expect(linked[0]?.id).toBe(note3.id);
+    expect(linked[0]?.pinned).toBe(true);
   });
 
   it('should throw error when toggling pin on non-existent note', async () => {

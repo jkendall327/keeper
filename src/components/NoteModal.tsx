@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import type { NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
+import { getDB } from '../db/db-client.ts';
 
 interface NoteModalProps {
   note: NoteWithTags;
@@ -47,6 +48,62 @@ export function NoteModal({
   const handleCheckboxToggle = (newBody: string) => {
     setBody(newBody);
     void onUpdate({ id: note.id, body: newBody });
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData.items);
+    const imageItems = items.filter((item) => item.type.startsWith('image/'));
+
+    if (imageItems.length === 0) return; // Allow default text paste
+
+    e.preventDefault(); // Prevent default image paste behavior
+
+    const db = getDB();
+    const insertions: string[] = [];
+
+    for (const item of imageItems) {
+      const file = item.getAsFile();
+      if (!file) continue;
+
+      const buffer = await file.arrayBuffer();
+      const media = await db.storeMedia({
+        noteId: note.id,
+        mimeType: file.type,
+        data: buffer,
+      });
+
+      // Generate smart alt text from timestamp
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 16).replace('T', ' ');
+      const altText = `Image ${dateStr}`;
+
+      insertions.push(`![${altText}](media://${media.id})`);
+    }
+
+    // Insert at cursor position
+    const textarea = bodyTextareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = body.substring(0, start);
+      const after = body.substring(end);
+
+      // Add spacing around images
+      const spacing = before.endsWith('\n\n') ? '' : '\n\n';
+      const endSpacing = after.startsWith('\n\n') ? '' : '\n\n';
+      const newBody =
+        before + spacing + insertions.join('\n\n') + endSpacing + after;
+
+      setBody(newBody);
+
+      // Move cursor after inserted content
+      setTimeout(() => {
+        const newPos =
+          start + spacing.length + insertions.join('\n\n').length + endSpacing.length;
+        textarea.setSelectionRange(newPos, newPos);
+        textarea.focus();
+      }, 0);
+    }
   };
 
   const saveAndClose = async () => {
@@ -127,17 +184,26 @@ export function NoteModal({
             <div className="modal-body-preview">
               <MarkdownPreview
                 content={body}
+                noteId={note.id}
                 onCheckboxToggle={handleCheckboxToggle}
               />
             </div>
           ) : (
-            <textarea
-              ref={bodyTextareaRef}
-              className="modal-body-input"
-              placeholder="Note"
-              value={body}
-              onChange={(e) => { setBody(e.target.value); }}
-            />
+            <>
+              <textarea
+                ref={bodyTextareaRef}
+                className="modal-body-input"
+                placeholder="Note"
+                value={body}
+                onChange={(e) => { setBody(e.target.value); }}
+                onPaste={handlePaste}
+              />
+              {body.includes('media://') && (
+                <div className="modal-body-live-preview">
+                  <MarkdownPreview content={body} noteId={note.id} />
+                </div>
+              )}
+            </>
           )}
         </div>
         <div className="modal-tags">

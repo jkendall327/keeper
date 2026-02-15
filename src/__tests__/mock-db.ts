@@ -35,6 +35,7 @@ export function createMockDB(): MockDB {
         title: input.title ?? '',
         body: input.body,
         has_links: false,
+        pinned: false,
         created_at: now(),
         updated_at: now(),
         tags: [],
@@ -73,6 +74,19 @@ export function createMockDB(): MockDB {
       for (const id of ids) {
         notes.delete(id);
       }
+    },
+
+    async togglePinNote(id: string): Promise<NoteWithTags> {
+      const note = notes.get(id);
+      if (!note) throw new Error(`Note ${id} not found`);
+
+      const updated = {
+        ...note,
+        pinned: !note.pinned,
+        updated_at: now(),
+      };
+      notes.set(id, updated);
+      return updated;
     },
 
     async addTag(noteId: string, tagName: string): Promise<NoteWithTags> {

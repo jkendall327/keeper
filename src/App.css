@@ -588,3 +588,42 @@
   border-top: 1px solid rgba(128, 128, 128, 0.3);
   margin: 1em 0;
 }
+
+/* ── Image Support ────────────────────────────────────── */
+
+/* Live preview below textarea in edit mode */
+.modal-body-live-preview {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.2);
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* Image styling in markdown preview */
+.markdown-preview img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1rem 0;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Image styling in note cards (grid view) */
+.note-card-body img {
+  max-width: 100%;
+  height: auto;
+  max-height: 150px;
+  object-fit: cover;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
+/* Prevent images from breaking layout */
+.markdown-preview img,
+.note-card-body img {
+  object-fit: contain;
+}

@@ -1,29 +1,109 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState } from 'react';
 import MarkdownIt from 'markdown-it';
+import { getDB } from '../db/db-client.ts';
 
 interface MarkdownPreviewProps {
   content: string;
+  noteId?: string;
   onCheckboxToggle?: (newContent: string) => void;
   className?: string;
 }
 
-const md = MarkdownIt({
-  html: false, // Disable HTML tags for security
-  breaks: true, // Convert \n to <br>
-  linkify: true, // Auto-detect URLs
-});
+// Helper function to extract media IDs from markdown
+function extractMediaIds(markdown: string): string[] {
+  const matches = markdown.matchAll(/media:\/\/([a-f0-9-]+)/gi);
+  return Array.from(matches, (m) => m[1]).filter((id): id is string => id !== undefined);
+}
 
 export function MarkdownPreview({
   content,
+  noteId,
   onCheckboxToggle,
   className = '',
 }: MarkdownPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [mediaUrls, setMediaUrls] = useState<Map<string, string>>(new Map());
+
+  // Load media and create blob URLs
+  useEffect(() => {
+    if (!noteId) return;
+
+    const mediaIds = extractMediaIds(content);
+    if (mediaIds.length === 0) {
+      // Clean up any existing blob URLs if no media in content
+      mediaUrls.forEach((url) => { URL.revokeObjectURL(url); });
+      setMediaUrls(new Map());
+      return;
+    }
+
+    const loadMedia = async () => {
+      const db = getDB();
+      const mediaList = await db.getMediaForNote(noteId);
+      const blobUrlMap = new Map<string, string>();
+
+      for (const mediaId of mediaIds) {
+        const mediaItem = mediaList.find((m) => m.id === mediaId);
+        if (!mediaItem) continue;
+
+        const buffer = await db.getMedia(mediaId);
+        if (buffer) {
+          const blob = new Blob([buffer], { type: mediaItem.mime_type });
+          const url = URL.createObjectURL(blob);
+          blobUrlMap.set(mediaId, url);
+        }
+      }
+      setMediaUrls(blobUrlMap);
+    };
+
+    void loadMedia();
+
+    // CRITICAL: Cleanup to prevent memory leaks
+    return () => {
+      mediaUrls.forEach((url) => { URL.revokeObjectURL(url); });
+    };
+  }, [content, noteId]);
+
+  // Configure markdown-it with custom image renderer
+  const md = useMemo(() => {
+    const mdInstance = MarkdownIt({
+      html: false, // Disable HTML tags for security
+      breaks: true, // Convert \n to <br>
+      linkify: true, // Auto-detect URLs
+    });
+
+    // Override image renderer to handle media:// protocol
+    const defaultImageRender =
+      mdInstance.renderer.rules.image ||
+      ((tokens, idx, options, _env, self) =>
+        self.renderToken(tokens, idx, options));
+
+    mdInstance.renderer.rules.image = (tokens, idx, options, env, self) => {
+      const token = tokens[idx];
+      if (!token) {
+        return defaultImageRender(tokens, idx, options, env, self);
+      }
+
+      const srcIndex = token.attrIndex('src');
+      if (srcIndex >= 0 && token.attrs) {
+        const src = token.attrs[srcIndex]?.[1];
+        if (src && src.startsWith('media://')) {
+          const mediaId = src.replace('media://', '');
+          const blobUrl = mediaUrls.get(mediaId);
+          if (blobUrl && token.attrs[srcIndex]) {
+            token.attrs[srcIndex][1] = blobUrl;
+          }
+        }
+      }
+      return defaultImageRender(tokens, idx, options, env, self);
+    };
+
+    return mdInstance;
+  }, [mediaUrls]);
 
   // Render markdown to HTML
   const html = useMemo(() => {
     return md.render(content);
-  }, [content]);
+  }, [content, md]);
 
   // Add checkbox interactivity
   useEffect(() => {

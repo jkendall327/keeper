@@ -702,4 +702,82 @@ describe('App Integration Tests', () => {
       expect(screen.queryByLabelText('Delete tag removeme')).not.toBeInTheDocument();
     });
   });
+
+  it('shows welcoming empty state when there are no notes', async () => {
+    await renderApp();
+
+    // With no notes, the welcome message and hint should be visible
+    const heading = screen.getByText('No notes yet');
+    expect(heading).toBeInTheDocument();
+    const hint = screen.getByText('Start typing above to capture a note');
+    expect(hint).toBeInTheDocument();
+
+    // The empty state container should contain a Material Symbol icon
+    const emptyState = heading.closest('.empty-state');
+    if (emptyState === null) throw new Error('Empty state container not found');
+    const icon = emptyState.querySelector('.material-symbols-outlined');
+    if (icon === null) throw new Error('Icon not found in empty state');
+    expect(icon.textContent).toBe('sticky_note_2');
+  });
+
+  it('hides empty state after creating a note', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Welcome visible initially
+    expect(screen.getByText('No notes yet')).toBeInTheDocument();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'First note');
+    await user.keyboard('{Enter}');
+
+    // Welcome should disappear
+    await waitFor(() => {
+      expect(screen.queryByText('No notes yet')).not.toBeInTheDocument();
+    });
+  });
+
+  it('does not show empty state when a non-default filter is active', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Welcome should be visible initially on the all filter
+    expect(screen.getByText('No notes yet')).toBeInTheDocument();
+
+    // Switch to the Untagged filter
+    const untaggedBtn = screen.getByText('Untagged');
+    await user.click(untaggedBtn);
+
+    // Welcome should disappear since we're not on the default 'all' view
+    await waitFor(() => {
+      expect(screen.queryByText('No notes yet')).not.toBeInTheDocument();
+    });
+
+    // Switch back to Notes (all) - welcome should reappear
+    const notesBtn = screen.getByText('Notes');
+    await user.click(notesBtn);
+    await waitFor(() => {
+      expect(screen.getByText('No notes yet')).toBeInTheDocument();
+    });
+  });
+
+  it('does not show empty state when search has no results', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note first
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Hello world');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Hello world');
+
+    // Search for something that doesn't match
+    const searchInput = screen.getByPlaceholderText(/Search notes/);
+    await user.type(searchInput, 'zzzznotfound');
+
+    // Should show "No results found" but NOT the welcome empty state
+    await screen.findByText('No results found');
+    expect(screen.queryByText('No notes yet')).not.toBeInTheDocument();
+  });
 });

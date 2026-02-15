@@ -170,6 +170,13 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           </p>
         )}
         <QuickAdd onCreate={createNote} />
+        {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
+          <div className="empty-state">
+            <Icon name="sticky_note_2" size={48} />
+            <p className="empty-state-text">No notes yet</p>
+            <p className="empty-state-hint">Start typing above to capture a note</p>
+          </div>
+        )}
         <NoteGrid
           notes={displayedNotes}
           onSelect={setSelectedNote}

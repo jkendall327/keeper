@@ -247,6 +247,34 @@
   color: rgba(255, 255, 255, 0.5);
 }
 
+/* ── Empty State ──────────────────────────────────────────── */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 16px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.empty-state-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin: 16px 0 4px;
+}
+
+.empty-state-hint {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  .empty-state {
+    color: rgba(0, 0, 0, 0.3);
+  }
+}
+
 /* ── Quick Add ─────────────────────────────────────────── */
 
 .quick-add {

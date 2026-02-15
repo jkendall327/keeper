@@ -63,7 +63,7 @@ export function NoteModal({
 
     for (const item of imageItems) {
       const file = item.getAsFile();
-      if (!file) continue;
+      if (file === null) continue;
 
       const buffer = await file.arrayBuffer();
       const media = await db.storeMedia({
@@ -82,7 +82,7 @@ export function NoteModal({
 
     // Insert at cursor position
     const textarea = bodyTextareaRef.current;
-    if (textarea) {
+    if (textarea !== null) {
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const before = body.substring(0, start);
@@ -157,11 +157,11 @@ export function NoteModal({
   // Auto-resize textarea based on content
   useEffect(() => {
     const textarea = bodyTextareaRef.current;
-    if (textarea) {
+    if (textarea !== null) {
       // Reset height to auto to get accurate scrollHeight
       textarea.style.height = 'auto';
       // Set height to scrollHeight, capped by CSS max-height
-      textarea.style.height = `${textarea.scrollHeight}px`;
+      textarea.style.height = `${String(textarea.scrollHeight)}px`;
     }
   }, [body]);
 

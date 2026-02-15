@@ -18,16 +18,16 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
   };
   return (
     <div
-      className={`note-card${isSelected ? ' note-card-selected' : ''}`}
+      className={`note-card${isSelected === true ? ' note-card-selected' : ''}`}
       data-note-id={note.id}
       onClick={(e) => {
         // Don't open modal when clicking a link in preview mode
         const target = e.target as HTMLElement;
-        if (target.tagName === 'A' || target.closest('a')) return;
+        if (target.tagName === 'A' || target.closest('a') !== null) return;
         onSelect(note);
       }}
     >
-      {isSelected && (
+      {isSelected === true && (
         <span className="note-card-check" aria-label="Selected">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="10" r="10" fill="#646cff" />

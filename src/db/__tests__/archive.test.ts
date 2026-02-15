@@ -75,7 +75,7 @@ describe('Note archiving', () => {
 
     const tags = await api.getAllTags();
     const workTag = tags.find((t) => t.name === 'work');
-    if (!workTag) throw new Error('work tag not found');
+    if (workTag === undefined) throw new Error('work tag not found');
 
     const notesForTag = await api.getNotesForTag(workTag.id);
     expect(notesForTag.length).toBe(1);

@@ -10,14 +10,18 @@ Read SPEC.md to understand the project and its goals.
 - `npm test` — run all tests (85 data layer + 2 UI integration tests)
 - `npm run test:watch` — run tests in watch mode
 
-## Testing
+## Testing & Linting
 
 This project prioritizes **high-value integration and property-based tests** over fastidious unit tests with mocks.
 
 - **Data layer** (`src/db/__tests__/`): 85 tests using real SQLite (better-sqlite3) to verify actual behavior including FTS5, triggers, and foreign key constraints.
 - **UI layer** (`src/__tests__/App.test.tsx`): 2 integration tests using React Testing Library with a mock DB, covering modal interactions (close on backdrop click, delete on body clear).
 
-**Always run tests before committing** to validate your changes haven't broken existing functionality. When modifying code, update or add tests as needed.
+**Always run both tests AND lint before committing**:
+- `npm test` — validate functionality
+- `npm run lint` — validate code style and catch type errors
+
+Both commands must pass with zero errors before committing. When modifying code, update or add tests as needed.
 
 ## React Compiler — `'use no memo'` for non-React files
 

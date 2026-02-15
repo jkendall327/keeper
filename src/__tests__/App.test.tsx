@@ -119,10 +119,12 @@ describe('App Integration Tests', () => {
 
     const noteText = await screen.findByText('Delete me');
     const noteCard = noteText.closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
 
     // Click delete button
-    const deleteBtn = noteCard!.querySelector<HTMLButtonElement>('[aria-label="Delete note"]');
-    await user.click(deleteBtn!);
+    const deleteBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Delete note"]');
+    if (deleteBtn === null) throw new Error('Delete button not found');
+    await user.click(deleteBtn);
 
     // Verify deleted
     await waitFor(() => {
@@ -167,7 +169,8 @@ describe('App Integration Tests', () => {
 
     // Click backdrop
     const backdrop = document.querySelector('.modal-backdrop');
-    await user.click(backdrop!);
+    if (backdrop === null) throw new Error('Backdrop not found');
+    await user.click(backdrop);
 
     // Modal closed
     await waitFor(() => {

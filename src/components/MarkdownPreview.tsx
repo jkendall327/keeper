@@ -20,7 +20,7 @@ export function MarkdownPreview({
 
   // Load media and create blob URLs
   useEffect(() => {
-    if (!noteId) return;
+    if (noteId === undefined) return;
 
     // Extract media IDs from markdown (inline to avoid React Compiler issues)
     const matches = content.matchAll(/media:\/\/([a-f0-9-]+)/gi);
@@ -41,10 +41,10 @@ export function MarkdownPreview({
 
       for (const mediaId of mediaIds) {
         const mediaItem = mediaList.find((m) => m.id === mediaId);
-        if (!mediaItem) continue;
+        if (mediaItem === undefined) continue;
 
         const buffer = await db.getMedia(mediaId);
-        if (buffer) {
+        if (buffer !== null) {
           const blob = new Blob([buffer], { type: mediaItem.mime_type });
           const url = URL.createObjectURL(blob);
           blobUrlMap.set(mediaId, url);
@@ -77,7 +77,7 @@ export function MarkdownPreview({
 
     mdInstance.renderer.rules['link_open'] = (tokens, idx, options, env, self) => {
       const token = tokens[idx];
-      if (token) {
+      if (token !== undefined) {
         token.attrSet('target', '_blank');
         token.attrSet('rel', 'noopener noreferrer');
       }
@@ -92,17 +92,17 @@ export function MarkdownPreview({
 
     mdInstance.renderer.rules.image = (tokens, idx, options, env, self) => {
       const token = tokens[idx];
-      if (!token) {
+      if (token === undefined) {
         return defaultImageRender(tokens, idx, options, env, self);
       }
 
       const srcIndex = token.attrIndex('src');
-      if (srcIndex >= 0 && token.attrs) {
+      if (srcIndex >= 0 && token.attrs !== null) {
         const src = token.attrs[srcIndex]?.[1];
-        if (src?.startsWith('media://')) {
+        if (src?.startsWith('media://') === true) {
           const mediaId = src.replace('media://', '');
           const blobUrl = mediaUrls.get(mediaId);
-          if (blobUrl && token.attrs[srcIndex]) {
+          if (blobUrl !== undefined && token.attrs[srcIndex] !== undefined) {
             token.attrs[srcIndex][1] = blobUrl;
           }
         }
@@ -120,7 +120,7 @@ export function MarkdownPreview({
 
   // Add checkbox interactivity
   useEffect(() => {
-    if (!containerRef.current || !onCheckboxToggle) return;
+    if (containerRef.current === null || onCheckboxToggle === undefined) return;
 
     const container = containerRef.current;
     const checkboxes = container.querySelectorAll<HTMLInputElement>(
@@ -145,7 +145,7 @@ export function MarkdownPreview({
         currentIndex++;
       }
 
-      if (targetMatch) {
+      if (targetMatch !== null) {
         // Toggle the checkbox in the markdown
         const newContent =
           content.slice(0, targetMatch.index) +

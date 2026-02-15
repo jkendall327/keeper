@@ -37,10 +37,10 @@ export function NoteGrid({
     // Only left button, and not on a note card or interactive element
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    if (target.closest('.note-card')) return;
+    if (target.closest('.note-card') !== null) return;
 
     const wrapper = wrapperRef.current;
-    if (!wrapper) return;
+    if (wrapper === null) return;
     const rect = wrapper.getBoundingClientRect();
     const wx = e.clientX - rect.left + wrapper.scrollLeft;
     const wy = e.clientY - rect.top + wrapper.scrollTop;
@@ -59,9 +59,9 @@ export function NoteGrid({
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       const drag = dragRef.current;
-      if (!drag) return;
+      if (drag === null) return;
       const wrapper = wrapperRef.current;
-      if (!wrapper) return;
+      if (wrapper === null) return;
 
       const rect = wrapper.getBoundingClientRect();
       drag.currentX = e.clientX - rect.left + wrapper.scrollLeft;
@@ -87,7 +87,7 @@ export function NoteGrid({
 
       // If no drag was initiated from the wrapper, ignore this mouseup
       // (e.g. clicks on header buttons should not clear selection).
-      if (!drag) return;
+      if (drag === null) return;
 
       dragRef.current = null;
       isDraggingRef.current = false;
@@ -96,7 +96,7 @@ export function NoteGrid({
 
       if (wasDragging) {
         const wrapper = wrapperRef.current;
-        if (!wrapper) return;
+        if (wrapper === null) return;
         const wrapperRect = wrapper.getBoundingClientRect();
 
         const selLeft = Math.min(drag.startX, drag.currentX);
@@ -116,7 +116,7 @@ export function NoteGrid({
           };
           if (selLeft < cardRel.right && selRight > cardRel.left && selTop < cardRel.bottom && selBottom > cardRel.top) {
             const id = card.getAttribute('data-note-id');
-            if (id) matched.add(id);
+            if (id !== null) matched.add(id);
           }
         }
         if (matched.size > 0) {
@@ -182,7 +182,7 @@ export function NoteGrid({
         <div className="note-grid-divider" />
       )}
       {archivedNotes.length > 0 && renderGroup(archivedNotes)}
-      {selRect && (
+      {selRect !== null && (
         <div
           className="selection-rectangle"
           style={{

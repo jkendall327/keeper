@@ -74,7 +74,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
   }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag]);
 
   // Keep selectedNote in sync with latest data from notes array
-  const currentNote = selectedNote
+  const currentNote = selectedNote !== null
     ? notes.find((n) => n.id === selectedNote.id) ?? null
     : null;
 
@@ -137,7 +137,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           onClearSelection={clearSelection}
         />
       </div>
-      {currentNote && (
+      {currentNote !== null && (
         <NoteModal
           note={currentNote}
           allTags={allTags}

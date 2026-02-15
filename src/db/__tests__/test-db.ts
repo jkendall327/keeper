@@ -10,7 +10,7 @@ export function createTestDb(): SqliteDb {
 
   return {
     run(sql: string, bind?: SqlValue[]) {
-      if (bind && bind.length > 0) {
+      if (bind !== undefined && bind.length > 0) {
         db.prepare(sql).run(...bind);
       } else {
         db.exec(sql);
@@ -18,7 +18,7 @@ export function createTestDb(): SqliteDb {
     },
     query(sql: string, bind?: SqlValue[]): SqlRow[] {
       const stmt = db.prepare(sql);
-      const rows = bind && bind.length > 0 ? stmt.all(...bind) : stmt.all();
+      const rows = bind !== undefined && bind.length > 0 ? stmt.all(...bind) : stmt.all();
       return rows as SqlRow[];
     },
     execRaw(sql: string) {

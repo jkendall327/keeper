@@ -55,7 +55,7 @@ export function createMockDB(): MockDB {
 
     async updateNote(input: UpdateNoteInput): Promise<NoteWithTags> {
       const note = notes.get(input.id);
-      if (!note) throw new Error(`Note ${input.id} not found`);
+      if (note === undefined) throw new Error(`Note ${input.id} not found`);
 
       const updated = {
         ...note,
@@ -82,7 +82,7 @@ export function createMockDB(): MockDB {
     async archiveNotes(ids: string[]): Promise<void> {
       for (const id of ids) {
         const note = notes.get(id);
-        if (note) {
+        if (note !== undefined) {
           notes.set(id, { ...note, archived: true });
         }
       }
@@ -91,7 +91,7 @@ export function createMockDB(): MockDB {
 
     async togglePinNote(id: string): Promise<NoteWithTags> {
       const note = notes.get(id);
-      if (!note) throw new Error(`Note ${id} not found`);
+      if (note === undefined) throw new Error(`Note ${id} not found`);
 
       const updated = {
         ...note,
@@ -104,7 +104,7 @@ export function createMockDB(): MockDB {
 
     async toggleArchiveNote(id: string): Promise<NoteWithTags> {
       const note = notes.get(id);
-      if (!note) throw new Error(`Note ${id} not found`);
+      if (note === undefined) throw new Error(`Note ${id} not found`);
 
       const updated = {
         ...note,
@@ -117,11 +117,11 @@ export function createMockDB(): MockDB {
 
     async addTag(noteId: string, tagName: string): Promise<NoteWithTags> {
       const note = notes.get(noteId);
-      if (!note) throw new Error(`Note ${noteId} not found`);
+      if (note === undefined) throw new Error(`Note ${noteId} not found`);
 
       // Get or create tag
       let tag = Array.from(tags.values()).find(t => t.name === tagName);
-      if (!tag) {
+      if (tag === undefined) {
         tag = { id: generateTagId(), name: tagName };
         tags.set(tag.id, tag);
       }
@@ -136,7 +136,7 @@ export function createMockDB(): MockDB {
 
     async removeTag(noteId: string, tagName: string): Promise<NoteWithTags> {
       const note = notes.get(noteId);
-      if (!note) throw new Error(`Note ${noteId} not found`);
+      if (note === undefined) throw new Error(`Note ${noteId} not found`);
 
       note.tags = note.tags.filter(t => t.name !== tagName);
       return Promise.resolve(note);
@@ -151,7 +151,7 @@ export function createMockDB(): MockDB {
         }
       }
       const tag = Array.from(tags.values()).find(t => t.name === oldName);
-      if (tag) {
+      if (tag !== undefined) {
         tag.name = newName;
       }
       return Promise.resolve();
@@ -192,20 +192,20 @@ export function createMockDB(): MockDB {
       return Promise.resolve(Array.from(notes.values()).filter(n => n.archived));
     },
 
-    async storeMedia(): Promise<never> {
-      throw new Error('storeMedia not implemented in mock');
+    storeMedia(): Promise<never> {
+      return Promise.reject(new Error('storeMedia not implemented in mock'));
     },
 
-    async getMedia(): Promise<never> {
-      throw new Error('getMedia not implemented in mock');
+    getMedia(): Promise<never> {
+      return Promise.reject(new Error('getMedia not implemented in mock'));
     },
 
-    async deleteMedia(): Promise<never> {
-      throw new Error('deleteMedia not implemented in mock');
+    deleteMedia(): Promise<never> {
+      return Promise.reject(new Error('deleteMedia not implemented in mock'));
     },
 
-    async getMediaForNote(): Promise<never> {
-      throw new Error('getMediaForNote not implemented in mock');
+    getMediaForNote(): Promise<never> {
+      return Promise.reject(new Error('getMediaForNote not implemented in mock'));
     },
   };
 }

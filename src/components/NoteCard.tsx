@@ -20,11 +20,19 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
     <div
       className={`note-card${isSelected === true ? ' note-card-selected' : ''}`}
       data-note-id={note.id}
+      role="button"
+      tabIndex={0}
       onClick={(e) => {
         // Don't open modal when clicking a link in preview mode
         const target = e.target as HTMLElement;
         if (target.tagName === 'A' || target.closest('a') !== null) return;
         onSelect(note);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(note);
+        }
       }}
     >
       {isSelected === true && (

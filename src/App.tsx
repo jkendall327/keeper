@@ -25,6 +25,8 @@ function AppContent({ previewMode }: AppContentProps) {
     renameTag,
     deleteTag,
     search,
+    toggleArchiveNote,
+    getArchivedNotes,
     getUntaggedNotes,
     getNotesForTag,
   } = useDB();
@@ -50,6 +52,9 @@ function AppContent({ previewMode }: AppContentProps) {
           case 'untagged':
             setDisplayedNotes(await getUntaggedNotes());
             break;
+          case 'archive':
+            setDisplayedNotes(await getArchivedNotes());
+            break;
           case 'tag':
             setDisplayedNotes(await getNotesForTag(activeFilter.tagId));
             break;
@@ -57,7 +62,7 @@ function AppContent({ previewMode }: AppContentProps) {
       }
     };
     void loadNotes();
-  }, [searchQuery, activeFilter, notes, search, getUntaggedNotes, getNotesForTag]);
+  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag]);
 
   // Keep selectedNote in sync with latest data from notes array
   const currentNote = selectedNote
@@ -81,6 +86,7 @@ function AppContent({ previewMode }: AppContentProps) {
           onSelect={setSelectedNote}
           onDelete={deleteNote}
           onTogglePin={togglePinNote}
+          onToggleArchive={toggleArchiveNote}
           previewMode={previewMode}
           onUpdateNote={updateNote}
         />

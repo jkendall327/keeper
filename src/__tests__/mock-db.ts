@@ -36,6 +36,7 @@ export function createMockDB(): MockDB {
         body: input.body,
         has_links: false,
         pinned: false,
+        archived: false,
         created_at: now(),
         updated_at: now(),
         tags: [],
@@ -83,6 +84,19 @@ export function createMockDB(): MockDB {
       const updated = {
         ...note,
         pinned: !note.pinned,
+        updated_at: now(),
+      };
+      notes.set(id, updated);
+      return updated;
+    },
+
+    async toggleArchiveNote(id: string): Promise<NoteWithTags> {
+      const note = notes.get(id);
+      if (!note) throw new Error(`Note ${id} not found`);
+
+      const updated = {
+        ...note,
+        archived: !note.archived,
         updated_at: now(),
       };
       notes.set(id, updated);
@@ -158,6 +172,10 @@ export function createMockDB(): MockDB {
 
     async getNotesForTag(tagId: number): Promise<NoteWithTags[]> {
       return Array.from(notes.values()).filter(n => n.tags.some(t => t.id === tagId));
+    },
+
+    async getArchivedNotes(): Promise<NoteWithTags[]> {
+      return Array.from(notes.values()).filter(n => n.archived);
     },
 
     async storeMedia(): Promise<never> {

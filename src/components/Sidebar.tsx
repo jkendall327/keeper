@@ -4,6 +4,7 @@ import type { Tag } from '../db/types.ts';
 export type FilterType =
   | { type: 'all' }
   | { type: 'untagged' }
+  | { type: 'archive' }
   | { type: 'tag'; tagId: number };
 
 interface SidebarProps {
@@ -21,6 +22,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
   const isActive = (filter: FilterType) => {
     if (activeFilter.type === 'all' && filter.type === 'all') return true;
     if (activeFilter.type === 'untagged' && filter.type === 'untagged') return true;
+    if (activeFilter.type === 'archive' && filter.type === 'archive') return true;
     if (
       activeFilter.type === 'tag' &&
       filter.type === 'tag' &&
@@ -116,6 +118,13 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
         <button
           className={`sidebar-tab ${isActive({ type: 'untagged' }) ? 'sidebar-tab-active' : ''}`}
           onClick={() => { onFilterChange({ type: 'untagged' }); }}
+        >
+          Untagged
+        </button>
+
+        <button
+          className={`sidebar-tab ${isActive({ type: 'archive' }) ? 'sidebar-tab-active' : ''}`}
+          onClick={() => { onFilterChange({ type: 'archive' }); }}
         >
           Archive
         </button>

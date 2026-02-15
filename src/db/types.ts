@@ -6,6 +6,7 @@ export interface Note {
   body: string;
   has_links: boolean;
   pinned: boolean;
+  archived: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -66,6 +67,7 @@ export interface KeeperDB {
   deleteNote(id: string): Promise<void>;
   deleteNotes(ids: string[]): Promise<void>;
   togglePinNote(id: string): Promise<NoteWithTags>;
+  toggleArchiveNote(id: string): Promise<NoteWithTags>;
 
   // Tags
   addTag(noteId: string, tagName: string): Promise<NoteWithTags>;
@@ -81,6 +83,7 @@ export interface KeeperDB {
   getUntaggedNotes(): Promise<NoteWithTags[]>;
   getLinkedNotes(): Promise<NoteWithTags[]>;
   getNotesForTag(tagId: number): Promise<NoteWithTags[]>;
+  getArchivedNotes(): Promise<NoteWithTags[]>;
 
   // Media
   storeMedia(input: StoreMediaInput): Promise<Media>;

@@ -6,11 +6,12 @@ interface NoteCardProps {
   onSelect: (note: NoteWithTags) => void;
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
+  onToggleArchive: (id: string) => Promise<void>;
   previewMode: boolean;
   onUpdate: (input: UpdateNoteInput) => Promise<void>;
 }
 
-export function NoteCard({ note, onSelect, onDelete, onTogglePin, previewMode, onUpdate }: NoteCardProps) {
+export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, previewMode, onUpdate }: NoteCardProps) {
   const handleCheckboxToggle = (newBody: string) => {
     void onUpdate({ id: note.id, body: newBody });
   };
@@ -27,6 +28,17 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, previewMode, o
           title={note.pinned ? 'Unpin note' : 'Pin note'}
         >
           {note.pinned ? '📌' : '📍'}
+        </button>
+        <button
+          className="note-card-archive"
+          onClick={(e) => {
+            e.stopPropagation();
+            void onToggleArchive(note.id);
+          }}
+          aria-label={note.archived ? 'Unarchive note' : 'Archive note'}
+          title={note.archived ? 'Unarchive note' : 'Archive note'}
+        >
+          {note.archived ? '📤' : '📦'}
         </button>
         <button
           className="note-card-delete"

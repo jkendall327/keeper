@@ -38,6 +38,14 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
   // Create the pinned index (handled separately from main schema for migration compatibility)
   db.execRaw('CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned)');
 
+  // Migration: Add archived column if it doesn't exist (for existing databases)
+  const hasArchivedColumn = columns.some((col) => col['name'] === 'archived');
+  if (!hasArchivedColumn) {
+    db.execRaw('ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
+  }
+
+  db.execRaw('CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived)');
+
   // ── Helpers ───────────────────────────────────────────────────
 
   /**
@@ -78,6 +86,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       body: row['body'] as string,
       has_links: row['has_links'] === 1,
       pinned: row['pinned'] === 1,
+      archived: row['archived'] === 1,
       created_at: row['created_at'] as string,
       updated_at: row['updated_at'] as string,
     };
@@ -119,6 +128,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         body,
         has_links: hasLinks === 1,
         pinned: false,
+        archived: false,
         created_at: timestamp,
         updated_at: timestamp,
       });
@@ -132,7 +142,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     },
 
     async getAllNotes(): Promise<NoteWithTags[]> {
-      const rows = db.query('SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC');
+      const rows = db.query('SELECT * FROM notes WHERE archived = 0 ORDER BY pinned DESC, updated_at DESC');
       return rows.map((r) => withTags(rowToNote(r)));
     },
 
@@ -176,6 +186,18 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
       const newPinned = existing.pinned ? 0 : 1;
       db.run('UPDATE notes SET pinned = ? WHERE id = ?', [newPinned, id]);
+
+      const note = await api.getNote(id);
+      if (note === null) throw new Error(`Note not found: ${id}`);
+      return note;
+    },
+
+    async toggleArchiveNote(id: string): Promise<NoteWithTags> {
+      const existing = await api.getNote(id);
+      if (existing === null) throw new Error(`Note not found: ${id}`);
+
+      const newArchived = existing.archived ? 0 : 1;
+      db.run('UPDATE notes SET archived = ? WHERE id = ?', [newArchived, id]);
 
       const note = await api.getNote(id);
       if (note === null) throw new Error(`Note not found: ${id}`);
@@ -236,7 +258,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
          FROM notes_fts fts
          JOIN notes n ON n.rowid = fts.rowid
          WHERE notes_fts MATCH ?
-         ORDER BY rank`,
+         ORDER BY n.archived ASC, rank`,
         [fts5Query],
       );
       return rows.map((r) => ({
@@ -248,14 +270,14 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     async getUntaggedNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
         `SELECT * FROM notes
-         WHERE id NOT IN (SELECT note_id FROM note_tags)
+         WHERE id NOT IN (SELECT note_id FROM note_tags) AND archived = 0
          ORDER BY pinned DESC, updated_at DESC`,
       );
       return rows.map((r) => withTags(rowToNote(r)));
     },
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
-      const rows = db.query('SELECT * FROM notes WHERE has_links = 1 ORDER BY pinned DESC, updated_at DESC');
+      const rows = db.query('SELECT * FROM notes WHERE has_links = 1 AND archived = 0 ORDER BY pinned DESC, updated_at DESC');
       return rows.map((r) => withTags(rowToNote(r)));
     },
 
@@ -263,9 +285,16 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const rows = db.query(
         `SELECT n.* FROM notes n
          JOIN note_tags nt ON nt.note_id = n.id
-         WHERE nt.tag_id = ?
+         WHERE nt.tag_id = ? AND n.archived = 0
          ORDER BY n.pinned DESC, n.updated_at DESC`,
         [tagId],
+      );
+      return rows.map((r) => withTags(rowToNote(r)));
+    },
+
+    async getArchivedNotes(): Promise<NoteWithTags[]> {
+      const rows = db.query(
+        'SELECT * FROM notes WHERE archived = 1 ORDER BY pinned DESC, updated_at DESC',
       );
       return rows.map((r) => withTags(rowToNote(r)));
     },

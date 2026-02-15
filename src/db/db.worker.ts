@@ -84,6 +84,8 @@ const api: KeeperDB = {
   getNotesForTag: delegate('getNotesForTag'),
   deleteNotes: delegate('deleteNotes'),
   togglePinNote: delegate('togglePinNote'),
+  toggleArchiveNote: delegate('toggleArchiveNote'),
+  getArchivedNotes: delegate('getArchivedNotes'),
   getMediaForNote: delegate('getMediaForNote'),
 
   // Override methods that need special OPFS handling

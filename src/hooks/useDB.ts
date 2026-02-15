@@ -89,6 +89,18 @@ export function useDB() {
     return await getDB().search(query);
   }, []);
 
+  const toggleArchiveNote = useCallback(
+    async (id: string) => {
+      await getDB().toggleArchiveNote(id);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const getArchivedNotes = useCallback(async () => {
+    return await getDB().getArchivedNotes();
+  }, []);
+
   const getUntaggedNotes = useCallback(async () => {
     return await getDB().getUntaggedNotes();
   }, []);
@@ -110,6 +122,8 @@ export function useDB() {
     renameTag,
     deleteTag,
     search,
+    toggleArchiveNote,
+    getArchivedNotes,
     getUntaggedNotes,
     getNotesForTag,
   };

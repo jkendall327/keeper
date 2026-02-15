@@ -89,6 +89,10 @@ const api: KeeperDB = {
     await ready;
     return baseApi.renameTag(oldName, newName);
   },
+  async deleteTag(tagId) {
+    await ready;
+    return baseApi.deleteTag(tagId);
+  },
   async getAllTags() {
     await ready;
     return baseApi.getAllTags();

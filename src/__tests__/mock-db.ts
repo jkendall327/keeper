@@ -116,6 +116,15 @@ export function createMockDB(): MockDB {
       }
     },
 
+    async deleteTag(tagId: number): Promise<void> {
+      // Remove tag from all notes
+      for (const note of notes.values()) {
+        note.tags = note.tags.filter(t => t.id !== tagId);
+      }
+      // Remove from tags map
+      tags.delete(tagId);
+    },
+
     async getAllTags(): Promise<Tag[]> {
       return Array.from(tags.values());
     },

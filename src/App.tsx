@@ -17,6 +17,8 @@ function AppContent() {
     deleteNote,
     addTag,
     removeTag,
+    renameTag,
+    deleteTag,
     search,
     getUntaggedNotes,
     getNotesForTag,
@@ -59,7 +61,13 @@ function AppContent() {
 
   return (
     <div className="app-layout">
-      <Sidebar tags={allTags} activeFilter={activeFilter} onFilterChange={setActiveFilter} />
+      <Sidebar
+        tags={allTags}
+        activeFilter={activeFilter}
+        onFilterChange={setActiveFilter}
+        onRenameTag={renameTag}
+        onDeleteTag={deleteTag}
+      />
       <div className="app-content">
         <SearchBar value={searchQuery} onChange={setSearchQuery} />
         <QuickAdd onCreate={createNote} />

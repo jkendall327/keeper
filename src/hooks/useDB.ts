@@ -61,6 +61,22 @@ export function useDB() {
     [refresh],
   );
 
+  const renameTag = useCallback(
+    async (oldName: string, newName: string) => {
+      await getDB().renameTag(oldName, newName);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteTag = useCallback(
+    async (tagId: number) => {
+      await getDB().deleteTag(tagId);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const search = useCallback(async (query: string) => {
     return await getDB().search(query);
   }, []);
@@ -82,6 +98,8 @@ export function useDB() {
     deleteNote,
     addTag,
     removeTag,
+    renameTag,
+    deleteTag,
     search,
     getUntaggedNotes,
     getNotesForTag,

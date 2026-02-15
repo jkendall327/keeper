@@ -131,6 +131,52 @@ describe('Tags', () => {
     });
   });
 
+  describe('deleteTag', () => {
+    it('deletes a tag completely', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'deleteme');
+
+      const tagsBefore = await api.getAllTags();
+      expect(tagsBefore).toContainEqual({ id: 1, name: 'deleteme' });
+
+      await api.deleteTag(1);
+
+      const tagsAfter = await api.getAllTags();
+      expect(tagsAfter).not.toContainEqual({ id: 1, name: 'deleteme' });
+    });
+
+    it('removes tag from all notes that used it (CASCADE)', async () => {
+      const note1 = await api.createNote({ body: 'first' });
+      const note2 = await api.createNote({ body: 'second' });
+      await api.addTag(note1.id, 'shared');
+      await api.addTag(note2.id, 'shared');
+
+      await api.deleteTag(1);
+
+      const n1 = await api.getNote(note1.id);
+      const n2 = await api.getNote(note2.id);
+      expect(n1?.tags).toEqual([]);
+      expect(n2?.tags).toEqual([]);
+    });
+
+    it('does not affect other tags on the same note', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'keep');
+      await api.addTag(note.id, 'delete');
+
+      await api.deleteTag(2); // delete the second tag
+
+      const updated = await api.getNote(note.id);
+      expect(updated?.tags).toEqual([{ id: 1, name: 'keep' }]);
+    });
+
+    it('no-op when tag does not exist', async () => {
+      await api.deleteTag(999); // non-existent tag ID
+      const tags = await api.getAllTags();
+      expect(tags).toEqual([]);
+    });
+  });
+
   describe('getAllTags', () => {
     it('returns empty array when no tags exist', async () => {
       const tags = await api.getAllTags();

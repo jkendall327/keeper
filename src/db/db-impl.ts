@@ -194,6 +194,10 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       db.run('UPDATE tags SET name = ? WHERE name = ?', [newName, oldName]);
     },
 
+    async deleteTag(tagId: number): Promise<void> {
+      db.run('DELETE FROM tags WHERE id = ?', [tagId]);
+    },
+
     async getAllTags(): Promise<Tag[]> {
       const rows = db.query('SELECT id, name FROM tags ORDER BY name');
       return rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string }));

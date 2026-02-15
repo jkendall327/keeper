@@ -194,6 +194,13 @@
   column-gap: 16px;
 }
 
+.note-grid-divider {
+  height: 2px;
+  background: rgba(128, 128, 128, 0.2);
+  margin: 24px 0;
+  border-radius: 1px;
+}
+
 .empty-state {
   text-align: center;
   opacity: 0.5;
@@ -217,27 +224,40 @@
   border-color: rgba(128, 128, 128, 0.6);
 }
 
-.note-card-delete {
+.note-card-actions {
   position: absolute;
   top: 4px;
   right: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.note-card:hover .note-card-actions {
+  opacity: 1;
+}
+
+.note-card-pin,
+.note-card-delete {
   background: none;
   border: none;
   color: inherit;
-  opacity: 0;
   font-size: 1.2rem;
   padding: 4px 8px;
   cursor: pointer;
   transition: opacity 0.15s;
   line-height: 1;
-}
-
-.note-card:hover .note-card-delete {
   opacity: 0.5;
 }
 
+.note-card-pin:hover,
 .note-card-delete:hover {
-  opacity: 1 !important;
+  opacity: 1;
+}
+
+.note-card-pin {
+  font-size: 1rem;
 }
 
 .note-card-title {

@@ -45,6 +45,14 @@ export function useDB() {
     [refresh],
   );
 
+  const togglePinNote = useCallback(
+    async (id: string) => {
+      await getDB().togglePinNote(id);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const addTag = useCallback(
     async (noteId: string, tagName: string) => {
       await getDB().addTag(noteId, tagName);
@@ -96,6 +104,7 @@ export function useDB() {
     createNote,
     updateNote,
     deleteNote,
+    togglePinNote,
     addTag,
     removeTag,
     renameTag,

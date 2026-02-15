@@ -28,6 +28,14 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
   // Initialize schema
   db.execRaw(SCHEMA_SQL);
 
+  // Migration: Add pinned column if it doesn't exist (for existing databases)
+  const columns = db.query('PRAGMA table_info(notes)');
+  const hasPinnedColumn = columns.some((col) => col['name'] === 'pinned');
+  if (!hasPinnedColumn) {
+    db.execRaw('ALTER TABLE notes ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0');
+    db.execRaw('CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned)');
+  }
+
   // ── Helpers ───────────────────────────────────────────────────
 
   /**
@@ -67,6 +75,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       title: row['title'] as string,
       body: row['body'] as string,
       has_links: row['has_links'] === 1,
+      pinned: row['pinned'] === 1,
       created_at: row['created_at'] as string,
       updated_at: row['updated_at'] as string,
     };
@@ -107,6 +116,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         title,
         body,
         has_links: hasLinks === 1,
+        pinned: false,
         created_at: timestamp,
         updated_at: timestamp,
       });
@@ -120,7 +130,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     },
 
     async getAllNotes(): Promise<NoteWithTags[]> {
-      const rows = db.query('SELECT * FROM notes ORDER BY updated_at DESC');
+      const rows = db.query('SELECT * FROM notes ORDER BY pinned DESC, updated_at DESC');
       return rows.map((r) => withTags(rowToNote(r)));
     },
 
@@ -156,6 +166,18 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       for (const id of ids) {
         await api.deleteNote(id);
       }
+    },
+
+    async togglePinNote(id: string): Promise<NoteWithTags> {
+      const existing = await api.getNote(id);
+      if (existing === null) throw new Error(`Note not found: ${id}`);
+
+      const newPinned = existing.pinned ? 0 : 1;
+      db.run('UPDATE notes SET pinned = ? WHERE id = ?', [newPinned, id]);
+
+      const note = await api.getNote(id);
+      if (note === null) throw new Error(`Note not found: ${id}`);
+      return note;
     },
 
     async addTag(noteId: string, tagName: string): Promise<NoteWithTags> {
@@ -225,13 +247,13 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const rows = db.query(
         `SELECT * FROM notes
          WHERE id NOT IN (SELECT note_id FROM note_tags)
-         ORDER BY updated_at DESC`,
+         ORDER BY pinned DESC, updated_at DESC`,
       );
       return rows.map((r) => withTags(rowToNote(r)));
     },
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
-      const rows = db.query('SELECT * FROM notes WHERE has_links = 1 ORDER BY updated_at DESC');
+      const rows = db.query('SELECT * FROM notes WHERE has_links = 1 ORDER BY pinned DESC, updated_at DESC');
       return rows.map((r) => withTags(rowToNote(r)));
     },
 
@@ -240,7 +262,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         `SELECT n.* FROM notes n
          JOIN note_tags nt ON nt.note_id = n.id
          WHERE nt.tag_id = ?
-         ORDER BY n.updated_at DESC`,
+         ORDER BY n.pinned DESC, n.updated_at DESC`,
         [tagId],
       );
       return rows.map((r) => withTags(rowToNote(r)));

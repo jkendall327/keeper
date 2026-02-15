@@ -5,6 +5,7 @@ export interface Note {
   title: string;
   body: string;
   has_links: boolean;
+  pinned: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -64,6 +65,7 @@ export interface KeeperDB {
   updateNote(input: UpdateNoteInput): Promise<NoteWithTags>;
   deleteNote(id: string): Promise<void>;
   deleteNotes(ids: string[]): Promise<void>;
+  togglePinNote(id: string): Promise<NoteWithTags>;
 
   // Tags
   addTag(noteId: string, tagName: string): Promise<NoteWithTags>;

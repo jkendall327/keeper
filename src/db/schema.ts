@@ -10,12 +10,14 @@ CREATE TABLE IF NOT EXISTS notes (
   title      TEXT NOT NULL DEFAULT '',
   body       TEXT NOT NULL DEFAULT '',
   has_links  INTEGER NOT NULL DEFAULT 0,
+  pinned     INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_notes_has_links ON notes(has_links);
 CREATE INDEX IF NOT EXISTS idx_notes_created_at ON notes(created_at);
+CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned);
 
 -- FTS5 full-text search (external content, synced via triggers)
 CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts USING fts5(

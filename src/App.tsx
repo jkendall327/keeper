@@ -15,6 +15,7 @@ function AppContent() {
     createNote,
     updateNote,
     deleteNote,
+    togglePinNote,
     addTag,
     removeTag,
     renameTag,
@@ -75,6 +76,7 @@ function AppContent() {
           notes={displayedNotes}
           onSelect={setSelectedNote}
           onDelete={deleteNote}
+          onTogglePin={togglePinNote}
         />
       </div>
       {currentNote && (

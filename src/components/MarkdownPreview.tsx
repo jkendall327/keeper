@@ -71,7 +71,7 @@ export function MarkdownPreview({
 
     // Open external links in new tab
     const defaultLinkOpen =
-      mdInstance.renderer.rules['link_open'] ||
+      mdInstance.renderer.rules['link_open'] ??
       ((tokens, idx, options, _env, self) =>
         self.renderToken(tokens, idx, options));
 
@@ -86,7 +86,7 @@ export function MarkdownPreview({
 
     // Override image renderer to handle media:// protocol
     const defaultImageRender =
-      mdInstance.renderer.rules.image ||
+      mdInstance.renderer.rules.image ??
       ((tokens, idx, options, _env, self) =>
         self.renderToken(tokens, idx, options));
 
@@ -99,7 +99,7 @@ export function MarkdownPreview({
       const srcIndex = token.attrIndex('src');
       if (srcIndex >= 0 && token.attrs) {
         const src = token.attrs[srcIndex]?.[1];
-        if (src && src.startsWith('media://')) {
+        if (src?.startsWith('media://')) {
           const mediaId = src.replace('media://', '');
           const blobUrl = mediaUrls.get(mediaId);
           if (blobUrl && token.attrs[srcIndex]) {
@@ -156,7 +156,7 @@ export function MarkdownPreview({
     };
 
     // Attach click handlers
-    const handlers: Array<() => void> = [];
+    const handlers: (() => void)[] = [];
     checkboxes.forEach((checkbox, index) => {
       const handler = () => {
         handleCheckboxClick(index);

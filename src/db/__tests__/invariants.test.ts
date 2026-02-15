@@ -12,7 +12,7 @@ describe('CRUD Invariants (Property-Based)', () => {
     idCounter = 0;
     api = createKeeperDB({
       db: createTestDb(),
-      generateId: () => `test-id-${++idCounter}`,
+      generateId: () => `test-id-${String(++idCounter)}`,
       now: () => '2025-01-15 12:00:00',
     });
   });
@@ -58,7 +58,7 @@ describe('CRUD Invariants (Property-Based)', () => {
           idCounter = 0;
           api = createKeeperDB({
             db: createTestDb(),
-            generateId: () => `test-id-${++idCounter}`,
+            generateId: () => `test-id-${String(++idCounter)}`,
             now: () => '2025-01-15 12:00:00',
           });
 
@@ -84,7 +84,7 @@ describe('CRUD Invariants (Property-Based)', () => {
           idCounter = 0;
           api = createKeeperDB({
             db: createTestDb(),
-            generateId: () => `test-id-${++idCounter}`,
+            generateId: () => `test-id-${String(++idCounter)}`,
             now: () => '2025-01-15 12:00:00',
           });
 
@@ -119,7 +119,7 @@ describe('CRUD Invariants (Property-Based)', () => {
           idCounter = 0;
           api = createKeeperDB({
             db: createTestDb(),
-            generateId: () => `test-id-${++idCounter}`,
+            generateId: () => `test-id-${String(++idCounter)}`,
             now: () => '2025-01-15 12:00:00',
           });
 
@@ -154,7 +154,7 @@ describe('CRUD Invariants (Property-Based)', () => {
           idCounter = 0;
           api = createKeeperDB({
             db: createTestDb(),
-            generateId: () => `test-id-${++idCounter}`,
+            generateId: () => `test-id-${String(++idCounter)}`,
             now: () => '2025-01-15 12:00:00',
           });
 
@@ -185,13 +185,13 @@ describe('CRUD Invariants (Property-Based)', () => {
           idCounter = 0;
           api = createKeeperDB({
             db: createTestDb(),
-            generateId: () => `test-id-${++idCounter}`,
+            generateId: () => `test-id-${String(++idCounter)}`,
             now: () => '2025-01-15 12:00:00',
           });
 
           const notes: string[] = [];
           for (let i = 0; i < noteCount; i++) {
-            const n = await api.createNote({ body: `note ${i}` });
+            const n = await api.createNote({ body: `note ${String(i)}` });
             await api.addTag(n.id, oldName);
             notes.push(n.id);
           }
@@ -218,7 +218,7 @@ describe('CRUD Invariants (Property-Based)', () => {
           idCounter = 0;
           api = createKeeperDB({
             db: createTestDb(),
-            generateId: () => `test-id-${++idCounter}`,
+            generateId: () => `test-id-${String(++idCounter)}`,
             now: () => '2025-01-15 12:00:00',
           });
 

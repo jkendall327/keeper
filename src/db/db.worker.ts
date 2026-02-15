@@ -60,9 +60,9 @@ const ready: Promise<void> = (async () => {
 
 // Helper to auto-delegate a method to baseApi
 function delegate<K extends keyof KeeperDB>(method: K): KeeperDB[K] {
-  return (async (...args: any[]) => {
+  return (async (...args: unknown[]) => {
     await ready;
-    return (baseApi[method] as any)(...args);
+    return (baseApi[method] as (...args: unknown[]) => unknown)(...args);
   }) as KeeperDB[K];
 }
 

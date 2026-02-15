@@ -13,7 +13,7 @@ describe('Smart Views', () => {
     timeCounter = 0;
     api = createKeeperDB({
       db: createTestDb(),
-      generateId: () => `test-id-${++idCounter}`,
+      generateId: () => `test-id-${String(++idCounter)}`,
       now: () => `2025-01-15 12:00:${String(timeCounter++).padStart(2, '0')}`,
     });
   });
@@ -43,7 +43,7 @@ describe('Smart Views', () => {
       let time = 0;
       const apiWithTime = createKeeperDB({
         db: createTestDb(),
-        generateId: () => `test-id-${++idCounter}`,
+        generateId: () => `test-id-${String(++idCounter)}`,
         now: () => `2025-01-15 12:00:${String(time++).padStart(2, '0')}`,
       });
 

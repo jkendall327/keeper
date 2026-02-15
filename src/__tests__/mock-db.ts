@@ -14,7 +14,7 @@ export function createMockDB(): MockDB {
   const notes = new Map<string, NoteWithTags>();
   const tags = new Map<number, Tag>();
 
-  const generateId = () => `n${noteId++}`;
+  const generateId = () => `n${String(noteId++)}`;
   const generateTagId = () => tagId++;
   const now = () => new Date().toISOString();
 
@@ -42,15 +42,15 @@ export function createMockDB(): MockDB {
         tags: [],
       };
       notes.set(id, note);
-      return note;
+      return Promise.resolve(note);
     },
 
     async getNote(id: string): Promise<NoteWithTags | null> {
-      return notes.get(id) ?? null;
+      return Promise.resolve(notes.get(id) ?? null);
     },
 
     async getAllNotes(): Promise<NoteWithTags[]> {
-      return Array.from(notes.values());
+      return Promise.resolve(Array.from(notes.values()));
     },
 
     async updateNote(input: UpdateNoteInput): Promise<NoteWithTags> {
@@ -64,17 +64,19 @@ export function createMockDB(): MockDB {
         updated_at: now(),
       };
       notes.set(input.id, updated);
-      return updated;
+      return Promise.resolve(updated);
     },
 
     async deleteNote(id: string): Promise<void> {
       notes.delete(id);
+      return Promise.resolve();
     },
 
     async deleteNotes(ids: string[]): Promise<void> {
       for (const id of ids) {
         notes.delete(id);
       }
+      return Promise.resolve();
     },
 
     async archiveNotes(ids: string[]): Promise<void> {
@@ -84,6 +86,7 @@ export function createMockDB(): MockDB {
           notes.set(id, { ...note, archived: true });
         }
       }
+      return Promise.resolve();
     },
 
     async togglePinNote(id: string): Promise<NoteWithTags> {
@@ -96,7 +99,7 @@ export function createMockDB(): MockDB {
         updated_at: now(),
       };
       notes.set(id, updated);
-      return updated;
+      return Promise.resolve(updated);
     },
 
     async toggleArchiveNote(id: string): Promise<NoteWithTags> {
@@ -109,7 +112,7 @@ export function createMockDB(): MockDB {
         updated_at: now(),
       };
       notes.set(id, updated);
-      return updated;
+      return Promise.resolve(updated);
     },
 
     async addTag(noteId: string, tagName: string): Promise<NoteWithTags> {
@@ -128,7 +131,7 @@ export function createMockDB(): MockDB {
         note.tags = [...note.tags, tag];
       }
 
-      return note;
+      return Promise.resolve(note);
     },
 
     async removeTag(noteId: string, tagName: string): Promise<NoteWithTags> {
@@ -136,7 +139,7 @@ export function createMockDB(): MockDB {
       if (!note) throw new Error(`Note ${noteId} not found`);
 
       note.tags = note.tags.filter(t => t.name !== tagName);
-      return note;
+      return Promise.resolve(note);
     },
 
     async renameTag(oldName: string, newName: string): Promise<void> {
@@ -151,6 +154,7 @@ export function createMockDB(): MockDB {
       if (tag) {
         tag.name = newName;
       }
+      return Promise.resolve();
     },
 
     async deleteTag(tagId: number): Promise<void> {
@@ -160,31 +164,32 @@ export function createMockDB(): MockDB {
       }
       // Remove from tags map
       tags.delete(tagId);
+      return Promise.resolve();
     },
 
     async getAllTags(): Promise<Tag[]> {
-      return Array.from(tags.values());
+      return Promise.resolve(Array.from(tags.values()));
     },
 
     async search(_query: string): Promise<SearchResult[]> {
       // Simple mock: return empty for now
-      return [];
+      return Promise.resolve([]);
     },
 
     async getUntaggedNotes(): Promise<NoteWithTags[]> {
-      return Array.from(notes.values()).filter(n => n.tags.length === 0);
+      return Promise.resolve(Array.from(notes.values()).filter(n => n.tags.length === 0));
     },
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
-      return Array.from(notes.values()).filter(n => n.has_links);
+      return Promise.resolve(Array.from(notes.values()).filter(n => n.has_links));
     },
 
     async getNotesForTag(tagId: number): Promise<NoteWithTags[]> {
-      return Array.from(notes.values()).filter(n => n.tags.some(t => t.id === tagId));
+      return Promise.resolve(Array.from(notes.values()).filter(n => n.tags.some(t => t.id === tagId)));
     },
 
     async getArchivedNotes(): Promise<NoteWithTags[]> {
-      return Array.from(notes.values()).filter(n => n.archived);
+      return Promise.resolve(Array.from(notes.values()).filter(n => n.archived));
     },
 
     async storeMedia(): Promise<never> {

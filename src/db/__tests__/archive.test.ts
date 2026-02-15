@@ -13,7 +13,7 @@ describe('Note archiving', () => {
     timeCounter = 0;
     api = createKeeperDB({
       db: createTestDb(),
-      generateId: () => `test-id-${++idCounter}`,
+      generateId: () => `test-id-${String(++idCounter)}`,
       now: () => `2025-01-15 12:00:${String(timeCounter++).padStart(2, '0')}`,
     });
   });

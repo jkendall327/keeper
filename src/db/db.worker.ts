@@ -4,60 +4,12 @@
 import * as Comlink from 'comlink';
 import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
 import type { Sqlite3Static, OpfsDatabase, SqlValue } from '@sqlite.org/sqlite-wasm';
-import { SCHEMA_SQL } from './schema.ts';
-import { containsUrl } from './url-detect.ts';
-import type {
-  KeeperDB,
-  Note,
-  NoteWithTags,
-  Tag,
-  Media,
-  SearchResult,
-  CreateNoteInput,
-  UpdateNoteInput,
-  StoreMediaInput,
-} from './types.ts';
+import { createKeeperDB } from './db-impl.ts';
+import type { SqliteDb, SqlRow } from './sqlite-db.ts';
+import type { KeeperDB, Media, StoreMediaInput } from './types.ts';
 
 let db: OpfsDatabase;
 let sqlite3: Sqlite3Static;
-
-const ready: Promise<void> = (async () => {
-  sqlite3 = await sqlite3InitModule();
-  db = new sqlite3.oo1.OpfsDb('/keeper.sqlite3', 'cw');
-  db.exec(SCHEMA_SQL);
-})();
-
-// ── Helpers ───────────────────────────────────────────────────
-
-function rowToNote(row: Record<string, SqlValue>): Note {
-  return {
-    id: row['id'] as string,
-    title: row['title'] as string,
-    body: row['body'] as string,
-    has_links: row['has_links'] === 1,
-    created_at: row['created_at'] as string,
-    updated_at: row['updated_at'] as string,
-  };
-}
-
-function getTagsForNote(noteId: string): Tag[] {
-  const tags: Tag[] = [];
-  db.exec({
-    sql: `SELECT t.id, t.name FROM tags t
-          JOIN note_tags nt ON nt.tag_id = t.id
-          WHERE nt.note_id = ?`,
-    bind: [noteId],
-    rowMode: 'object',
-    callback: (row: Record<string, SqlValue>) => {
-      tags.push({ id: row['id'] as number, name: row['name'] as string });
-    },
-  });
-  return tags;
-}
-
-function withTags(note: Note): NoteWithTags {
-  return { ...note, tags: getTagsForNote(note.id) };
-}
 
 function mimeToExt(mime: string): string {
   const map: Record<string, string> = {
@@ -73,82 +25,41 @@ function mimeToExt(mime: string): string {
   return map[mime] ?? 'bin';
 }
 
-// ── KeeperDB implementation ──────────────────────────────────
+const ready: Promise<void> = (async () => {
+  sqlite3 = await sqlite3InitModule();
+  db = new sqlite3.oo1.OpfsDb('/keeper.sqlite3', 'cw');
+})();
 
+// Create the base DB implementation with OpfsDatabase adapter
+const baseApi = createKeeperDB({
+  db: {
+    run(sql: string, bind?: SqlValue[]) {
+      if (bind !== undefined) {
+        db.exec({ sql, bind });
+      } else {
+        db.exec({ sql });
+      }
+    },
+    query(sql: string, bind?: SqlValue[]): SqlRow[] {
+      const rows: SqlRow[] = [];
+      if (bind !== undefined) {
+        db.exec({ sql, bind, rowMode: 'object', resultRows: rows });
+      } else {
+        db.exec({ sql, rowMode: 'object', resultRows: rows });
+      }
+      return rows;
+    },
+    execRaw(sql: string) {
+      db.exec(sql);
+    },
+  } satisfies SqliteDb,
+  generateId: () => crypto.randomUUID(),
+  now: () => new Date().toISOString().replace('T', ' ').slice(0, 19),
+});
+
+// Extend base implementation with OPFS-backed media operations
 const api: KeeperDB = {
-  async createNote(input: CreateNoteInput): Promise<NoteWithTags> {
-    await ready;
-    const id = crypto.randomUUID();
-    const title = input.title ?? '';
-    const body = input.body;
-    const hasLinks = containsUrl(body) ? 1 : 0;
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-
-    db.exec({
-      sql: `INSERT INTO notes (id, title, body, has_links, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?)`,
-      bind: [id, title, body, hasLinks, now, now],
-    });
-
-    return withTags({
-      id,
-      title,
-      body,
-      has_links: hasLinks === 1,
-      created_at: now,
-      updated_at: now,
-    });
-  },
-
-  async getNote(id: string): Promise<NoteWithTags | null> {
-    await ready;
-    const rows: Record<string, SqlValue>[] = [];
-    db.exec({
-      sql: 'SELECT * FROM notes WHERE id = ?',
-      bind: [id],
-      rowMode: 'object',
-      resultRows: rows,
-    });
-    const row = rows[0];
-    if (row === undefined) return null;
-    return withTags(rowToNote(row));
-  },
-
-  async getAllNotes(): Promise<NoteWithTags[]> {
-    await ready;
-    const rows: Record<string, SqlValue>[] = [];
-    db.exec({
-      sql: 'SELECT * FROM notes ORDER BY updated_at DESC',
-      rowMode: 'object',
-      resultRows: rows,
-    });
-    return rows.map((r) => withTags(rowToNote(r)));
-  },
-
-  async updateNote(input: UpdateNoteInput): Promise<NoteWithTags> {
-    await ready;
-    const existing = await this.getNote(input.id);
-    if (existing === null) throw new Error(`Note not found: ${input.id}`);
-
-    const title = input.title ?? existing.title;
-    const body = input.body ?? existing.body;
-    const hasLinks = containsUrl(body) ? 1 : 0;
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-
-    db.exec({
-      sql: `UPDATE notes SET title = ?, body = ?, has_links = ?, updated_at = ?
-            WHERE id = ?`,
-      bind: [title, body, hasLinks, now, input.id],
-    });
-
-    return withTags({
-      ...existing,
-      title,
-      body,
-      has_links: hasLinks === 1,
-      updated_at: now,
-    });
-  },
+  ...baseApi,
 
   async deleteNote(id: string): Promise<void> {
     await ready;
@@ -170,118 +81,8 @@ const api: KeeperDB = {
         // file may not exist
       }
     }
-    db.exec({ sql: 'DELETE FROM notes WHERE id = ?', bind: [id] });
-  },
-
-  async deleteNotes(ids: string[]): Promise<void> {
-    await ready;
-    for (const id of ids) {
-      await this.deleteNote(id);
-    }
-  },
-
-  async addTag(noteId: string, tagName: string): Promise<NoteWithTags> {
-    await ready;
-    db.exec({
-      sql: 'INSERT OR IGNORE INTO tags (name) VALUES (?)',
-      bind: [tagName],
-    });
-
-    const tagRows: Record<string, SqlValue>[] = [];
-    db.exec({
-      sql: 'SELECT id FROM tags WHERE name = ?',
-      bind: [tagName],
-      rowMode: 'object',
-      resultRows: tagRows,
-    });
-    const tagRow = tagRows[0];
-    if (tagRow === undefined) throw new Error(`Tag not found: ${tagName}`);
-    const tagId = tagRow['id'] as number;
-
-    db.exec({
-      sql: 'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
-      bind: [noteId, tagId],
-    });
-
-    const note = await this.getNote(noteId);
-    if (note === null) throw new Error(`Note not found: ${noteId}`);
-    return note;
-  },
-
-  async removeTag(noteId: string, tagName: string): Promise<NoteWithTags> {
-    await ready;
-    db.exec({
-      sql: `DELETE FROM note_tags WHERE note_id = ? AND tag_id = (
-              SELECT id FROM tags WHERE name = ?
-            )`,
-      bind: [noteId, tagName],
-    });
-
-    const note = await this.getNote(noteId);
-    if (note === null) throw new Error(`Note not found: ${noteId}`);
-    return note;
-  },
-
-  async renameTag(oldName: string, newName: string): Promise<void> {
-    await ready;
-    db.exec({
-      sql: 'UPDATE tags SET name = ? WHERE name = ?',
-      bind: [newName, oldName],
-    });
-  },
-
-  async getAllTags(): Promise<Tag[]> {
-    await ready;
-    const rows: Record<string, SqlValue>[] = [];
-    db.exec({
-      sql: 'SELECT id, name FROM tags ORDER BY name',
-      rowMode: 'object',
-      resultRows: rows,
-    });
-    return rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string }));
-  },
-
-  async search(query: string): Promise<SearchResult[]> {
-    await ready;
-    const rows: Record<string, SqlValue>[] = [];
-    db.exec({
-      sql: `SELECT n.*, rank
-            FROM notes_fts fts
-            JOIN notes n ON n.rowid = fts.rowid
-            WHERE notes_fts MATCH ?
-            ORDER BY rank`,
-      bind: [query],
-      rowMode: 'object',
-      resultRows: rows,
-    });
-    return rows.map((r) => ({
-      ...withTags(rowToNote(r)),
-      rank: r['rank'] as number,
-    }));
-  },
-
-  async getUntaggedNotes(): Promise<NoteWithTags[]> {
-    await ready;
-    const rows: Record<string, SqlValue>[] = [];
-    db.exec({
-      sql: `SELECT * FROM notes
-            WHERE id NOT IN (SELECT note_id FROM note_tags)
-            ORDER BY updated_at DESC`,
-      rowMode: 'object',
-      resultRows: rows,
-    });
-    return rows.map((r) => withTags(rowToNote(r)));
-  },
-
-  async getLinkedNotes(): Promise<NoteWithTags[]> {
-    await ready;
-    const rows: Record<string, SqlValue>[] = [];
-    db.exec({
-      sql: `SELECT * FROM notes WHERE has_links = 1 ORDER BY updated_at DESC`,
-      rowMode: 'object',
-      resultRows: rows,
-    });
-    return rows.map((r) => withTags(rowToNote(r)));
+    // Perform SQL delete (cascade handles media table rows)
+    await baseApi.deleteNote(id);
   },
 
   async storeMedia(input: StoreMediaInput): Promise<Media> {
@@ -353,24 +154,21 @@ const api: KeeperDB = {
     }
     db.exec({ sql: 'DELETE FROM media WHERE id = ?', bind: [id] });
   },
-
-  async getMediaForNote(noteId: string): Promise<Media[]> {
-    await ready;
-    const rows: Record<string, SqlValue>[] = [];
-    db.exec({
-      sql: 'SELECT * FROM media WHERE note_id = ? ORDER BY created_at',
-      bind: [noteId],
-      rowMode: 'object',
-      resultRows: rows,
-    });
-    return rows.map((r) => ({
-      id: r['id'] as string,
-      note_id: r['note_id'] as string,
-      mime_type: r['mime_type'] as string,
-      filename: r['filename'] as string,
-      created_at: r['created_at'] as string,
-    }));
-  },
 };
 
-Comlink.expose(api);
+// Proxy to await ready before delegating calls
+const proxy = new Proxy(api, {
+  get(_target, prop) {
+    const method = api[prop as keyof KeeperDB];
+    if (typeof method === 'function') {
+      return async (...args: unknown[]) => {
+        await ready;
+        // Use bind to preserve the correct 'this' context
+        return (method as (...args: unknown[]) => Promise<unknown>).apply(api, args);
+      };
+    }
+    return method;
+  },
+});
+
+Comlink.expose(proxy);

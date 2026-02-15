@@ -106,10 +106,67 @@ describe('FTS5 Search', () => {
     expect(results).toHaveLength(1);
   });
 
-  it('partial word matching works', async () => {
+  it('partial word matching works with explicit wildcard', async () => {
     await api.createNote({ title: 'Development', body: 'Software development notes' });
 
     const results = await api.search('develop*');
+    expect(results).toHaveLength(1);
+  });
+
+  it('automatic prefix matching on last word', async () => {
+    await api.createNote({ title: 'Development', body: 'Software development notes' });
+
+    // 'develop' should automatically match 'development'
+    const results = await api.search('develop');
+    expect(results).toHaveLength(1);
+  });
+
+  it('prefix matching works on single long token', async () => {
+    await api.createNote({ title: 'woooohoooooo', body: 'excitement' });
+
+    const results = await api.search('wooo');
+    expect(results).toHaveLength(1);
+    expect(results[0]?.title).toBe('woooohoooooo');
+  });
+
+  it('prefix matching on multi-word query', async () => {
+    await api.createNote({ title: 'Quick Notes', body: 'Fast note taking' });
+    await api.createNote({ title: 'Quick Reference', body: 'Handy guide' });
+
+    // 'quick not' should match 'Quick Notes' (prefix on 'not')
+    const results = await api.search('quick not');
+    expect(results).toHaveLength(1);
+    expect(results[0]?.title).toBe('Quick Notes');
+  });
+
+  it('handles empty query gracefully', async () => {
+    await api.createNote({ title: 'Test', body: 'Content' });
+
+    const results = await api.search('');
+    expect(results).toEqual([]);
+  });
+
+  it('handles whitespace-only query gracefully', async () => {
+    await api.createNote({ title: 'Test', body: 'Content' });
+
+    const results = await api.search('   ');
+    expect(results).toEqual([]);
+  });
+
+  it('escapes special characters safely', async () => {
+    await api.createNote({ title: 'C++ Programming', body: 'Learn C++' });
+
+    // Should not throw, should find the note
+    const results = await api.search('C++');
+    expect(results).toHaveLength(1);
+    expect(results[0]?.title).toBe('C++ Programming');
+  });
+
+  it('handles queries with quotes', async () => {
+    await api.createNote({ title: 'The "Best" Tutorial', body: 'Top rated' });
+
+    // Quotes should be escaped and not cause syntax errors
+    const results = await api.search('"best"');
     expect(results).toHaveLength(1);
   });
 });

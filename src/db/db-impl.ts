@@ -30,6 +30,37 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
   // ── Helpers ───────────────────────────────────────────────────
 
+  /**
+   * Prepares user input for FTS5 MATCH query with automatic prefix matching.
+   * - Escapes special FTS5 characters by quoting each word
+   * - Appends * wildcard to the last word for prefix matching
+   * - Handles empty/whitespace-only input
+   *
+   * Examples:
+   * - 'hello' → '"hello"*'
+   * - 'quick note' → '"quick" "note"*'
+   * - 'C++' → '"C++"*'
+   */
+  function prepareFts5Query(input: string): string {
+    const trimmed = input.trim();
+    if (trimmed === '') return '';
+
+    // Split into words and filter empty strings
+    const words = trimmed.split(/\s+/).filter((w) => w.length > 0);
+    if (words.length === 0) return '';
+
+    // Quote each word to escape special characters, append * to last word
+    const quotedWords = words.map((word, i) => {
+      // Escape double quotes in the word by doubling them
+      const escaped = word.replace(/"/g, '""');
+      // Add * to last word for prefix matching
+      const suffix = i === words.length - 1 ? '*' : '';
+      return `"${escaped}"${suffix}`;
+    });
+
+    return quotedWords.join(' ');
+  }
+
   function rowToNote(row: SqlRow): Note {
     return {
       id: row['id'] as string,
@@ -169,13 +200,16 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     },
 
     async search(query: string): Promise<SearchResult[]> {
+      const fts5Query = prepareFts5Query(query);
+      if (fts5Query === '') return [];
+
       const rows = db.query(
         `SELECT n.*, rank
          FROM notes_fts fts
          JOIN notes n ON n.rowid = fts.rowid
          WHERE notes_fts MATCH ?
          ORDER BY rank`,
-        [query],
+        [fts5Query],
       );
       return rows.map((r) => ({
         ...withTags(rowToNote(r)),

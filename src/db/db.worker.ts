@@ -110,7 +110,7 @@ const api: KeeperDB = {
       resultRows: rows,
     });
     const row = rows[0];
-    if (!row) return null;
+    if (row === undefined) return null;
     return withTags(rowToNote(row));
   },
 
@@ -128,7 +128,7 @@ const api: KeeperDB = {
   async updateNote(input: UpdateNoteInput): Promise<NoteWithTags> {
     await ready;
     const existing = await this.getNote(input.id);
-    if (!existing) throw new Error(`Note not found: ${input.id}`);
+    if (existing === null) throw new Error(`Note not found: ${input.id}`);
 
     const title = input.title ?? existing.title;
     const body = input.body ?? existing.body;
@@ -194,7 +194,9 @@ const api: KeeperDB = {
       rowMode: 'object',
       resultRows: tagRows,
     });
-    const tagId = tagRows[0]!['id'] as number;
+    const tagRow = tagRows[0];
+    if (tagRow === undefined) throw new Error(`Tag not found: ${tagName}`);
+    const tagId = tagRow['id'] as number;
 
     db.exec({
       sql: 'INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)',
@@ -202,7 +204,7 @@ const api: KeeperDB = {
     });
 
     const note = await this.getNote(noteId);
-    if (!note) throw new Error(`Note not found: ${noteId}`);
+    if (note === null) throw new Error(`Note not found: ${noteId}`);
     return note;
   },
 
@@ -216,7 +218,7 @@ const api: KeeperDB = {
     });
 
     const note = await this.getNote(noteId);
-    if (!note) throw new Error(`Note not found: ${noteId}`);
+    if (note === null) throw new Error(`Note not found: ${noteId}`);
     return note;
   },
 
@@ -317,7 +319,7 @@ const api: KeeperDB = {
       resultRows: rows,
     });
     const row = rows[0];
-    if (!row) return null;
+    if (row === undefined) return null;
 
     try {
       const root = await navigator.storage.getDirectory();
@@ -340,7 +342,7 @@ const api: KeeperDB = {
       resultRows: rows,
     });
     const row = rows[0];
-    if (row) {
+    if (row !== undefined) {
       try {
         const root = await navigator.storage.getDirectory();
         const mediaDir = await root.getDirectoryHandle('media');

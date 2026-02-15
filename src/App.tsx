@@ -1,32 +1,37 @@
-import { useEffect } from 'react'
-import { getDB } from './db/db-client.ts'
+import { Suspense } from 'react';
+import './App.css';
+import { useDB } from './hooks/useDB.ts';
+import { QuickAdd } from './components/QuickAdd.tsx';
+import { NoteGrid } from './components/NoteGrid.tsx';
 
-function App() {
-  useEffect(() => {
-    async function smokeTest() {
-      const db = getDB()
+function AppContent() {
+  const { notes, createNote, updateNote, deleteNote } = useDB();
 
-      const note = await db.createNote({ body: 'Hello https://example.com' })
-      console.log('Created note:', note) // has_links should be true
-
-      const all = await db.getAllNotes()
-      console.log('All notes:', all) // should contain the note
-
-      const results = await db.search('hello')
-      console.log('Search results:', results) // should find it via FTS5
-
-      await db.addTag(note.id, 'test')
-      const tagged = await db.getNote(note.id)
-      console.log('Tags:', tagged?.tags) // should show [{id: 1, name: 'test'}]
-
-      const untagged = await db.getUntaggedNotes()
-      console.log('Untagged:', untagged) // should be empty now
-    }
-
-    void smokeTest()
-  }, [])
-
-  return <h1>Keeper — check console for smoke test</h1>
+  return (
+    <>
+      <QuickAdd onCreate={createNote} />
+      <NoteGrid
+        notes={notes}
+        onUpdate={updateNote}
+        onDelete={deleteNote}
+      />
+    </>
+  );
 }
 
-export default App
+function App() {
+  return (
+    <div className="app">
+      <header className="app-header">
+        <h1>Keeper</h1>
+      </header>
+      <main className="app-main">
+        <Suspense fallback={<p className="loading">Loading...</p>}>
+          <AppContent />
+        </Suspense>
+      </main>
+    </div>
+  );
+}
+
+export default App;

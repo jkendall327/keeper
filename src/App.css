@@ -1,42 +1,162 @@
-#root {
-  max-width: 1280px;
+/* ── App layout ─────────────────────────────────────────── */
+
+.app {
+  max-width: 960px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 0 16px;
+}
+
+.app-header {
+  padding: 24px 0 8px;
+}
+
+.app-header h1 {
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.app-main {
+  padding-bottom: 48px;
+}
+
+.loading {
   text-align: center;
+  opacity: 0.5;
+  margin-top: 48px;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
+/* ── Quick Add ─────────────────────────────────────────── */
+
+.quick-add {
+  margin: 16px 0 32px;
 }
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.quick-add-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+.quick-add-input:focus {
+  border-color: #646cff;
 }
 
-.card {
-  padding: 2em;
+/* ── Note Grid (CSS columns masonry) ──────────────────── */
+
+.note-grid {
+  columns: 3 240px;
+  column-gap: 16px;
 }
 
-.read-the-docs {
-  color: #888;
+.empty-state {
+  text-align: center;
+  opacity: 0.5;
+  margin-top: 48px;
+}
+
+/* ── Note Card ─────────────────────────────────────────── */
+
+.note-card {
+  position: relative;
+  break-inside: avoid;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+
+.note-card:hover {
+  border-color: rgba(128, 128, 128, 0.6);
+}
+
+.note-card.editing {
+  cursor: default;
+  border-color: #646cff;
+}
+
+.note-card-delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: none;
+  border: none;
+  color: inherit;
+  opacity: 0;
+  font-size: 1.2rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+
+.note-card:hover .note-card-delete {
+  opacity: 0.5;
+}
+
+.note-card-delete:hover {
+  opacity: 1 !important;
+}
+
+.note-card-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.note-card-body {
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.note-card-time {
+  display: block;
+  margin-top: 8px;
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+/* ── Note Card edit mode inputs ───────────────────────── */
+
+.note-card-title-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0 0 8px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  background: transparent;
+  color: inherit;
+  outline: none;
+}
+
+.note-card-body-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  border: none;
+  background: transparent;
+  color: inherit;
+  resize: vertical;
+  outline: none;
 }

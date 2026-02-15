@@ -655,14 +655,28 @@
   object-fit: contain;
 }
 
+/* ── Text selection ──────────────────────────────────── */
+
+/* Disable text selection everywhere except inside the note modal */
+.app {
+  user-select: none;
+}
+
+/* Re-enable text selection inside the note modal */
+.modal-backdrop {
+  user-select: text;
+}
+
+/* While actively drag-selecting, disable text selection on the entire page
+   (covers elements outside .app like body margins, scrollbars, etc.) */
+body.is-drag-selecting {
+  user-select: none;
+}
+
 /* ── Drag-to-Select ──────────────────────────────────── */
 
 .note-grid-wrapper {
   position: relative;
-}
-
-.note-grid-dragging {
-  user-select: none;
 }
 
 .selection-rectangle {

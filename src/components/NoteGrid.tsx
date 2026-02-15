@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react';
+import { useRef, useState, useCallback, useEffect } from 'react';
 import type { NoteWithTags, UpdateNoteInput } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 
@@ -24,6 +24,15 @@ interface DragState {
 
 const DRAG_THRESHOLD = 5;
 
+/** Convert a page-level mouse event to wrapper-relative coordinates. */
+function toWrapperCoords(e: MouseEvent, wrapper: HTMLElement) {
+  const rect = wrapper.getBoundingClientRect();
+  return {
+    x: e.clientX - rect.left + wrapper.scrollLeft,
+    y: e.clientY - rect.top + wrapper.scrollTop,
+  };
+}
+
 export function NoteGrid({
   notes, onSelect, onDelete, onTogglePin, onToggleArchive,
   previewMode, onUpdateNote, selectedNoteIds, onBulkSelect, onClearSelection,
@@ -41,80 +50,91 @@ export function NoteGrid({
 
     const wrapper = wrapperRef.current;
     if (!wrapper) return;
-    const rect = wrapper.getBoundingClientRect();
+    const pos = toWrapperCoords(e.nativeEvent, wrapper);
 
     dragRef.current = {
-      startX: e.clientX - rect.left + wrapper.scrollLeft,
-      startY: e.clientY - rect.top + wrapper.scrollTop,
-      currentX: e.clientX - rect.left + wrapper.scrollLeft,
-      currentY: e.clientY - rect.top + wrapper.scrollTop,
+      startX: pos.x,
+      startY: pos.y,
+      currentX: pos.x,
+      currentY: pos.y,
     };
     isDraggingRef.current = false;
   }, []);
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    const drag = dragRef.current;
-    if (!drag) return;
-    const wrapper = wrapperRef.current;
-    if (!wrapper) return;
-
-    const rect = wrapper.getBoundingClientRect();
-    drag.currentX = e.clientX - rect.left + wrapper.scrollLeft;
-    drag.currentY = e.clientY - rect.top + wrapper.scrollTop;
-
-    const dx = drag.currentX - drag.startX;
-    const dy = drag.currentY - drag.startY;
-    if (!isDraggingRef.current && Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD) return;
-
-    isDraggingRef.current = true;
-    const x = Math.min(drag.startX, drag.currentX);
-    const y = Math.min(drag.startY, drag.currentY);
-    const w = Math.abs(dx);
-    const h = Math.abs(dy);
-    setSelRect({ x, y, w, h });
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
-    const wasDragging = isDraggingRef.current;
-    const drag = dragRef.current;
-    dragRef.current = null;
-    isDraggingRef.current = false;
-    setSelRect(null);
-
-    if (wasDragging && drag) {
+  // Attach mousemove / mouseup on document so the selection rectangle
+  // keeps tracking even when the pointer leaves the note grid wrapper.
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const drag = dragRef.current;
+      if (!drag) return;
       const wrapper = wrapperRef.current;
       if (!wrapper) return;
-      const wrapperRect = wrapper.getBoundingClientRect();
 
-      // Compute selection rectangle in page coordinates
-      const selLeft = Math.min(drag.startX, drag.currentX);
-      const selTop = Math.min(drag.startY, drag.currentY);
-      const selRight = Math.max(drag.startX, drag.currentX);
-      const selBottom = Math.max(drag.startY, drag.currentY);
+      const pos = toWrapperCoords(e, wrapper);
+      drag.currentX = pos.x;
+      drag.currentY = pos.y;
 
-      const matched = new Set<string>();
-      const cards = wrapper.querySelectorAll<HTMLElement>('[data-note-id]');
-      for (const card of cards) {
-        const cardRect = card.getBoundingClientRect();
-        // Convert card rect to wrapper-relative coordinates
-        const cardRel = {
-          left: cardRect.left - wrapperRect.left + wrapper.scrollLeft,
-          top: cardRect.top - wrapperRect.top + wrapper.scrollTop,
-          right: cardRect.right - wrapperRect.left + wrapper.scrollLeft,
-          bottom: cardRect.bottom - wrapperRect.top + wrapper.scrollTop,
-        };
-        if (selLeft < cardRel.right && selRight > cardRel.left && selTop < cardRel.bottom && selBottom > cardRel.top) {
-          const id = card.getAttribute('data-note-id');
-          if (id) matched.add(id);
+      const dx = drag.currentX - drag.startX;
+      const dy = drag.currentY - drag.startY;
+      if (!isDraggingRef.current && Math.abs(dx) + Math.abs(dy) < DRAG_THRESHOLD) return;
+
+      isDraggingRef.current = true;
+      document.body.classList.add('is-drag-selecting');
+      setSelRect({
+        x: Math.min(drag.startX, drag.currentX),
+        y: Math.min(drag.startY, drag.currentY),
+        w: Math.abs(dx),
+        h: Math.abs(dy),
+      });
+    };
+
+    const handleMouseUp = () => {
+      const wasDragging = isDraggingRef.current;
+      const drag = dragRef.current;
+      dragRef.current = null;
+      isDraggingRef.current = false;
+      setSelRect(null);
+      document.body.classList.remove('is-drag-selecting');
+
+      if (wasDragging && drag) {
+        const wrapper = wrapperRef.current;
+        if (!wrapper) return;
+        const wrapperRect = wrapper.getBoundingClientRect();
+
+        const selLeft = Math.min(drag.startX, drag.currentX);
+        const selTop = Math.min(drag.startY, drag.currentY);
+        const selRight = Math.max(drag.startX, drag.currentX);
+        const selBottom = Math.max(drag.startY, drag.currentY);
+
+        const matched = new Set<string>();
+        const cards = wrapper.querySelectorAll<HTMLElement>('[data-note-id]');
+        for (const card of cards) {
+          const cardRect = card.getBoundingClientRect();
+          const cardRel = {
+            left: cardRect.left - wrapperRect.left + wrapper.scrollLeft,
+            top: cardRect.top - wrapperRect.top + wrapper.scrollTop,
+            right: cardRect.right - wrapperRect.left + wrapper.scrollLeft,
+            bottom: cardRect.bottom - wrapperRect.top + wrapper.scrollTop,
+          };
+          if (selLeft < cardRel.right && selRight > cardRel.left && selTop < cardRel.bottom && selBottom > cardRel.top) {
+            const id = card.getAttribute('data-note-id');
+            if (id) matched.add(id);
+          }
         }
+        if (matched.size > 0) {
+          onBulkSelect(matched);
+        }
+      } else {
+        onClearSelection();
       }
-      if (matched.size > 0) {
-        onBulkSelect(matched);
-      }
-    } else {
-      // Plain click on background — clear selection
-      onClearSelection();
-    }
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
   }, [onBulkSelect, onClearSelection]);
 
   const handleNoteSelect = useCallback((note: NoteWithTags) => {
@@ -152,10 +172,8 @@ export function NoteGrid({
   return (
     <div
       ref={wrapperRef}
-      className={`note-grid-wrapper${isDraggingRef.current ? ' note-grid-dragging' : ''}`}
+      className="note-grid-wrapper"
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
     >
       {pinnedNotes.length > 0 && renderGroup(pinnedNotes)}
       {pinnedNotes.length > 0 && regularNotes.length > 0 && (

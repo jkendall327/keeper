@@ -375,10 +375,22 @@ describe('App Integration Tests', () => {
     await user.click(noteC);
     await user.keyboard('{/Shift}');
 
-    // Exactly notes A, B, C should be selected
+    // Exactly notes A, B, C should be selected (verified via their parent cards)
     await waitFor(() => {
-      const checks = screen.getAllByLabelText('Selected');
-      expect(checks).toHaveLength(3);
+      // Count total selected to guard against spurious selections
+      const allSelected = screen.getAllByLabelText('Selected');
+      expect(allSelected).toHaveLength(3);
+
+      // Verify the right cards are the ones selected
+      const cardA2 = screen.getByText('Note A').closest('.note-card');
+      const cardB2 = screen.getByText('Note B').closest('.note-card');
+      const cardC2 = screen.getByText('Note C').closest('.note-card');
+      if (cardA2 === null) throw new Error('Card A not found');
+      if (cardB2 === null) throw new Error('Card B not found');
+      if (cardC2 === null) throw new Error('Card C not found');
+      expect(cardA2).toHaveClass('note-card-selected');
+      expect(cardB2).toHaveClass('note-card-selected');
+      expect(cardC2).toHaveClass('note-card-selected');
     });
 
     // D and E should not be selected
@@ -421,6 +433,60 @@ describe('App Integration Tests', () => {
     // Selection should be cleared (no check marks visible)
     await waitFor(() => {
       expect(screen.queryByLabelText('Selected')).not.toBeInTheDocument();
+    });
+  });
+
+  it('Ctrl+/ focuses the search input', async () => {
+    await renderApp();
+
+    const searchInput = screen.getByPlaceholderText(/Search notes/);
+    expect(document.activeElement).not.toBe(searchInput);
+
+    // Fire Ctrl+/
+    // eslint-disable-next-line @typescript-eslint/require-await
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '/', ctrlKey: true, bubbles: true }),
+      );
+    });
+
+    expect(document.activeElement).toBe(searchInput);
+  });
+
+  it('shows result count when searching and "No results found" for no matches', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Searchable note');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Searchable note');
+
+    // No result count before searching
+    expect(screen.queryByText(/result/i)).not.toBeInTheDocument();
+
+    // Type a matching query
+    const searchInput = screen.getByPlaceholderText(/Search notes/);
+    await user.type(searchInput, 'Searchable');
+
+    // Result count should appear
+    expect(await screen.findByText(/1 result/)).toBeInTheDocument();
+
+    // Clear and type a non-matching query
+    await user.clear(searchInput);
+    await user.type(searchInput, 'zzzznotfound');
+
+    // "No results found" should appear
+    expect(await screen.findByText('No results found')).toBeInTheDocument();
+
+    // Clear search
+    await user.clear(searchInput);
+
+    // Count/message should be gone
+    await waitFor(() => {
+      expect(screen.queryByText(/result/i)).not.toBeInTheDocument();
+      expect(screen.queryByText('No results found')).not.toBeInTheDocument();
     });
   });
 });

@@ -171,9 +171,13 @@ export function createMockDB(): MockDB {
       return Promise.resolve(Array.from(tags.values()));
     },
 
-    async search(_query: string): Promise<SearchResult[]> {
-      // Simple mock: return empty for now
-      return Promise.resolve([]);
+    async search(query: string): Promise<SearchResult[]> {
+      const q = query.toLowerCase();
+      return Promise.resolve(
+        Array.from(notes.values()).filter(
+          (n) => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q),
+        ),
+      );
     },
 
     async getUntaggedNotes(): Promise<NoteWithTags[]> {

@@ -205,6 +205,12 @@
   color: inherit;
 }
 
+.search-result-count {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 /* ── Quick Add ─────────────────────────────────────────── */
 
 .quick-add {

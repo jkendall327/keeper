@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { QuickAdd } from './components/QuickAdd.tsx';
@@ -18,6 +18,20 @@ interface AppContentProps {
 }
 
 function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilterChange }: AppContentProps) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl+/ (or Cmd+/) focuses the search input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => { document.removeEventListener('keydown', handleKeyDown); };
+  }, []);
+
   const {
     notes,
     allTags,
@@ -137,7 +151,14 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
         }}
       />
       <div className="app-content">
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
+        <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
+        {searchQuery.trim() !== '' && (
+          <p className="search-result-count">
+            {displayedNotes.length === 0
+              ? 'No results found'
+              : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
+          </p>
+        )}
         <QuickAdd onCreate={createNote} />
         <NoteGrid
           notes={displayedNotes}

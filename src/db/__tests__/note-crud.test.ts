@@ -218,5 +218,70 @@ describe('Note CRUD', () => {
       expect(notes.length).toBe(1);
       expect(notes[0]?.body).toBe('test');
     });
+
+    it('silently ignores invalid IDs mixed with valid ones', async () => {
+      const note1 = await api.createNote({ body: 'keep' });
+      const note2 = await api.createNote({ body: 'delete me' });
+
+      // Mix valid and invalid IDs
+      await api.deleteNotes([note2.id, 'nonexistent-id']);
+
+      const remaining = await api.getAllNotes();
+      expect(remaining).toHaveLength(1);
+      expect(remaining[0]?.id).toBe(note1.id);
+      expect(remaining[0]?.body).toBe('keep');
+    });
+
+    it('handles array of all invalid IDs without error', async () => {
+      const note = await api.createNote({ body: 'survivor' });
+
+      await api.deleteNotes(['fake-1', 'fake-2', 'fake-3']);
+
+      const notes = await api.getAllNotes();
+      expect(notes).toHaveLength(1);
+      expect(notes[0]?.id).toBe(note.id);
+      expect(notes[0]?.body).toBe('survivor');
+    });
+
+    it('cascade-deletes note_tags associations when notes are bulk deleted', async () => {
+      const note1 = await api.createNote({ body: 'first' });
+      expect(note1.body).toBe('first');
+      const note2 = await api.createNote({ body: 'second' });
+      expect(note2.body).toBe('second');
+
+      const tagged1 = await api.addTag(note1.id, 'tag-a');
+      expect(tagged1.tags).toHaveLength(1);
+      expect(tagged1.tags[0]?.name).toBe('tag-a');
+      const tagged2 = await api.addTag(note2.id, 'tag-b');
+      expect(tagged2.tags).toHaveLength(1);
+      expect(tagged2.tags[0]?.name).toBe('tag-b');
+
+      // Tags have associated notes before delete
+      const tags = await api.getAllTags();
+      expect(tags).toHaveLength(2);
+      const tagA = tags.find((t) => t.name === 'tag-a');
+      const tagB = tags.find((t) => t.name === 'tag-b');
+      if (tagA === undefined || tagB === undefined) throw new Error('tags not found');
+      const notesForA = await api.getNotesForTag(tagA.id);
+      expect(notesForA).toHaveLength(1);
+      expect(notesForA[0]?.id).toBe(note1.id);
+      const notesForB = await api.getNotesForTag(tagB.id);
+      expect(notesForB).toHaveLength(1);
+      expect(notesForB[0]?.id).toBe(note2.id);
+
+      await api.deleteNotes([note1.id, note2.id]);
+
+      // Both notes are gone
+      const gone1 = await api.getNote(note1.id);
+      expect(gone1).toBeNull();
+      const gone2 = await api.getNote(note2.id);
+      expect(gone2).toBeNull();
+
+      // note_tags associations are cascade-deleted (tags return no notes)
+      const notesForAAfter = await api.getNotesForTag(tagA.id);
+      expect(notesForAAfter).toHaveLength(0);
+      const notesForBAfter = await api.getNotesForTag(tagB.id);
+      expect(notesForBAfter).toHaveLength(0);
+    });
   });
 });

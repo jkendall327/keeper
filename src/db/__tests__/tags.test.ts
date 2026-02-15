@@ -129,6 +129,77 @@ describe('Tags', () => {
       expect(updated?.tags).toHaveLength(1);
       expect(updated?.tags[0]).toEqual({ id: 1, name: 'after' });
     });
+
+    it('merges into existing tag when renaming to a name that already exists', async () => {
+      const note1 = await api.createNote({ body: 'first' });
+      const note2 = await api.createNote({ body: 'second' });
+      const note3 = await api.createNote({ body: 'third' });
+
+      await api.addTag(note1.id, 'old');
+      await api.addTag(note2.id, 'old');
+      await api.addTag(note3.id, 'existing');
+
+      // Rename 'old' -> 'existing' should merge
+      await api.renameTag('old', 'existing');
+
+      // All three notes should now have 'existing'
+      const n1 = await api.getNote(note1.id);
+      expect(n1?.tags).toHaveLength(1);
+      expect(n1?.tags[0]?.name).toBe('existing');
+
+      const n2 = await api.getNote(note2.id);
+      expect(n2?.tags).toHaveLength(1);
+      expect(n2?.tags[0]?.name).toBe('existing');
+
+      const n3 = await api.getNote(note3.id);
+      expect(n3?.tags).toHaveLength(1);
+      expect(n3?.tags[0]?.name).toBe('existing');
+
+      // Only one tag should remain globally
+      const tags = await api.getAllTags();
+      expect(tags).toHaveLength(1);
+      expect(tags[0]?.name).toBe('existing');
+    });
+
+    it('merge handles note that already has both tags (no duplicate)', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'old');
+      await api.addTag(note.id, 'existing');
+
+      // Note has both tags before rename
+      let fetched = await api.getNote(note.id);
+      expect(fetched?.tags).toHaveLength(2);
+
+      // Rename 'old' -> 'existing' should merge without creating duplicates
+      await api.renameTag('old', 'existing');
+
+      fetched = await api.getNote(note.id);
+      expect(fetched?.tags).toHaveLength(1);
+      expect(fetched?.tags[0]?.name).toBe('existing');
+    });
+
+    it('is a no-op when renaming to the same name', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'same');
+
+      await api.renameTag('same', 'same');
+
+      const fetched = await api.getNote(note.id);
+      expect(fetched?.tags).toHaveLength(1);
+      expect(fetched?.tags[0]?.name).toBe('same');
+    });
+
+    it('is a no-op when old tag name does not exist', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'real');
+
+      // Renaming a nonexistent tag should not throw or affect anything
+      await api.renameTag('nonexistent', 'other');
+
+      const fetched = await api.getNote(note.id);
+      expect(fetched?.tags).toHaveLength(1);
+      expect(fetched?.tags[0]?.name).toBe('real');
+    });
   });
 
   describe('deleteTag', () => {

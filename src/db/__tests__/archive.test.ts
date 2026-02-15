@@ -119,4 +119,40 @@ describe('Note archiving', () => {
   it('should throw error when toggling archive on non-existent note', async () => {
     await expect(api.toggleArchiveNote('non-existent-id')).rejects.toThrow('Note not found');
   });
+
+  describe('archiveNotes (batch)', () => {
+    it('archives multiple notes at once', async () => {
+      const note1 = await api.createNote({ body: 'Note 1' });
+      const note2 = await api.createNote({ body: 'Note 2' });
+      const note3 = await api.createNote({ body: 'Note 3' });
+
+      // Before: all visible in getAllNotes
+      const before = await api.getAllNotes();
+      expect(before).toHaveLength(3);
+      expect(before.map((n) => n.body).sort()).toEqual(['Note 1', 'Note 2', 'Note 3']);
+
+      await api.archiveNotes([note1.id, note3.id]);
+
+      // After: only note2 in getAllNotes
+      const after = await api.getAllNotes();
+      expect(after).toHaveLength(1);
+      expect(after[0]?.id).toBe(note2.id);
+
+      // Archived notes appear in getArchivedNotes
+      const archived = await api.getArchivedNotes();
+      expect(archived).toHaveLength(2);
+      const archivedIds = archived.map((n) => n.id).sort();
+      expect(archivedIds).toEqual([note1.id, note3.id].sort());
+    });
+
+    it('handles empty array without error', async () => {
+      const note = await api.createNote({ body: 'test' });
+      expect(note.body).toBe('test');
+      await api.archiveNotes([]);
+      // Note is still visible
+      const notes = await api.getAllNotes();
+      expect(notes).toHaveLength(1);
+      expect(notes[0]?.id).toBe(note.id);
+    });
+  });
 });

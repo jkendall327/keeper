@@ -9,12 +9,6 @@ interface MarkdownPreviewProps {
   className?: string;
 }
 
-// Helper function to extract media IDs from markdown
-function extractMediaIds(markdown: string): string[] {
-  const matches = markdown.matchAll(/media:\/\/([a-f0-9-]+)/gi);
-  return Array.from(matches, (m) => m[1]).filter((id): id is string => id !== undefined);
-}
-
 export function MarkdownPreview({
   content,
   noteId,
@@ -28,7 +22,11 @@ export function MarkdownPreview({
   useEffect(() => {
     if (!noteId) return;
 
-    const mediaIds = extractMediaIds(content);
+    // Extract media IDs from markdown (inline to avoid React Compiler issues)
+    const matches = content.matchAll(/media:\/\/([a-f0-9-]+)/gi);
+    const mediaIds = Array.from(matches, (m) => m[1]).filter(
+      (id): id is string => id !== undefined,
+    );
     if (mediaIds.length === 0) {
       // Clean up any existing blob URLs if no media in content
       mediaUrls.forEach((url) => { URL.revokeObjectURL(url); });

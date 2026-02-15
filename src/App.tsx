@@ -12,9 +12,10 @@ interface AppContentProps {
   previewMode: boolean;
   selectedNoteIds: Set<string>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  onFilterChange: (isArchive: boolean) => void;
 }
 
-function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds }: AppContentProps) {
+function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilterChange }: AppContentProps) {
   const {
     notes,
     allTags,
@@ -38,6 +39,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds }: AppCon
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
+  useEffect(() => { onFilterChange(activeFilter.type === 'archive'); }, [activeFilter, onFilterChange]);
   const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(notes);
 
   // Update displayed notes based on search query and active filter
@@ -151,6 +153,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds }: AppCon
 function App() {
   const [previewMode, setPreviewMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
+  const [isArchiveView, setIsArchiveView] = useState(false);
 
   return (
     <div className="app">
@@ -160,15 +163,16 @@ function App() {
           {selectedNoteIds.size > 0 && (
             <div className="bulk-actions">
               <span className="bulk-count">{selectedNoteIds.size} selected</span>
-              <button
-                className="bulk-action-btn bulk-archive-btn"
-                onClick={() => {
-                  // Dispatch a custom event that AppContent listens for
-                  window.dispatchEvent(new CustomEvent('keeper:bulk-archive'));
-                }}
-              >
-                Archive
-              </button>
+              {!isArchiveView && (
+                <button
+                  className="bulk-action-btn bulk-archive-btn"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('keeper:bulk-archive'));
+                  }}
+                >
+                  Archive
+                </button>
+              )}
               <button
                 className="bulk-action-btn bulk-delete-btn"
                 onClick={() => {
@@ -194,6 +198,7 @@ function App() {
             previewMode={previewMode}
             selectedNoteIds={selectedNoteIds}
             setSelectedNoteIds={setSelectedNoteIds}
+            onFilterChange={setIsArchiveView}
           />
         </Suspense>
       </main>

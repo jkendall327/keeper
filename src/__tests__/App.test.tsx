@@ -375,13 +375,18 @@ describe('App Integration Tests', () => {
     await user.click(noteC);
     await user.keyboard('{/Shift}');
 
-    // Exactly notes A, B, C should be selected (verified via their parent cards)
+    // Exactly notes A, B, C should be selected — verified via count + identity
     await waitFor(() => {
-      // Count total selected to guard against spurious selections
-      const allSelected = screen.getAllByLabelText('Selected');
-      expect(allSelected).toHaveLength(3);
-
-      // Verify the right cards are the ones selected
+      // Count via semantic query
+      const checks = screen.getAllByLabelText('Selected');
+      expect(checks).toHaveLength(3);
+      // Verify each check mark belongs to the correct card
+      for (const check of checks) {
+        const card = check.closest('.note-card');
+        if (card === null) throw new Error('Check mark not inside a note card');
+        expect(card).toHaveClass('note-card-selected');
+      }
+      // Verify the specific cards are the right ones
       const cardA2 = screen.getByText('Note A').closest('.note-card');
       const cardB2 = screen.getByText('Note B').closest('.note-card');
       const cardC2 = screen.getByText('Note C').closest('.note-card');
@@ -487,6 +492,37 @@ describe('App Integration Tests', () => {
     await waitFor(() => {
       expect(screen.queryByText(/result/i)).not.toBeInTheDocument();
       expect(screen.queryByText('No results found')).not.toBeInTheDocument();
+    });
+  });
+
+  it('Links sidebar filter shows only notes containing URLs', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+
+    // Create a note with a URL
+    await user.type(input, 'Check https://example.com for details');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Check https://example.com for details');
+
+    // Create a plain note
+    await user.type(input, 'No links here');
+    await user.keyboard('{Enter}');
+    await screen.findByText('No links here');
+
+    // Both notes visible initially
+    expect(screen.getByText('Check https://example.com for details')).toBeInTheDocument();
+    expect(screen.getByText('No links here')).toBeInTheDocument();
+
+    // Click "Links" in sidebar
+    const linksBtn = screen.getByText('Links');
+    await user.click(linksBtn);
+
+    // Only the URL note should be visible
+    await waitFor(() => {
+      expect(screen.getByText('Check https://example.com for details')).toBeInTheDocument();
+      expect(screen.queryByText('No links here')).not.toBeInTheDocument();
     });
   });
 });

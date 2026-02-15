@@ -6,6 +6,7 @@ export type FilterType =
   | { type: 'all' }
   | { type: 'untagged' }
   | { type: 'archive' }
+  | { type: 'links' }
   | { type: 'tag'; tagId: number };
 
 interface SidebarProps {
@@ -24,6 +25,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
     if (activeFilter.type === 'all' && filter.type === 'all') return true;
     if (activeFilter.type === 'untagged' && filter.type === 'untagged') return true;
     if (activeFilter.type === 'archive' && filter.type === 'archive') return true;
+    if (activeFilter.type === 'links' && filter.type === 'links') return true;
     if (
       activeFilter.type === 'tag' &&
       filter.type === 'tag' &&
@@ -121,6 +123,13 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
           onClick={() => { onFilterChange({ type: 'untagged' }); }}
         >
           Untagged
+        </button>
+
+        <button
+          className={`sidebar-tab ${isActive({ type: 'links' }) ? 'sidebar-tab-active' : ''}`}
+          onClick={() => { onFilterChange({ type: 'links' }); }}
+        >
+          <Icon name="link" size={18} /> Links
         </button>
 
         <button

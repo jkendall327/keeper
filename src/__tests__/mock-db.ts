@@ -17,6 +17,7 @@ export function createMockDB(): MockDB {
   const generateId = () => `n${String(noteId++)}`;
   const generateTagId = () => tagId++;
   const now = () => new Date().toISOString();
+  const hasUrl = (text: string) => /https?:\/\//.test(text);
 
   const reset = () => {
     noteId = 1;
@@ -34,7 +35,7 @@ export function createMockDB(): MockDB {
         id,
         title: input.title ?? '',
         body: input.body,
-        has_links: false,
+        has_links: hasUrl(input.body),
         pinned: false,
         archived: false,
         created_at: now(),
@@ -57,10 +58,12 @@ export function createMockDB(): MockDB {
       const note = notes.get(input.id);
       if (note === undefined) throw new Error(`Note ${input.id} not found`);
 
+      const newBody = input.body ?? note.body;
       const updated = {
         ...note,
         title: input.title ?? note.title,
-        body: input.body ?? note.body,
+        body: newBody,
+        has_links: hasUrl(newBody),
         updated_at: now(),
       };
       notes.set(input.id, updated);
@@ -185,7 +188,7 @@ export function createMockDB(): MockDB {
     },
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()).filter(n => n.has_links));
+      return Promise.resolve(Array.from(notes.values()).filter(n => n.has_links && !n.archived));
     },
 
     async getNotesForTag(tagId: number): Promise<NoteWithTags[]> {

@@ -50,6 +50,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
     getArchivedNotes,
     getUntaggedNotes,
     getNotesForTag,
+    getLinkedNotes,
   } = useDB();
 
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
@@ -81,6 +82,9 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           case 'archive':
             setDisplayedNotes(await getArchivedNotes());
             break;
+          case 'links':
+            setDisplayedNotes(await getLinkedNotes());
+            break;
           case 'tag':
             setDisplayedNotes(await getNotesForTag(activeFilter.tagId));
             break;
@@ -88,7 +92,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
       }
     };
     void loadNotes();
-  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag]);
+  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag, getLinkedNotes]);
 
   // Keep selectedNote in sync with latest data from notes array
   const currentNote = selectedNote !== null

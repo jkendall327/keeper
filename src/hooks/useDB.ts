@@ -125,6 +125,10 @@ export function useDB() {
     return await getDB().getNotesForTag(tagId);
   }, []);
 
+  const getLinkedNotes = useCallback(async () => {
+    return await getDB().getLinkedNotes();
+  }, []);
+
   return {
     notes,
     allTags,
@@ -144,5 +148,6 @@ export function useDB() {
     getArchivedNotes,
     getUntaggedNotes,
     getNotesForTag,
+    getLinkedNotes,
   };
 }

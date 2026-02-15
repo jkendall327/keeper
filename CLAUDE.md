@@ -18,4 +18,5 @@ When creating new non-React files (workers, shared utilities used by workers), a
 
 ## Workflow
 
+- Read the git log briefly to see what work's been done already.
 - Always create a git commit when you're done working.

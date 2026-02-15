@@ -82,11 +82,6 @@
   border-color: rgba(128, 128, 128, 0.6);
 }
 
-.note-card.editing {
-  cursor: default;
-  border-color: #646cff;
-}
-
 .note-card-delete {
   position: absolute;
   top: 4px;
@@ -131,15 +126,67 @@
   opacity: 0.5;
 }
 
-/* ── Note Card edit mode inputs ───────────────────────── */
+/* ── Note Card tags ───────────────────────────────────── */
 
-.note-card-title-input {
+.note-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.note-card-tag {
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(100, 108, 255, 0.15);
+  color: #646cff;
+}
+
+/* ── Modal ────────────────────────────────────────────── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal-panel {
+  display: flex;
+  max-width: 700px;
+  width: 90vw;
+  max-height: 80vh;
+  background: #1a1a2e;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: light) {
+  .modal-panel {
+    background: #fff;
+  }
+}
+
+.modal-editor {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  min-width: 0;
+}
+
+.modal-title-input {
   width: 100%;
   box-sizing: border-box;
   padding: 0;
-  margin: 0 0 8px;
+  margin: 0 0 12px;
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 1.1rem;
   font-weight: 600;
   border: none;
   background: transparent;
@@ -147,16 +194,121 @@
   outline: none;
 }
 
-.note-card-body-input {
+.modal-body-input {
   width: 100%;
   box-sizing: border-box;
+  flex: 1;
   padding: 0;
   font-family: inherit;
   font-size: 0.9rem;
-  line-height: 1.5;
+  line-height: 1.6;
   border: none;
   background: transparent;
   color: inherit;
-  resize: vertical;
+  resize: none;
   outline: none;
+}
+
+.modal-tags {
+  width: 200px;
+  border-left: 1px solid rgba(128, 128, 128, 0.2);
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+}
+
+.modal-tags-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.modal-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.modal-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: rgba(100, 108, 255, 0.15);
+  color: #646cff;
+}
+
+.modal-tag-remove {
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  opacity: 0.6;
+}
+
+.modal-tag-remove:hover {
+  opacity: 1;
+}
+
+.modal-tag-input-wrapper {
+  position: relative;
+}
+
+.modal-tag-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-family: inherit;
+  font-size: 0.8rem;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  outline: none;
+}
+
+.modal-tag-input:focus {
+  border-color: #646cff;
+}
+
+.modal-tag-suggestions {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin: 4px 0 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #1a1a2e;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 6px;
+  z-index: 10;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+@media (prefers-color-scheme: light) {
+  .modal-tag-suggestions {
+    background: #fff;
+  }
+}
+
+.modal-tag-suggestion {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.modal-tag-suggestion:hover {
+  background: rgba(100, 108, 255, 0.1);
 }

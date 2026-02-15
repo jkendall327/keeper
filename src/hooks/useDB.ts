@@ -1,16 +1,24 @@
 import { useState, useCallback, use } from 'react';
 import { getDB } from '../db/db-client.ts';
-import type { NoteWithTags, CreateNoteInput, UpdateNoteInput } from '../db/types.ts';
+import type { NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput } from '../db/types.ts';
 
-const initialLoad: Promise<NoteWithTags[]> = getDB().getAllNotes();
+const initialLoad: Promise<[NoteWithTags[], Tag[]]> = Promise.all([
+  getDB().getAllNotes(),
+  getDB().getAllTags(),
+]);
 
 export function useDB() {
-  const initial = use(initialLoad);
-  const [notes, setNotes] = useState<NoteWithTags[]>(initial);
+  const [initialNotes, initialTags] = use(initialLoad);
+  const [notes, setNotes] = useState<NoteWithTags[]>(initialNotes);
+  const [allTags, setAllTags] = useState<Tag[]>(initialTags);
 
   const refresh = useCallback(async () => {
-    const all = await getDB().getAllNotes();
-    setNotes(all);
+    const [freshNotes, freshTags] = await Promise.all([
+      getDB().getAllNotes(),
+      getDB().getAllTags(),
+    ]);
+    setNotes(freshNotes);
+    setAllTags(freshTags);
   }, []);
 
   const createNote = useCallback(
@@ -37,5 +45,21 @@ export function useDB() {
     [refresh],
   );
 
-  return { notes, refresh, createNote, updateNote, deleteNote };
+  const addTag = useCallback(
+    async (noteId: string, tagName: string) => {
+      await getDB().addTag(noteId, tagName);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const removeTag = useCallback(
+    async (noteId: string, tagName: string) => {
+      await getDB().removeTag(noteId, tagName);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  return { notes, allTags, refresh, createNote, updateNote, deleteNote, addTag, removeTag };
 }

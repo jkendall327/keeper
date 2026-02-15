@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { Tag } from '../db/types.ts';
+import { Icon } from './Icon.tsx';
 
 export type FilterType =
   | { type: 'all' }
@@ -107,7 +108,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
                     }}
                     title="Delete tag"
                   >
-                    ×
+                    <Icon name="delete" size={18} />
                   </button>
                 )}
               </>

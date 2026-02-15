@@ -7,6 +7,7 @@ import { NoteModal } from './components/NoteModal.tsx';
 import { ExportModal } from './components/ExportModal.tsx';
 import { SearchBar } from './components/SearchBar.tsx';
 import { Sidebar, type FilterType } from './components/Sidebar.tsx';
+import { Icon } from './components/Icon.tsx';
 import type { NoteWithTags } from './db/types.ts';
 
 interface AppContentProps {
@@ -220,7 +221,7 @@ function App() {
             onClick={() => { setPreviewMode(!previewMode); }}
             title={previewMode ? 'Switch to edit mode' : 'Switch to preview mode'}
           >
-            {previewMode ? '📝' : '👁️'}
+            <Icon name={previewMode ? 'edit' : 'visibility'} />
           </button>
         </div>
       </header>

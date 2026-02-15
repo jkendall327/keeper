@@ -1,4 +1,5 @@
 import type { NoteWithTags, UpdateNoteInput } from '../db/types.ts';
+import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 
 interface NoteCardProps {
@@ -53,7 +54,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
           aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
           title={note.pinned ? 'Unpin note' : 'Pin note'}
         >
-          {note.pinned ? '📌' : '📍'}
+          <Icon name="push_pin" className={note.pinned ? 'icon-filled' : ''} />
         </button>
         <button
           className="note-card-archive"
@@ -64,7 +65,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
           aria-label={note.archived ? 'Unarchive note' : 'Archive note'}
           title={note.archived ? 'Unarchive note' : 'Archive note'}
         >
-          {note.archived ? '📤' : '📦'}
+          <Icon name={note.archived ? 'unarchive' : 'archive'} />
         </button>
         <button
           className="note-card-delete"
@@ -74,7 +75,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
           }}
           aria-label="Delete note"
         >
-          &times;
+          <Icon name="delete" />
         </button>
       </div>
       {note.title !== '' && <h3 className="note-card-title">{note.title}</h3>}

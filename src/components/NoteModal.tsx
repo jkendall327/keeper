@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
+import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { getDB } from '../db/db-client.ts';
 
@@ -217,7 +218,7 @@ export function NoteModal({
                   onClick={() => { void onRemoveTag(note.id, tag.name); }}
                   aria-label={`Remove tag ${tag.name}`}
                 >
-                  &times;
+                  <Icon name="close" size={14} />
                 </button>
               </span>
             ))}

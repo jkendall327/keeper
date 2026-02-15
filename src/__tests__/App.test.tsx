@@ -202,6 +202,47 @@ describe('App Integration Tests', () => {
     });
   });
 
+  it('Icon component renders material-symbols-outlined span', async () => {
+    await renderApp();
+
+    // The preview toggle button in the header should contain a Material Symbol icon
+    const previewToggle = screen.getByTitle('Switch to preview mode');
+    const iconSpan = previewToggle.querySelector('.material-symbols-outlined');
+    if (iconSpan === null) throw new Error('Material Symbol icon not found in preview toggle');
+    expect(iconSpan).toBeInTheDocument();
+    expect(iconSpan.textContent).toBe('visibility');
+  });
+
+  it('note card action buttons use Material Symbol icons', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Icon test');
+    await user.keyboard('{Enter}');
+
+    const noteText = await screen.findByText('Icon test');
+    const noteCard = noteText.closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
+
+    // Pin button should contain a material-symbols-outlined icon with "push_pin"
+    const pinBtn = noteCard.querySelector('[aria-label="Pin note"]');
+    if (pinBtn === null) throw new Error('Pin button not found');
+    const pinIcon = pinBtn.querySelector('.material-symbols-outlined');
+    if (pinIcon === null) throw new Error('Material Symbol icon not found in pin button');
+    expect(pinIcon).toBeInTheDocument();
+    expect(pinIcon.textContent).toBe('push_pin');
+
+    // Delete button should contain "delete" icon
+    const deleteBtn = noteCard.querySelector('[aria-label="Delete note"]');
+    if (deleteBtn === null) throw new Error('Delete button not found');
+    const deleteIcon = deleteBtn.querySelector('.material-symbols-outlined');
+    if (deleteIcon === null) throw new Error('Material Symbol icon not found in delete button');
+    expect(deleteIcon).toBeInTheDocument();
+    expect(deleteIcon.textContent).toBe('delete');
+  });
+
   it('pinned notes get the pinned CSS class', async () => {
     const user = userEvent.setup();
     await renderApp();

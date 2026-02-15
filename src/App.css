@@ -294,12 +294,23 @@
   background: none;
   border: none;
   color: inherit;
-  font-size: 1.2rem;
-  padding: 4px 8px;
+  padding: 4px;
   cursor: pointer;
   transition: opacity 0.15s;
   line-height: 1;
   opacity: 0.5;
+  display: flex;
+  align-items: center;
+}
+
+.note-card-pin .material-symbols-outlined,
+.note-card-archive .material-symbols-outlined,
+.note-card-delete .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.icon-filled {
+  font-variation-settings: 'FILL' 1;
 }
 
 .note-card-pin:hover,
@@ -308,14 +319,6 @@
   opacity: 1;
 }
 
-.note-card-pin,
-.note-card-archive {
-  font-size: 1rem;
-}
-
-.note-card-archive {
-  padding: 4px 4px;
-}
 
 .note-card-title {
   margin: 0 0 4px;

@@ -178,24 +178,6 @@
   color: #ff4444;
 }
 
-.sidebar-manage-button {
-  margin-top: 12px;
-  padding: 8px 12px;
-  font-family: inherit;
-  font-size: 0.85rem;
-  text-align: center;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
-  background: transparent;
-  color: inherit;
-  cursor: pointer;
-  transition: background-color 0.15s, border-color 0.15s;
-}
-
-.sidebar-manage-button:hover {
-  background: rgba(128, 128, 128, 0.1);
-  border-color: rgba(128, 128, 128, 0.5);
-}
 
 .sidebar-footer {
   margin-top: 16px;

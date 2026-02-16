@@ -26,12 +26,24 @@ export function isLLMConfigured(): boolean {
   return key !== null && key.trim() !== '';
 }
 
+let cachedClient: LLMClient | null = null;
+let cachedClientKey: string | null = null;
+
 export function getLLMClient(): LLMClient | null {
   const key = getApiKey();
-  if (key === null || key.trim() === '') return null;
-  return createLLMClient({
+  if (key === null || key.trim() === '') {
+    cachedClient = null;
+    cachedClientKey = null;
+    return null;
+  }
+  if (cachedClient !== null && cachedClientKey === key) {
+    return cachedClient;
+  }
+  cachedClient = createLLMClient({
     apiKey: key,
     model: 'anthropic/claude-sonnet-4',
     baseUrl: 'https://openrouter.ai/api/v1',
   });
+  cachedClientKey = key;
+  return cachedClient;
 }

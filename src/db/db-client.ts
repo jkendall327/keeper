@@ -1,3 +1,5 @@
+'use no memo';
+
 import * as Comlink from 'comlink';
 import type { KeeperDB } from './types.ts';
 

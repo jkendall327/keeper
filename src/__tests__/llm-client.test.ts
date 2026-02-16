@@ -39,7 +39,7 @@ describe('LLM client', () => {
     const clientAfter = getLLMClient();
     if (clientAfter === null) throw new Error('Expected client to be non-null');
     const model = clientAfter.getModel();
-    expect(model).toBe('anthropic/claude-sonnet-4');
+    expect(model).toBe('google/gemini-3-flash-preview');
   });
 
   it('returns a client with working setModel and getModel', () => {
@@ -47,7 +47,7 @@ describe('LLM client', () => {
     const client = getLLMClient();
     if (client === null) throw new Error('Expected client to be non-null');
     const defaultModel = client.getModel();
-    expect(defaultModel).toBe('anthropic/claude-sonnet-4');
+    expect(defaultModel).toBe('google/gemini-3-flash-preview');
     client.setModel('openai/gpt-4o');
     const updatedModel = client.getModel();
     expect(updatedModel).toBe('openai/gpt-4o');
@@ -66,7 +66,7 @@ describe('LLM client', () => {
     const proofClient = getLLMClient();
     if (proofClient === null) throw new Error('Expected client for real key');
     const proofModel = proofClient.getModel();
-    expect(proofModel).toBe('anthropic/claude-sonnet-4');
+    expect(proofModel).toBe('google/gemini-3-flash-preview');
     setApiKey('   ');
     const configuredAfterWhitespace = isLLMConfigured();
     expect(configuredAfterWhitespace).toBe(false);

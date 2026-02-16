@@ -41,7 +41,7 @@ export function getLLMClient(): LLMClient | null {
   }
   cachedClient = createLLMClient({
     apiKey: key,
-    model: 'anthropic/claude-sonnet-4',
+    model: 'google/gemini-3-flash-preview',
     baseUrl: 'https://openrouter.ai/api/v1',
   });
   cachedClientKey = key;

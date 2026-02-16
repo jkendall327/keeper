@@ -45,6 +45,7 @@ async function fetchModels(apiKey: string): Promise<FetchModelsResult> {
       const name = typeof obj['name'] === 'string' ? obj['name'] : obj['id'];
       filtered.push({ id: obj['id'], name });
     }
+    filtered.sort((a, b) => a.name.localeCompare(b.name));
     cachedModels = filtered;
     return { models: filtered, error: null };
   } catch (err: unknown) {

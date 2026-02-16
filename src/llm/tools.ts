@@ -127,6 +127,27 @@ export async function executeTool(db: KeeperDB, call: ToolCall): Promise<ToolRes
       return { name, result: `Tag "${tagName}" removed.\n${formatNote(note)}` };
     }
 
+    case 'get_notes_for_tag': {
+      const tagName = args['tag_name'];
+      if (typeof tagName !== 'string' || tagName.trim() === '') {
+        return { name, result: 'Error: "tag_name" parameter is required and must be a non-empty string.' };
+      }
+      const allTags = await db.getAllTags();
+      const tag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+      if (tag === undefined) {
+        return { name, result: `No tag named "${tagName}" found.` };
+      }
+      const notes = await db.getNotesForTag(tag.id);
+      if (notes.length === 0) return { name, result: `No notes tagged "${tagName}".` };
+      return { name, result: notes.map(formatNote).join('\n---\n') };
+    }
+
+    case 'get_untagged_notes': {
+      const notes = await db.getUntaggedNotes();
+      if (notes.length === 0) return { name, result: 'No untagged notes found.' };
+      return { name, result: notes.map(formatNote).join('\n---\n') };
+    }
+
     case 'list_tags': {
       const tags = await db.getAllTags();
       return { name, result: formatTags(tags) };

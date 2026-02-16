@@ -168,4 +168,40 @@ describe('Tool executor', () => {
     expect(result.result).toContain('Error');
     expect(result.result).toContain('"id"');
   });
+
+  it('get_notes_for_tag returns notes with the specified tag', async () => {
+    await db.createNote({ body: 'Tagged note' });
+    await db.createNote({ body: 'Untagged note' });
+    await db.addTag('test-id-1', 'work');
+    const result = await executeTool(db, { name: 'get_notes_for_tag', args: { tag_name: 'work' } });
+    expect(result.result).toContain('Tagged note');
+    expect(result.result).not.toContain('Untagged note');
+  });
+
+  it('get_notes_for_tag returns error for nonexistent tag', async () => {
+    const result = await executeTool(db, { name: 'get_notes_for_tag', args: { tag_name: 'nonexistent' } });
+    expect(result.result).toContain('No tag named "nonexistent"');
+  });
+
+  it('get_notes_for_tag returns error for missing tag_name', async () => {
+    const result = await executeTool(db, { name: 'get_notes_for_tag', args: {} });
+    expect(result.result).toContain('Error');
+    expect(result.result).toContain('tag_name');
+  });
+
+  it('get_untagged_notes returns only untagged notes', async () => {
+    await db.createNote({ body: 'Has tag' });
+    await db.createNote({ body: 'No tag' });
+    await db.addTag('test-id-1', 'labeled');
+    const result = await executeTool(db, { name: 'get_untagged_notes', args: {} });
+    expect(result.result).toContain('No tag');
+    expect(result.result).not.toContain('Has tag');
+  });
+
+  it('get_untagged_notes returns empty message when all notes tagged', async () => {
+    await db.createNote({ body: 'Tagged' });
+    await db.addTag('test-id-1', 'something');
+    const result = await executeTool(db, { name: 'get_untagged_notes', args: {} });
+    expect(result.result).toBe('No untagged notes found.');
+  });
 });

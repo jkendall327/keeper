@@ -54,6 +54,15 @@ Remove a tag from a note.
   - note_id (string, required): The note ID
   - tag_name (string, required): The tag name
 
+### get_notes_for_tag
+Get all notes with a specific tag.
+- Parameters:
+  - tag_name (string, required): The tag name
+
+### get_untagged_notes
+Get all notes that have no tags.
+- Parameters: none
+
 ### list_tags
 List all tags.
 - Parameters: none

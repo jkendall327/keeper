@@ -18,9 +18,10 @@ interface AppContentProps {
   selectedNoteIds: Set<string>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   onFilterChange: (isArchive: boolean) => void;
+  onDisplayedNoteIdsChange: (ids: string[]) => void;
 }
 
-function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange }: AppContentProps) {
+function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange, onDisplayedNoteIdsChange }: AppContentProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Ctrl+/ (or Cmd+/) focuses the search input
@@ -103,6 +104,10 @@ function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange }: App
     };
     void loadNotes();
   }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag, getLinkedNotes]);
+
+  useEffect(() => {
+    onDisplayedNoteIdsChange(displayedNotes.map((n) => n.id));
+  }, [displayedNotes, onDisplayedNoteIdsChange]);
 
   // Keep selectedNote in sync with latest data from notes array
   const currentNote = selectedNote !== null
@@ -257,12 +262,31 @@ function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange }: App
 function App() {
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [isArchiveView, setIsArchiveView] = useState(false);
+  const [displayedNoteIds, setDisplayedNoteIds] = useState<string[]>([]);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0) {
+      setSelectedNoteIds(new Set());
+    } else {
+      setSelectedNoteIds(new Set(displayedNoteIds));
+    }
+  }, [selectedNoteIds.size, displayedNoteIds, setSelectedNoteIds]);
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>Keeper</h1>
         <div className="app-header-actions">
+          {displayedNoteIds.length > 0 && (
+            <button
+              className="bulk-action-btn select-all-btn"
+              onClick={handleSelectAll}
+            >
+              {selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0
+                ? 'Deselect All'
+                : 'Select All'}
+            </button>
+          )}
           {selectedNoteIds.size > 0 && (
             <div className="bulk-actions">
               <span className="bulk-count">{selectedNoteIds.size} selected</span>
@@ -302,6 +326,7 @@ function App() {
             selectedNoteIds={selectedNoteIds}
             setSelectedNoteIds={setSelectedNoteIds}
             onFilterChange={setIsArchiveView}
+            onDisplayedNoteIdsChange={setDisplayedNoteIds}
           />
         </Suspense>
       </main>

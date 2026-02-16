@@ -89,7 +89,10 @@ export function MarkdownPreview({
     for (const [mediaId, blobUrl] of mediaUrls) {
       result = result.replaceAll(`media://${mediaId}`, blobUrl);
     }
-    result = result.replaceAll('target="_blank"', 'target="_blank" rel="noopener noreferrer"');
+    // Ensure all links open in a new tab with safe rel.
+    // First strip any target the library already added, then add uniformly.
+    result = result.replaceAll(' target="_blank"', '');
+    result = result.replaceAll('<a href=', '<a target="_blank" rel="noopener noreferrer" href=');
     return result;
   }, [rawHtml, mediaUrls]);
 

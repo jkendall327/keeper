@@ -380,9 +380,13 @@ describe('App Integration Tests', () => {
       // Count via semantic query and verify each check is inside a selected card
       const checks = screen.getAllByLabelText('Selected');
       expect(checks).toHaveLength(3);
-      const checkCard0 = checks[0].closest('.note-card');
-      const checkCard1 = checks[1].closest('.note-card');
-      const checkCard2 = checks[2].closest('.note-card');
+      const check0 = checks[0];
+      const check1 = checks[1];
+      const check2 = checks[2];
+      if (check0 === undefined || check1 === undefined || check2 === undefined) throw new Error('Missing checks');
+      const checkCard0 = check0.closest('.note-card');
+      const checkCard1 = check1.closest('.note-card');
+      const checkCard2 = check2.closest('.note-card');
       if (checkCard0 === null) throw new Error('Check 0 not inside a note card');
       if (checkCard1 === null) throw new Error('Check 1 not inside a note card');
       if (checkCard2 === null) throw new Error('Check 2 not inside a note card');

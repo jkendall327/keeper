@@ -159,7 +159,8 @@ export function NoteGrid({
         const end = Math.max(lastIdx, curIdx);
         const rangeIds = new Set(selectedNoteIds);
         for (let i = start; i <= end; i++) {
-          rangeIds.add(flatNotes[i].id);
+          const n = flatNotes[i];
+          if (n !== undefined) rangeIds.add(n.id);
         }
         onBulkSelect(rangeIds);
       }

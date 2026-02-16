@@ -2,8 +2,8 @@ import { useState, useCallback, useRef } from 'react';
 import type { Message, LLMClient } from '@motioneffector/llm';
 import { parseMCPResponse } from './mcp-parser.ts';
 import { executeTool, type ToolResult } from './tools.ts';
-import { SYSTEM_PROMPT } from './system-prompt.ts';
-import type { KeeperDB } from '../db/types.ts';
+import { buildSystemPrompt } from './system-prompt.ts';
+import type { KeeperDB, NoteWithTags, Tag } from '../db/types.ts';
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'tool';
@@ -31,8 +31,9 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
-  const buildLLMMessages = useCallback((chatMessages: ChatMessage[]): Message[] => {
-    const llmMessages: Message[] = [{ role: 'system', content: SYSTEM_PROMPT }];
+  const buildLLMMessages = useCallback((chatMessages: ChatMessage[], recentNotes: NoteWithTags[], tags: Tag[]): Message[] => {
+    const systemPrompt = buildSystemPrompt(recentNotes, tags);
+    const llmMessages: Message[] = [{ role: 'system', content: systemPrompt }];
     for (const msg of chatMessages) {
       if (msg.role === 'user') {
         llmMessages.push({ role: 'user', content: msg.content });
@@ -59,9 +60,12 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
     let accumulated = '';
 
     try {
+      // Fetch context for the system prompt once per send
+      const [recentNotes, allTags] = await Promise.all([db.getAllNotes(), db.getAllTags()]);
+
       while (iterations < MAX_TOOL_ITERATIONS) {
         iterations++;
-        const llmMessages = buildLLMMessages(iterMessages);
+        const llmMessages = buildLLMMessages(iterMessages, recentNotes, allTags);
         const controller = new AbortController();
         abortRef.current = controller;
 
@@ -182,7 +186,8 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       setMessages(updatedMessages);
 
       // Send the confirmation result back to the LLM for a follow-up response
-      const llmMessages = buildLLMMessages(updatedMessages);
+      const [recentNotes, allTags] = await Promise.all([db.getAllNotes(), db.getAllTags()]);
+      const llmMessages = buildLLMMessages(updatedMessages, recentNotes, allTags);
       const controller = new AbortController();
       abortRef.current = controller;
 

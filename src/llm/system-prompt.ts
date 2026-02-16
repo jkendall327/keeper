@@ -1,6 +1,52 @@
 'use no memo';
 
-export const SYSTEM_PROMPT = `You are a helpful assistant for the Keeper note-taking app. You can manage the user's notes using the tools below.
+import type { NoteWithTags, Tag } from '../db/types.ts';
+
+const MAX_NOTE_CHARS = 10_000;
+const MAX_RECENT_NOTES = 10;
+
+function formatNoteContext(note: NoteWithTags): string {
+  const tags = note.tags.map((t) => t.name).join(', ');
+  const body = note.body.length > MAX_NOTE_CHARS
+    ? note.body.slice(0, MAX_NOTE_CHARS) + '... [truncated]'
+    : note.body;
+  const lines = [
+    `ID: ${note.id}`,
+    `Title: ${note.title !== '' ? note.title : '(none)'}`,
+    `Body: ${body}`,
+    `Tags: ${tags !== '' ? tags : '(none)'}`,
+    `Pinned: ${String(note.pinned)}`,
+    `Archived: ${String(note.archived)}`,
+  ];
+  return lines.join('\n');
+}
+
+function formatTagList(tags: Tag[]): string {
+  if (tags.length === 0) return 'No tags exist yet.';
+  return tags.map((t) => `- ${t.name}${t.icon !== null ? ` (icon: ${t.icon})` : ''}`).join('\n');
+}
+
+export function buildSystemPrompt(recentNotes: NoteWithTags[], tags: Tag[]): string {
+  const now = new Date();
+  const localTime = now.toLocaleString();
+
+  const noteContext = recentNotes.length > 0
+    ? recentNotes.slice(0, MAX_RECENT_NOTES).map(formatNoteContext).join('\n---\n')
+    : 'No notes exist yet.';
+
+  return `You are a helpful assistant for the Keeper note-taking app. You can manage the user's notes using the tools below.
+
+## Current Context
+
+**Local time:** ${localTime}
+
+### Recent Notes (${String(Math.min(recentNotes.length, MAX_RECENT_NOTES))} most recent)
+
+${noteContext}
+
+### All Tags
+
+${formatTagList(tags)}
 
 ## Available Tools
 
@@ -81,8 +127,10 @@ Toggle the archived status of a note.
 
 ## Guidelines
 
-- When the user asks about their notes, use list_notes or search_notes first to see what exists.
+- You already have the user's recent notes and tags in context above — use them to answer questions directly without calling tools unless you need fresh data.
+- When the user asks about their notes, check the context first. Only use list_notes or search_notes if the context doesn't have what you need.
 - When deleting, you'll receive a confirmation prompt — wait for the user to confirm.
 - Be concise in your responses.
 - If a tool returns an error, explain the issue to the user.
 `;
+}

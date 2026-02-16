@@ -13,16 +13,58 @@ import { Icon } from './components/Icon.tsx';
 import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
 import type { NoteWithTags } from './db/types.ts';
-import { dispatchKeeper, onKeeper } from './keeper-events.ts';
 
 interface AppContentProps {
+  notes: NoteWithTags[];
+  allTags: ReturnType<typeof useDB>['allTags'];
+  refresh: ReturnType<typeof useDB>['refresh'];
+  createNote: ReturnType<typeof useDB>['createNote'];
+  updateNote: ReturnType<typeof useDB>['updateNote'];
+  deleteNote: ReturnType<typeof useDB>['deleteNote'];
+  togglePinNote: ReturnType<typeof useDB>['togglePinNote'];
+  addTag: ReturnType<typeof useDB>['addTag'];
+  removeTag: ReturnType<typeof useDB>['removeTag'];
+  renameTag: ReturnType<typeof useDB>['renameTag'];
+  updateTagIcon: ReturnType<typeof useDB>['updateTagIcon'];
+  deleteTag: ReturnType<typeof useDB>['deleteTag'];
+  search: ReturnType<typeof useDB>['search'];
+  toggleArchiveNote: ReturnType<typeof useDB>['toggleArchiveNote'];
+  getArchivedNotes: ReturnType<typeof useDB>['getArchivedNotes'];
+  getUntaggedNotes: ReturnType<typeof useDB>['getUntaggedNotes'];
+  getNotesForTag: ReturnType<typeof useDB>['getNotesForTag'];
+  getLinkedNotes: ReturnType<typeof useDB>['getLinkedNotes'];
   selectedNoteIds: Set<string>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   onFilterChange: (isArchive: boolean) => void;
   onDisplayedNoteIdsChange: (ids: string[]) => void;
+  onDisplayedNotesChange: (notes: NoteWithTags[]) => void;
 }
 
-function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange, onDisplayedNoteIdsChange }: AppContentProps) {
+function AppContent({
+  notes,
+  allTags,
+  refresh,
+  createNote,
+  updateNote,
+  deleteNote,
+  togglePinNote,
+  addTag,
+  removeTag,
+  renameTag,
+  updateTagIcon,
+  deleteTag,
+  search,
+  toggleArchiveNote,
+  getArchivedNotes,
+  getUntaggedNotes,
+  getNotesForTag,
+  getLinkedNotes,
+  selectedNoteIds,
+  setSelectedNoteIds,
+  onFilterChange,
+  onDisplayedNoteIdsChange,
+  onDisplayedNotesChange,
+}: AppContentProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Ctrl+/ (or Cmd+/) focuses the search input
@@ -37,33 +79,9 @@ function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange, onDis
     return () => { document.removeEventListener('keydown', handleKeyDown); };
   }, []);
 
-  const {
-    notes,
-    allTags,
-    refresh,
-    createNote,
-    updateNote,
-    deleteNote,
-    deleteNotes,
-    archiveNotes,
-    togglePinNote,
-    addTag,
-    removeTag,
-    renameTag,
-    updateTagIcon,
-    deleteTag,
-    search,
-    toggleArchiveNote,
-    getArchivedNotes,
-    getUntaggedNotes,
-    getNotesForTag,
-    getLinkedNotes,
-  } = useDB();
-
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
-  const [showExportModal, setShowExportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   useEffect(() => {
     onFilterChange(activeFilter.type === 'archive');
@@ -74,41 +92,40 @@ function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange, onDis
   // Update displayed notes based on search query and active filter
   useEffect(() => {
     const loadNotes = async () => {
+      let notes_: NoteWithTags[];
       if (searchQuery.trim() !== '') {
         // Use FTS5 search
-        const results = await search(searchQuery);
-        setDisplayedNotes(results);
+        notes_ = await search(searchQuery);
       } else {
         // Apply filter
         switch (activeFilter.type) {
           case 'all':
-            setDisplayedNotes(notes);
+            notes_ = notes;
             break;
           case 'untagged':
-            setDisplayedNotes(await getUntaggedNotes());
+            notes_ = await getUntaggedNotes();
             break;
           case 'archive':
-            setDisplayedNotes(await getArchivedNotes());
+            notes_ = await getArchivedNotes();
             break;
           case 'links':
-            setDisplayedNotes(await getLinkedNotes());
+            notes_ = await getLinkedNotes();
             break;
           case 'tag':
-            setDisplayedNotes(await getNotesForTag(activeFilter.tagId));
+            notes_ = await getNotesForTag(activeFilter.tagId);
             break;
           case 'chat':
             // Chat view replaces the NoteGrid — no notes to display
-            setDisplayedNotes([]);
+            notes_ = [];
             break;
         }
       }
+      setDisplayedNotes(notes_);
+      onDisplayedNotesChange(notes_);
+      onDisplayedNoteIdsChange(notes_.map((n) => n.id));
     };
     void loadNotes();
-  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag, getLinkedNotes]);
-
-  useEffect(() => {
-    onDisplayedNoteIdsChange(displayedNotes.map((n) => n.id));
-  }, [displayedNotes, onDisplayedNoteIdsChange]);
+  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag, getLinkedNotes, onDisplayedNotesChange, onDisplayedNoteIdsChange]);
 
   // Keep selectedNote in sync with latest data from notes array
   const currentNote = selectedNote !== null
@@ -122,31 +139,6 @@ function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange, onDis
   const handleBulkSelect = useCallback((ids: Set<string>) => {
     setSelectedNoteIds(ids);
   }, [setSelectedNoteIds]);
-
-  const handleBulkDelete = useCallback(async () => {
-    const ids = Array.from(selectedNoteIds);
-    if (ids.length === 0) return;
-    if (!window.confirm(`Delete ${String(ids.length)} selected note${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
-    await deleteNotes(ids);
-    setSelectedNoteIds(new Set());
-  }, [selectedNoteIds, deleteNotes, setSelectedNoteIds]);
-
-  const handleBulkArchive = useCallback(async () => {
-    const ids = Array.from(selectedNoteIds);
-    if (ids.length === 0) return;
-    await archiveNotes(ids);
-    setSelectedNoteIds(new Set());
-  }, [selectedNoteIds, archiveNotes, setSelectedNoteIds]);
-
-  // Listen for bulk action events from header buttons
-  useEffect(() => {
-    const cleanups = [
-      onKeeper('keeper:bulk-delete', () => { void handleBulkDelete(); }),
-      onKeeper('keeper:bulk-archive', () => { void handleBulkArchive(); }),
-      onKeeper('keeper:export', () => { setShowExportModal(true); }),
-    ];
-    return () => { cleanups.forEach((fn) => { fn(); }); };
-  }, [handleBulkDelete, handleBulkArchive]);
 
   return (
     <div className="app-layout">
@@ -241,13 +233,6 @@ function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange, onDis
           onClose={() => { setSelectedNote(null); }}
         />
       )}
-      {showExportModal && selectedNoteIds.size > 0 && (
-        <ExportModal
-          notes={displayedNotes.filter((n) => selectedNoteIds.has(n.id))}
-          onClose={() => { setShowExportModal(false); }}
-          onDelete={() => { void handleBulkDelete(); }}
-        />
-      )}
       {showSettings && (
         <SettingsModal onClose={() => { setShowSettings(false); }} />
       )}
@@ -256,9 +241,13 @@ function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange, onDis
 }
 
 function App() {
+  const db = useDB();
+  const { deleteNotes, archiveNotes } = db;
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [isArchiveView, setIsArchiveView] = useState(false);
   const [displayedNoteIds, setDisplayedNoteIds] = useState<string[]>([]);
+  const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>([]);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const handleSelectAll = useCallback(() => {
     if (selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0) {
@@ -267,6 +256,21 @@ function App() {
       setSelectedNoteIds(new Set(displayedNoteIds));
     }
   }, [selectedNoteIds.size, displayedNoteIds, setSelectedNoteIds]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const ids = Array.from(selectedNoteIds);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Delete ${String(ids.length)} selected note${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    await deleteNotes(ids);
+    setSelectedNoteIds(new Set());
+  }, [selectedNoteIds, deleteNotes]);
+
+  const handleBulkArchive = useCallback(async () => {
+    const ids = Array.from(selectedNoteIds);
+    if (ids.length === 0) return;
+    await archiveNotes(ids);
+    setSelectedNoteIds(new Set());
+  }, [selectedNoteIds, archiveNotes]);
 
   return (
     <div className="app">
@@ -289,20 +293,20 @@ function App() {
               {!isArchiveView && (
                 <button
                   className="bulk-action-btn bulk-archive-btn"
-                  onClick={() => { dispatchKeeper('keeper:bulk-archive'); }}
+                  onClick={() => { void handleBulkArchive(); }}
                 >
                   Archive
                 </button>
               )}
               <button
                 className="bulk-action-btn bulk-export-btn"
-                onClick={() => { dispatchKeeper('keeper:export'); }}
+                onClick={() => { setShowExportModal(true); }}
               >
                 Export
               </button>
               <button
                 className="bulk-action-btn bulk-delete-btn"
-                onClick={() => { dispatchKeeper('keeper:bulk-delete'); }}
+                onClick={() => { void handleBulkDelete(); }}
               >
                 Delete
               </button>
@@ -313,13 +317,39 @@ function App() {
       <main className="app-main">
         <Suspense fallback={<p className="loading">Loading...</p>}>
           <AppContent
+            notes={db.notes}
+            allTags={db.allTags}
+            refresh={db.refresh}
+            createNote={db.createNote}
+            updateNote={db.updateNote}
+            deleteNote={db.deleteNote}
+            togglePinNote={db.togglePinNote}
+            addTag={db.addTag}
+            removeTag={db.removeTag}
+            renameTag={db.renameTag}
+            updateTagIcon={db.updateTagIcon}
+            deleteTag={db.deleteTag}
+            search={db.search}
+            toggleArchiveNote={db.toggleArchiveNote}
+            getArchivedNotes={db.getArchivedNotes}
+            getUntaggedNotes={db.getUntaggedNotes}
+            getNotesForTag={db.getNotesForTag}
+            getLinkedNotes={db.getLinkedNotes}
             selectedNoteIds={selectedNoteIds}
             setSelectedNoteIds={setSelectedNoteIds}
             onFilterChange={setIsArchiveView}
             onDisplayedNoteIdsChange={setDisplayedNoteIds}
+            onDisplayedNotesChange={setDisplayedNotes}
           />
         </Suspense>
       </main>
+      {showExportModal && selectedNoteIds.size > 0 && (
+        <ExportModal
+          notes={displayedNotes.filter((n) => selectedNoteIds.has(n.id))}
+          onClose={() => { setShowExportModal(false); }}
+          onDelete={() => { void handleBulkDelete(); }}
+        />
+      )}
     </div>
   );
 }

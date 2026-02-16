@@ -7,15 +7,15 @@ Read SPEC.md to understand the project and its goals.
 - `npm run dev` — start dev server (requires COOP/COEP headers, configured in vite.config.ts)
 - `npm run build` — typecheck + production build
 - `npm run lint` — ESLint
-- `npm test` — run all tests (137 data layer + 43 UI + 40 LLM integration tests)
+- `npm test` — run all tests (143 data layer + 39 UI + 40 LLM integration tests)
 - `npm run test:watch` — run tests in watch mode
 
 ## Testing & Linting
 
 This project prioritizes **high-value integration and property-based tests** over fastidious unit tests with mocks.
 
-- **Data layer** (`src/db/__tests__/`): 137 tests using real SQLite (better-sqlite3) to verify actual behavior including FTS5, triggers, and foreign key constraints.
-- **UI layer** (`src/__tests__/App.test.tsx`, `IconPicker.test.tsx`, `mock-db.test.ts`): 43 integration tests using React Testing Library with a mock DB, covering modal interactions, search, multi-select, tag management, icon picker, empty states, settings, chat, and more.
+- **Data layer** (`src/db/__tests__/`): 143 tests using real SQLite (better-sqlite3) to verify actual behavior including FTS5, triggers, foreign key constraints, and mock↔real DB conformance.
+- **UI layer** (`src/__tests__/App.test.tsx`, `IconPicker.test.tsx`): 39 integration tests using React Testing Library with a mock DB, covering modal interactions, search, multi-select, tag management, icon picker, empty states, settings, chat, and more.
 - **LLM layer** (`src/__tests__/tool-executor.test.ts`, `mcp-parser.test.ts`, `llm-client.test.ts`, `streaming.test.ts`): 40 tests covering tool execution, MCP response parsing, LLM client configuration, and streaming.
 
 **Always run both tests AND lint before committing**:

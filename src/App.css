@@ -439,6 +439,10 @@
 }
 
 @media (prefers-color-scheme: light) {
+  .search-result-count {
+    color: rgba(0, 0, 0, 0.5);
+  }
+
   .empty-state {
     color: rgba(0, 0, 0, 0.3);
   }
@@ -482,12 +486,6 @@
   background: rgba(128, 128, 128, 0.2);
   margin: 24px 0;
   border-radius: 1px;
-}
-
-.empty-state {
-  text-align: center;
-  opacity: 0.5;
-  margin-top: 48px;
 }
 
 /* ── Note Card ─────────────────────────────────────────── */

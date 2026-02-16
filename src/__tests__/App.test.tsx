@@ -716,6 +716,11 @@ describe('App Integration Tests', () => {
     const hint = screen.getByText('Start typing above to capture a note');
     expect(hint).toBeInTheDocument();
 
+    // Only ONE empty state element should exist in the DOM (no duplicate from NoteGrid)
+    const allEmptyStates = document.querySelectorAll('.empty-state');
+    expect(allEmptyStates).toHaveLength(1);
+    expect(allEmptyStates[0]?.textContent).toContain('No notes yet');
+
     // The empty state container should contain a Material Symbol icon
     const emptyState = heading.closest('.empty-state');
     if (emptyState === null) throw new Error('Empty state container not found');

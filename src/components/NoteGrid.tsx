@@ -138,7 +138,7 @@ export function NoteGrid({
   const lastClickedRef = useRef<string | null>(null);
 
   if (notes.length === 0) {
-    return <p className="empty-state">No notes yet. Start typing above.</p>;
+    return null;
   }
 
   const pinnedNotes = notes.filter((note) => note.pinned && !note.archived);

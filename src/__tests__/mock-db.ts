@@ -51,7 +51,14 @@ export function createMockDB(): MockDB {
     },
 
     async getAllNotes(): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()));
+      return Promise.resolve(
+        Array.from(notes.values())
+          .filter(n => !n.archived)
+          .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            return b.updated_at.localeCompare(a.updated_at);
+          }),
+      );
     },
 
     async updateNote(input: UpdateNoteInput): Promise<NoteWithTags> {
@@ -200,7 +207,14 @@ export function createMockDB(): MockDB {
     },
 
     async getUntaggedNotes(): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()).filter(n => n.tags.length === 0));
+      return Promise.resolve(
+        Array.from(notes.values())
+          .filter(n => n.tags.length === 0 && !n.archived)
+          .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            return b.updated_at.localeCompare(a.updated_at);
+          }),
+      );
     },
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
@@ -208,7 +222,14 @@ export function createMockDB(): MockDB {
     },
 
     async getNotesForTag(tagId: number): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()).filter(n => n.tags.some(t => t.id === tagId)));
+      return Promise.resolve(
+        Array.from(notes.values())
+          .filter(n => n.tags.some(t => t.id === tagId) && !n.archived)
+          .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            return b.updated_at.localeCompare(a.updated_at);
+          }),
+      );
     },
 
     async getArchivedNotes(): Promise<NoteWithTags[]> {

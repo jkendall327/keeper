@@ -8,6 +8,7 @@ export type FilterType =
   | { type: 'untagged' }
   | { type: 'archive' }
   | { type: 'links' }
+  | { type: 'chat' }
   | { type: 'tag'; tagId: number };
 
 interface SidebarProps {
@@ -30,6 +31,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
     if (activeFilter.type === 'untagged' && filter.type === 'untagged') return true;
     if (activeFilter.type === 'archive' && filter.type === 'archive') return true;
     if (activeFilter.type === 'links' && filter.type === 'links') return true;
+    if (activeFilter.type === 'chat' && filter.type === 'chat') return true;
     if (
       activeFilter.type === 'tag' &&
       filter.type === 'tag' &&
@@ -150,6 +152,13 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
           onClick={() => { onFilterChange({ type: 'archive' }); }}
         >
           Archive
+        </button>
+
+        <button
+          className={`sidebar-tab ${isActive({ type: 'chat' }) ? 'sidebar-tab-active' : ''}`}
+          onClick={() => { onFilterChange({ type: 'chat' }); }}
+        >
+          <Icon name="chat" size={18} /> Chat
         </button>
       </nav>
       <div className="sidebar-footer">

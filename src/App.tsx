@@ -8,7 +8,10 @@ import { ExportModal } from './components/ExportModal.tsx';
 import { SearchBar } from './components/SearchBar.tsx';
 import { Sidebar, type FilterType } from './components/Sidebar.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
+import { ChatView } from './components/ChatView.tsx';
 import { Icon } from './components/Icon.tsx';
+import { getLLMClient, getApiKey } from './llm/client.ts';
+import { getDB } from './db/db-client.ts';
 import type { NoteWithTags } from './db/types.ts';
 
 interface AppContentProps {
@@ -36,6 +39,7 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
   const {
     notes,
     allTags,
+    refresh,
     createNote,
     updateNote,
     deleteNote,
@@ -90,6 +94,10 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
             break;
           case 'tag':
             setDisplayedNotes(await getNotesForTag(activeFilter.tagId));
+            break;
+          case 'chat':
+            // Chat view replaces the NoteGrid — no notes to display
+            setDisplayedNotes([]);
             break;
         }
       }
@@ -164,34 +172,60 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
         onOpenSettings={() => { setShowSettings(true); }}
       />
       <div className="app-content">
-        <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
-        {searchQuery.trim() !== '' && (
-          <p className="search-result-count">
-            {displayedNotes.length === 0
-              ? 'No results found'
-              : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
-          </p>
+        {activeFilter.type === 'chat' ? (
+          (() => {
+            const llmClient = getLLMClient();
+            const apiKey = getApiKey();
+            if (llmClient === null || apiKey === null) {
+              return (
+                <div className="empty-state">
+                  <Icon name="key" size={48} />
+                  <p className="empty-state-text">API key required</p>
+                  <p className="empty-state-hint">Configure your OpenRouter API key in Settings to use chat</p>
+                </div>
+              );
+            }
+            return (
+              <ChatView
+                client={llmClient}
+                db={getDB()}
+                apiKey={apiKey}
+                onMutation={() => { void refresh(); }}
+              />
+            );
+          })()
+        ) : (
+          <>
+            <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
+            {searchQuery.trim() !== '' && (
+              <p className="search-result-count">
+                {displayedNotes.length === 0
+                  ? 'No results found'
+                  : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
+              </p>
+            )}
+            <QuickAdd onCreate={createNote} />
+            {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
+              <div className="empty-state">
+                <Icon name="sticky_note_2" size={48} />
+                <p className="empty-state-text">No notes yet</p>
+                <p className="empty-state-hint">Start typing above to capture a note</p>
+              </div>
+            )}
+            <NoteGrid
+              notes={displayedNotes}
+              onSelect={setSelectedNote}
+              onDelete={deleteNote}
+              onTogglePin={togglePinNote}
+              onToggleArchive={toggleArchiveNote}
+              previewMode={previewMode}
+              onUpdateNote={updateNote}
+              selectedNoteIds={selectedNoteIds}
+              onBulkSelect={handleBulkSelect}
+              onClearSelection={clearSelection}
+            />
+          </>
         )}
-        <QuickAdd onCreate={createNote} />
-        {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
-          <div className="empty-state">
-            <Icon name="sticky_note_2" size={48} />
-            <p className="empty-state-text">No notes yet</p>
-            <p className="empty-state-hint">Start typing above to capture a note</p>
-          </div>
-        )}
-        <NoteGrid
-          notes={displayedNotes}
-          onSelect={setSelectedNote}
-          onDelete={deleteNote}
-          onTogglePin={togglePinNote}
-          onToggleArchive={toggleArchiveNote}
-          previewMode={previewMode}
-          onUpdateNote={updateNote}
-          selectedNoteIds={selectedNoteIds}
-          onBulkSelect={handleBulkSelect}
-          onClearSelection={clearSelection}
-        />
       </div>
       {currentNote !== null && (
         <NoteModal

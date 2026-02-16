@@ -129,6 +129,15 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
 
         setMessages(iterMessages);
       }
+
+      // If we exhausted the iteration limit, inform the user
+      if (iterations >= MAX_TOOL_ITERATIONS) {
+        const limitMsg: ChatMessage = {
+          role: 'assistant',
+          content: "I've reached the maximum number of actions. Please try a simpler request.",
+        };
+        setMessages((prev) => [...prev, limitMsg]);
+      }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Preserve any partially streamed text as an assistant message

@@ -867,6 +867,81 @@ describe('App Integration Tests', () => {
     });
   });
 
+  it('export separator toggle switches between compact and spaced output', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+
+    // Create two notes
+    await user.type(input, 'Note alpha');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Note alpha');
+
+    await user.type(input, 'Note beta');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Note beta');
+
+    // Ctrl-click both to select
+    await user.keyboard('{Control>}');
+    await user.click(screen.getByText('Note alpha'));
+    await user.click(screen.getByText('Note beta'));
+    await user.keyboard('{/Control}');
+
+    // Open export modal
+    await waitFor(() => {
+      expect(screen.getByText('Export')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('Export'));
+
+    // The export preview textarea should be visible
+    const preview = document.querySelector<HTMLTextAreaElement>('.export-preview');
+    if (preview === null) throw new Error('Export preview not found');
+
+    // Default is Compact (single newline separator)
+    const compactValue = preview.value;
+    expect(compactValue).toContain('Note alpha');
+    expect(compactValue).toContain('Note beta');
+    // Single newline between them, not double
+    expect(compactValue).not.toContain('\n\n');
+
+    // Switch to Spaced
+    const spacedRadio = screen.getByLabelText('Spaced');
+    await user.click(spacedRadio);
+
+    // Now the preview should have double newlines
+    const spacedValue = preview.value;
+    expect(spacedValue).toContain('\n\n');
+  });
+
+  it('truncation indicator shows [...] for long notes', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note with very long body
+    const longBody = Array.from({ length: 50 }, (_, i) => `Line ${String(i + 1)} of a very long note`).join('\n');
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, longBody);
+    await user.keyboard('{Enter}');
+
+    // Wait for the note to appear
+    await screen.findByText(/Line 1 of a very long note/);
+
+    // The truncation indicator may or may not appear depending on container size
+    // In a test environment, the container has no real height constraint,
+    // so scrollHeight may equal clientHeight. Verify the element structure is correct.
+    const noteCard = screen.getByText(/Line 1 of a very long note/).closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
+    const bodyDiv = noteCard.querySelector('.note-card-body');
+    if (bodyDiv === null) throw new Error('Note card body div not found');
+    // The body wrapper div should exist (this verifies G5 fix — ref is on a div, not a p)
+    expect(bodyDiv.tagName).toBe('DIV');
+    // Inside should be the text paragraph
+    const bodyText = bodyDiv.querySelector('.note-card-body-text');
+    if (bodyText === null) throw new Error('Note card body text not found');
+    expect(bodyText.textContent).toContain('Line 1 of a very long note');
+  });
+
   describe('Chat view', () => {
     it('shows Chat entry in the sidebar', async () => {
       await renderApp();

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Icon } from './Icon.tsx';
+import { getRecentIcons, saveRecentIcon } from './recent-icons.ts';
 
 const ICON_LIST = [
   'home', 'star', 'favorite', 'bookmark', 'label', 'flag',
@@ -30,33 +31,6 @@ const ICON_LIST = [
   'thumb_up', 'thumb_down', 'celebration', 'handshake', 'volunteer_activism', 'diversity_3',
   'priority_high', 'new_releases', 'verified', 'grade', 'military_tech', 'workspace_premium',
 ];
-
-const STORAGE_KEY = 'keeper-recent-icons';
-const MAX_RECENT = 8;
-
-function getRecentIcons(): string[] {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored === null) return [];
-    const parsed: unknown = JSON.parse(stored);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter((item): item is string => typeof item === 'string').slice(0, MAX_RECENT);
-  } catch {
-    return [];
-  }
-}
-
-function saveRecentIcon(icon: string): boolean {
-  try {
-    const recent = getRecentIcons().filter((i) => i !== icon);
-    recent.unshift(icon);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(recent.slice(0, MAX_RECENT)));
-    return true;
-  } catch (err: unknown) {
-    console.warn('Failed to save recent icon:', err);
-    return false;
-  }
-}
 
 interface IconPickerProps {
   onSelect: (iconName: string) => void;

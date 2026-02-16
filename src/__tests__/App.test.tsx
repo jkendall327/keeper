@@ -914,32 +914,54 @@ describe('App Integration Tests', () => {
     expect(spacedValue).toContain('\n\n');
   });
 
-  it('truncation indicator shows [...] for long notes', async () => {
+  it('truncation indicator shows [...] when note body overflows', async () => {
+    // Mock ResizeObserver to invoke the callback, and mock scrollHeight > clientHeight
+    const originalRO = globalThis.ResizeObserver;
+    let observedCallback: (() => void) | null = null;
+    globalThis.ResizeObserver = class {
+      constructor(cb: ResizeObserverCallback) {
+        observedCallback = () => { cb([], this as unknown as ResizeObserver); };
+      }
+      observe() { observedCallback?.(); }
+      unobserve() { /* no-op */ }
+      disconnect() { /* no-op */ }
+    } as unknown as typeof ResizeObserver;
+
     const user = userEvent.setup();
     await renderApp();
 
-    // Create a note with very long body
     const longBody = Array.from({ length: 50 }, (_, i) => `Line ${String(i + 1)} of a very long note`).join('\n');
     const input = await screen.findByPlaceholderText('Take a note...');
     await user.type(input, longBody);
     await user.keyboard('{Enter}');
 
-    // Wait for the note to appear
     await screen.findByText(/Line 1 of a very long note/);
 
-    // The truncation indicator may or may not appear depending on container size
-    // In a test environment, the container has no real height constraint,
-    // so scrollHeight may equal clientHeight. Verify the element structure is correct.
     const noteCard = screen.getByText(/Line 1 of a very long note/).closest('.note-card');
     if (noteCard === null) throw new Error('Note card not found');
     const bodyDiv = noteCard.querySelector('.note-card-body');
     if (bodyDiv === null) throw new Error('Note card body div not found');
-    // The body wrapper div should exist (this verifies G5 fix — ref is on a div, not a p)
+
+    // Verify G5 fix: body wrapper is a div (ref target), containing the text paragraph
     expect(bodyDiv.tagName).toBe('DIV');
-    // Inside should be the text paragraph
     const bodyText = bodyDiv.querySelector('.note-card-body-text');
     if (bodyText === null) throw new Error('Note card body text not found');
     expect(bodyText.textContent).toContain('Line 1 of a very long note');
+
+    // Simulate overflow: scrollHeight > clientHeight
+    Object.defineProperty(bodyDiv, 'scrollHeight', { value: 500, configurable: true });
+    Object.defineProperty(bodyDiv, 'clientHeight', { value: 200, configurable: true });
+
+    // Trigger the ResizeObserver callback
+    // eslint-disable-next-line @typescript-eslint/require-await
+    await act(async () => { observedCallback?.(); });
+
+    // The truncation indicator [...] should now appear
+    const truncation = noteCard.querySelector('.note-card-truncation');
+    if (truncation === null) throw new Error('Truncation indicator not found');
+    expect(truncation.textContent).toBe('[...]');
+
+    globalThis.ResizeObserver = originalRO;
   });
 
   describe('Chat view', () => {

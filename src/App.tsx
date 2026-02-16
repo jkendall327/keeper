@@ -160,6 +160,10 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           });
         }}
         onDeleteTag={(id) => {
+          // Reset filter if the deleted tag is the active filter
+          if (activeFilter.type === 'tag' && activeFilter.tagId === id) {
+            setActiveFilter({ type: 'all' });
+          }
           deleteTag(id).catch((err: unknown) => {
             console.error('Failed to delete tag:', err);
           });

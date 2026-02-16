@@ -98,7 +98,8 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
     };
   }, [onClose]);
 
-  const handleSelect = (iconName: string) => {
+  const handleSelect = (iconName: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     saveRecentIcon(iconName);
     onSelect(iconName);
   };
@@ -122,7 +123,8 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
                 key={name}
                 className="icon-picker-item"
                 title={name}
-                onClick={() => { handleSelect(name); }}
+                onMouseDown={(e) => { e.stopPropagation(); }}
+                onClick={(e) => { handleSelect(name, e); }}
               >
                 <Icon name={name} size={20} />
               </button>
@@ -137,7 +139,8 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
               key={name}
               className="icon-picker-item"
               title={name}
-              onClick={() => { handleSelect(name); }}
+              onMouseDown={(e) => { e.stopPropagation(); }}
+              onClick={(e) => { handleSelect(name, e); }}
             >
               <Icon name={name} size={20} />
             </button>

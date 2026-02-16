@@ -617,6 +617,53 @@ describe('App Integration Tests', () => {
     });
   });
 
+  it('sidebar icon picker updates tag icon', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note and add a tag
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Icon picker test');
+    await user.keyboard('{Enter}');
+
+    const noteCard = await screen.findByText('Icon picker test');
+    await user.click(noteCard);
+
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'work');
+    await user.keyboard('{Enter}');
+
+    // Close modal
+    await user.keyboard('{Escape}');
+
+    // Find the icon button in the sidebar for the "work" tag
+    const iconBtn = await screen.findByLabelText('Change icon for work');
+    expect(iconBtn).toBeInTheDocument();
+
+    // Default icon should be 'label'
+    const defaultIcon = iconBtn.querySelector('.material-symbols-outlined');
+    if (defaultIcon === null) throw new Error('Default icon not found');
+    expect(defaultIcon.textContent).toBe('label');
+
+    // Click to open icon picker
+    await user.click(iconBtn);
+
+    // Verify picker dialog appeared
+    const dialog = screen.getByRole('dialog', { name: 'Choose an icon' });
+    expect(dialog).toBeInTheDocument();
+
+    // Click the "star" icon in the picker
+    const starButton = screen.getByTitle('star');
+    await user.click(starButton);
+
+    // Verify the sidebar tag icon updated to 'star'
+    await waitFor(() => {
+      const updatedIcon = iconBtn.querySelector('.material-symbols-outlined');
+      if (updatedIcon === null) throw new Error('Updated icon not found');
+      expect(updatedIcon.textContent).toBe('star');
+    });
+  });
+
   it('double-click sidebar tag enters inline rename mode', async () => {
     const user = userEvent.setup();
     await renderApp();

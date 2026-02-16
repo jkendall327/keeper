@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import type { LLMClient } from '@motioneffector/llm';
+import { markdown } from '@motioneffector/markdown';
 import { useChatLoop, type ChatMessage } from '../llm/useChatLoop.ts';
 import { Icon } from './Icon.tsx';
 import type { KeeperDB } from '../db/types.ts';
@@ -61,7 +62,23 @@ interface ChatViewProps {
   onMutation: () => void;
 }
 
+function renderMarkdownSafe(input: string): string {
+  try {
+    // @motioneffector/markdown sanitizes HTML by default (sanitize: true)
+    return markdown(input);
+  } catch {
+    return input;
+  }
+}
+
 function MessageBubble({ msg }: { msg: ChatMessage }) {
+  const html = useMemo(() => {
+    if (msg.role === 'assistant') {
+      return renderMarkdownSafe(msg.content);
+    }
+    return null;
+  }, [msg.role, msg.content]);
+
   if (msg.role === 'tool') {
     return (
       <div className="chat-message chat-message-tool">
@@ -70,6 +87,14 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
           {msg.toolResult?.name ?? 'Tool'}
         </div>
         <pre className="chat-tool-result">{msg.content}</pre>
+      </div>
+    );
+  }
+
+  if (msg.role === 'assistant' && html !== null) {
+    return (
+      <div className="chat-message chat-message-assistant">
+        <div className="chat-message-content markdown-preview" dangerouslySetInnerHTML={{ __html: html }} />
       </div>
     );
   }
@@ -93,6 +118,11 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
     db,
     onMutation,
   });
+
+  const streamingHtml = useMemo(() => {
+    if (streaming === '') return '';
+    return renderMarkdownSafe(streaming);
+  }, [streaming]);
 
   // Fetch available models
   useEffect(() => {
@@ -181,7 +211,8 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
         )}
         {streaming !== '' && (
           <div className="chat-message chat-message-assistant chat-message-streaming">
-            <div className="chat-message-content">{streaming}<span className="chat-cursor" /></div>
+            <div className="chat-message-content markdown-preview" dangerouslySetInnerHTML={{ __html: streamingHtml }} />
+            <span className="chat-cursor" />
           </div>
         )}
         {loading && streaming === '' && (

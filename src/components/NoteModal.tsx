@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
+import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { getDB } from '../db/db-client.ts';
 
@@ -11,7 +12,6 @@ interface NoteModalProps {
   onAddTag: (noteId: string, tagName: string) => Promise<void>;
   onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
   onClose: () => void;
-  previewMode: boolean;
 }
 
 export function NoteModal({
@@ -22,7 +22,6 @@ export function NoteModal({
   onAddTag,
   onRemoveTag,
   onClose,
-  previewMode,
 }: NoteModalProps) {
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
@@ -176,34 +175,25 @@ export function NoteModal({
             value={title}
             onChange={(e) => { setTitle(e.target.value); }}
           />
-          {previewMode ? (
-            <div className="modal-body-preview">
-              <MarkdownPreview
-                content={body}
-                noteId={note.id}
-                onCheckboxToggle={handleCheckboxToggle}
-              />
+          <textarea
+            ref={bodyTextareaRef}
+            className="modal-body-input"
+            placeholder="Note"
+            value={body}
+            onChange={(e) => { setBody(e.target.value); }}
+            onPaste={(e) => {
+              handlePaste(e).catch((err: unknown) => {
+                console.error('Failed to handle paste:', err);
+              });
+            }}
+          />
+          {body.includes('media://') && (
+            <div className="modal-body-live-preview">
+              <MarkdownPreview content={body} noteId={note.id} onCheckboxToggle={handleCheckboxToggle} />
             </div>
-          ) : (
-            <>
-              <textarea
-                ref={bodyTextareaRef}
-                className="modal-body-input"
-                placeholder="Note"
-                value={body}
-                onChange={(e) => { setBody(e.target.value); }}
-                onPaste={(e) => {
-                  handlePaste(e).catch((err: unknown) => {
-                    console.error('Failed to handle paste:', err);
-                  });
-                }}
-              />
-              {body.includes('media://') && (
-                <div className="modal-body-live-preview">
-                  <MarkdownPreview content={body} noteId={note.id} />
-                </div>
-              )}
-            </>
+          )}
+          {body.trim() === '' && (
+            <p className="modal-empty-warning">This note will be deleted when closed.</p>
           )}
         </div>
         <div className="modal-tags">
@@ -211,13 +201,14 @@ export function NoteModal({
           <div className="modal-tag-list">
             {note.tags.map((tag) => (
               <span key={tag.id} className="modal-tag-chip">
+                <Icon name={tag.icon ?? 'label'} size={14} />
                 {tag.name}
                 <button
                   className="modal-tag-remove"
                   onClick={() => { void onRemoveTag(note.id, tag.name); }}
                   aria-label={`Remove tag ${tag.name}`}
                 >
-                  &times;
+                  <Icon name="close" size={14} />
                 </button>
               </span>
             ))}

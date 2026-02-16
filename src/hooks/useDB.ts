@@ -93,6 +93,14 @@ export function useDB() {
     [refresh],
   );
 
+  const updateTagIcon = useCallback(
+    async (tagId: number, icon: string | null) => {
+      await getDB().updateTagIcon(tagId, icon);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const deleteTag = useCallback(
     async (tagId: number) => {
       await getDB().deleteTag(tagId);
@@ -125,6 +133,10 @@ export function useDB() {
     return await getDB().getNotesForTag(tagId);
   }, []);
 
+  const getLinkedNotes = useCallback(async () => {
+    return await getDB().getLinkedNotes();
+  }, []);
+
   return {
     notes,
     allTags,
@@ -138,11 +150,13 @@ export function useDB() {
     addTag,
     removeTag,
     renameTag,
+    updateTagIcon,
     deleteTag,
     search,
     toggleArchiveNote,
     getArchivedNotes,
     getUntaggedNotes,
     getNotesForTag,
+    getLinkedNotes,
   };
 }

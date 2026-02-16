@@ -83,6 +83,7 @@ const api: KeeperDB = {
   addTag: delegate('addTag'),
   removeTag: delegate('removeTag'),
   renameTag: delegate('renameTag'),
+  updateTagIcon: delegate('updateTagIcon'),
   deleteTag: delegate('deleteTag'),
   getAllTags: delegate('getAllTags'),
   search: delegate('search'),

@@ -105,7 +105,7 @@ describe('Note CRUD', () => {
       await api.addTag(note.id, 'tag1');
 
       const notes = await api.getAllNotes();
-      expect(notes[0]?.tags).toEqual([{ id: 1, name: 'tag1' }]);
+      expect(notes[0]?.tags).toEqual([{ id: 1, name: 'tag1', icon: null }]);
     });
   });
 
@@ -186,7 +186,7 @@ describe('Note CRUD', () => {
       await api.addTag(note.id, 'tag1');
       const noteWithTag = await api.getNote(note.id);
       expect(noteWithTag?.tags).toHaveLength(1);
-      expect(noteWithTag?.tags[0]).toEqual({ id: 1, name: 'tag1' });
+      expect(noteWithTag?.tags[0]).toEqual({ id: 1, name: 'tag1', icon: null });
 
       // Verify note exists in getAllNotes before delete
       const allNotes = await api.getAllNotes();

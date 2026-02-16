@@ -149,7 +149,7 @@ describe('Smart Views', () => {
       await api.addTag(note.id, 'resource');
 
       const linked = await api.getLinkedNotes();
-      expect(linked[0]?.tags).toEqual([{ id: 1, name: 'resource' }]);
+      expect(linked[0]?.tags).toEqual([{ id: 1, name: 'resource', icon: null }]);
     });
   });
 });

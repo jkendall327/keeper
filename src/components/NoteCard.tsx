@@ -1,24 +1,38 @@
+import { useRef, useState, useEffect } from 'react';
 import type { NoteWithTags, UpdateNoteInput } from '../db/types.ts';
+import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 
 interface NoteCardProps {
   note: NoteWithTags;
-  onSelect: (note: NoteWithTags) => void;
+  onSelect: (note: NoteWithTags, e?: React.MouseEvent) => void;
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
   onToggleArchive: (id: string) => Promise<void>;
-  previewMode: boolean;
   onUpdate: (input: UpdateNoteInput) => Promise<void>;
   isSelected?: boolean;
 }
 
-export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, previewMode, onUpdate, isSelected }: NoteCardProps) {
+export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, onUpdate, isSelected }: NoteCardProps) {
+  const bodyRef = useRef<HTMLDivElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const el = bodyRef.current;
+    if (el === null) return;
+    const check = () => { setIsTruncated(el.scrollHeight > el.clientHeight); };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(el);
+    return () => { observer.disconnect(); };
+  }, [note.body]);
+
   const handleCheckboxToggle = (newBody: string) => {
     void onUpdate({ id: note.id, body: newBody });
   };
   return (
     <div
-      className={`note-card${isSelected === true ? ' note-card-selected' : ''}`}
+      className={`note-card${note.pinned ? ' note-card-pinned' : ''}${isSelected === true ? ' note-card-selected' : ''}`}
       data-note-id={note.id}
       role="button"
       tabIndex={0}
@@ -26,7 +40,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
         // Don't open modal when clicking a link in preview mode
         const target = e.target as HTMLElement;
         if (target.tagName === 'A' || target.closest('a') !== null) return;
-        onSelect(note);
+        onSelect(note, e);
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -53,7 +67,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
           aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
           title={note.pinned ? 'Unpin note' : 'Pin note'}
         >
-          {note.pinned ? '📌' : '📍'}
+          <Icon name="push_pin" className={note.pinned ? 'icon-filled' : ''} />
         </button>
         <button
           className="note-card-archive"
@@ -64,7 +78,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
           aria-label={note.archived ? 'Unarchive note' : 'Archive note'}
           title={note.archived ? 'Unarchive note' : 'Archive note'}
         >
-          {note.archived ? '📤' : '📦'}
+          <Icon name={note.archived ? 'unarchive' : 'archive'} />
         </button>
         <button
           className="note-card-delete"
@@ -74,24 +88,25 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
           }}
           aria-label="Delete note"
         >
-          &times;
+          <Icon name="delete" />
         </button>
       </div>
       {note.title !== '' && <h3 className="note-card-title">{note.title}</h3>}
-      {previewMode ? (
+      <div ref={bodyRef} className="note-card-body">
         <MarkdownPreview
           content={note.body}
           noteId={note.id}
           onCheckboxToggle={handleCheckboxToggle}
-          className="note-card-body"
         />
-      ) : (
-        <p className="note-card-body">{note.body}</p>
-      )}
+      </div>
+      {isTruncated && <span className="note-card-truncation">[...]</span>}
       {note.tags.length > 0 && (
         <div className="note-card-tags">
           {note.tags.map((tag) => (
-            <span key={tag.id} className="note-card-tag">{tag.name}</span>
+            <span key={tag.id} className="note-card-tag">
+              <Icon name={tag.icon ?? 'label'} size={14} />
+              {tag.name}
+            </span>
           ))}
         </div>
       )}

@@ -17,6 +17,7 @@ export function createMockDB(): MockDB {
   const generateId = () => `n${String(noteId++)}`;
   const generateTagId = () => tagId++;
   const now = () => new Date().toISOString();
+  const hasUrl = (text: string) => /https?:\/\//.test(text);
 
   const reset = () => {
     noteId = 1;
@@ -34,7 +35,7 @@ export function createMockDB(): MockDB {
         id,
         title: input.title ?? '',
         body: input.body,
-        has_links: false,
+        has_links: hasUrl(input.body),
         pinned: false,
         archived: false,
         created_at: now(),
@@ -50,17 +51,26 @@ export function createMockDB(): MockDB {
     },
 
     async getAllNotes(): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()));
+      return Promise.resolve(
+        Array.from(notes.values())
+          .filter(n => !n.archived)
+          .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            return b.updated_at.localeCompare(a.updated_at);
+          }),
+      );
     },
 
     async updateNote(input: UpdateNoteInput): Promise<NoteWithTags> {
       const note = notes.get(input.id);
       if (note === undefined) throw new Error(`Note ${input.id} not found`);
 
+      const newBody = input.body ?? note.body;
       const updated = {
         ...note,
         title: input.title ?? note.title,
-        body: input.body ?? note.body,
+        body: newBody,
+        has_links: hasUrl(newBody),
         updated_at: now(),
       };
       notes.set(input.id, updated);
@@ -122,7 +132,7 @@ export function createMockDB(): MockDB {
       // Get or create tag
       let tag = Array.from(tags.values()).find(t => t.name === tagName);
       if (tag === undefined) {
-        tag = { id: generateTagId(), name: tagName };
+        tag = { id: generateTagId(), name: tagName, icon: null };
         tags.set(tag.id, tag);
       }
 
@@ -157,6 +167,22 @@ export function createMockDB(): MockDB {
       return Promise.resolve();
     },
 
+    async updateTagIcon(tagId: number, icon: string | null): Promise<void> {
+      const tag = tags.get(tagId);
+      if (tag !== undefined) {
+        tag.icon = icon;
+        // Update icon on all notes that have this tag
+        for (const note of notes.values()) {
+          for (const t of note.tags) {
+            if (t.id === tagId) {
+              t.icon = icon;
+            }
+          }
+        }
+      }
+      return Promise.resolve();
+    },
+
     async deleteTag(tagId: number): Promise<void> {
       // Remove tag from all notes
       for (const note of notes.values()) {
@@ -171,21 +197,39 @@ export function createMockDB(): MockDB {
       return Promise.resolve(Array.from(tags.values()));
     },
 
-    async search(_query: string): Promise<SearchResult[]> {
-      // Simple mock: return empty for now
-      return Promise.resolve([]);
+    async search(query: string): Promise<SearchResult[]> {
+      const q = query.toLowerCase();
+      return Promise.resolve(
+        Array.from(notes.values())
+          .filter((n) => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q))
+          .map((n, i) => ({ ...n, rank: -(i + 1) })),
+      );
     },
 
     async getUntaggedNotes(): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()).filter(n => n.tags.length === 0));
+      return Promise.resolve(
+        Array.from(notes.values())
+          .filter(n => n.tags.length === 0 && !n.archived)
+          .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            return b.updated_at.localeCompare(a.updated_at);
+          }),
+      );
     },
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()).filter(n => n.has_links));
+      return Promise.resolve(Array.from(notes.values()).filter(n => n.has_links && !n.archived));
     },
 
     async getNotesForTag(tagId: number): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()).filter(n => n.tags.some(t => t.id === tagId)));
+      return Promise.resolve(
+        Array.from(notes.values())
+          .filter(n => n.tags.some(t => t.id === tagId) && !n.archived)
+          .sort((a, b) => {
+            if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
+            return b.updated_at.localeCompare(a.updated_at);
+          }),
+      );
     },
 
     async getArchivedNotes(): Promise<NoteWithTags[]> {

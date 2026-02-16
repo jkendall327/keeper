@@ -201,4 +201,883 @@ describe('App Integration Tests', () => {
       expect(screen.queryByText('Clear me')).not.toBeInTheDocument();
     });
   });
+
+  it('Icon component renders material-symbols-outlined span', async () => {
+    await renderApp();
+
+    // The settings button in the sidebar should contain a Material Symbol icon
+    const settingsBtn = screen.getByLabelText('Open settings');
+    const iconSpan = settingsBtn.querySelector('.material-symbols-outlined');
+    if (iconSpan === null) throw new Error('Material Symbol icon not found in settings button');
+    expect(iconSpan).toBeInTheDocument();
+    expect(iconSpan.textContent).toBe('settings');
+  });
+
+  it('note card action buttons use Material Symbol icons', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Icon test');
+    await user.keyboard('{Enter}');
+
+    const noteText = await screen.findByText('Icon test');
+    const noteCard = noteText.closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
+
+    // Pin button should contain a material-symbols-outlined icon with "push_pin"
+    const pinBtn = noteCard.querySelector('[aria-label="Pin note"]');
+    if (pinBtn === null) throw new Error('Pin button not found');
+    const pinIcon = pinBtn.querySelector('.material-symbols-outlined');
+    if (pinIcon === null) throw new Error('Material Symbol icon not found in pin button');
+    expect(pinIcon).toBeInTheDocument();
+    expect(pinIcon.textContent).toBe('push_pin');
+
+    // Delete button should contain "delete" icon
+    const deleteBtn = noteCard.querySelector('[aria-label="Delete note"]');
+    if (deleteBtn === null) throw new Error('Delete button not found');
+    const deleteIcon = deleteBtn.querySelector('.material-symbols-outlined');
+    if (deleteIcon === null) throw new Error('Material Symbol icon not found in delete button');
+    expect(deleteIcon).toBeInTheDocument();
+    expect(deleteIcon.textContent).toBe('delete');
+  });
+
+  it('pinned notes get the pinned CSS class', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Pin me');
+    await user.keyboard('{Enter}');
+
+    const noteText = await screen.findByText('Pin me');
+    const noteCard = noteText.closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
+
+    // Initially not pinned
+    expect(noteCard).not.toHaveClass('note-card-pinned');
+
+    // Pin the note
+    const pinBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Pin note"]');
+    if (pinBtn === null) throw new Error('Pin button not found');
+    await user.click(pinBtn);
+
+    // After pinning, the card should have the pinned class
+    await waitFor(() => {
+      const updatedCard = screen.getByText('Pin me').closest('.note-card');
+      expect(updatedCard).toHaveClass('note-card-pinned');
+    });
+  });
+
+  it('shows empty-note deletion warning when body is cleared', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Warning test');
+    await user.keyboard('{Enter}');
+
+    // Open modal
+    const noteCard = await screen.findByText('Warning test');
+    await user.click(noteCard);
+
+    // Warning should not be visible initially
+    expect(screen.queryByText('This note will be deleted when closed.')).not.toBeInTheDocument();
+
+    // Clear body
+    const bodyInput = await screen.findByPlaceholderText('Note');
+    await user.clear(bodyInput);
+
+    // Warning should appear
+    expect(await screen.findByText('This note will be deleted when closed.')).toBeInTheDocument();
+
+    // Type something back
+    await user.type(bodyInput, 'Saved');
+
+    // Warning should disappear
+    await waitFor(() => {
+      expect(screen.queryByText('This note will be deleted when closed.')).not.toBeInTheDocument();
+    });
+  });
+
+  it('ctrl-click toggles note selection without opening modal', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    for (const text of ['Note A', 'Note B', 'Note C']) {
+      await user.type(input, text);
+      await user.keyboard('{Enter}');
+      await screen.findByText(text);
+    }
+
+    // Ctrl-click Note A (hold Ctrl, click, release)
+    const noteA = await screen.findByText('Note A');
+    await user.keyboard('{Control>}');
+    await user.click(noteA);
+    await user.keyboard('{/Control}');
+
+    // Note A should be selected
+    const cardA = noteA.closest('.note-card');
+    if (cardA === null) throw new Error('Card A not found');
+    expect(cardA).toHaveClass('note-card-selected');
+
+    // Modal should NOT open
+    expect(screen.queryByPlaceholderText('Title')).not.toBeInTheDocument();
+
+    // Ctrl-click Note B
+    const noteB = await screen.findByText('Note B');
+    await user.keyboard('{Control>}');
+    await user.click(noteB);
+    await user.keyboard('{/Control}');
+
+    // Both A and B should be selected
+    const cardB = noteB.closest('.note-card');
+    if (cardB === null) throw new Error('Card B not found');
+    expect(cardA).toHaveClass('note-card-selected');
+    expect(cardB).toHaveClass('note-card-selected');
+
+    // Ctrl-click A again to deselect
+    await user.keyboard('{Control>}');
+    await user.click(noteA);
+    await user.keyboard('{/Control}');
+
+    // A deselected, B still selected
+    await waitFor(() => {
+      expect(cardA).not.toHaveClass('note-card-selected');
+      expect(cardB).toHaveClass('note-card-selected');
+    });
+  });
+
+  it('shift-click selects a range of notes', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    for (const text of ['Note A', 'Note B', 'Note C', 'Note D', 'Note E']) {
+      await user.type(input, text);
+      await user.keyboard('{Enter}');
+      await screen.findByText(text);
+    }
+
+    // Ctrl-click Note A to select it (and set lastClicked)
+    const noteA = await screen.findByText('Note A');
+    await user.keyboard('{Control>}');
+    await user.click(noteA);
+    await user.keyboard('{/Control}');
+
+    // Shift-click Note C to select range A-C
+    const noteC = await screen.findByText('Note C');
+    await user.keyboard('{Shift>}');
+    await user.click(noteC);
+    await user.keyboard('{/Shift}');
+
+    // Exactly notes A, B, C should be selected — verified via count + identity
+    await waitFor(() => {
+      // Count via semantic query and verify each check is inside a selected card
+      const checks = screen.getAllByLabelText('Selected');
+      expect(checks).toHaveLength(3);
+      const check0 = checks[0];
+      const check1 = checks[1];
+      const check2 = checks[2];
+      if (check0 === undefined || check1 === undefined || check2 === undefined) throw new Error('Missing checks');
+      const checkCard0 = check0.closest('.note-card');
+      const checkCard1 = check1.closest('.note-card');
+      const checkCard2 = check2.closest('.note-card');
+      if (checkCard0 === null) throw new Error('Check 0 not inside a note card');
+      if (checkCard1 === null) throw new Error('Check 1 not inside a note card');
+      if (checkCard2 === null) throw new Error('Check 2 not inside a note card');
+      expect(checkCard0).toHaveClass('note-card-selected');
+      expect(checkCard1).toHaveClass('note-card-selected');
+      expect(checkCard2).toHaveClass('note-card-selected');
+      // Verify the specific cards are the right ones
+      const cardA2 = screen.getByText('Note A').closest('.note-card');
+      const cardB2 = screen.getByText('Note B').closest('.note-card');
+      const cardC2 = screen.getByText('Note C').closest('.note-card');
+      if (cardA2 === null) throw new Error('Card A not found');
+      if (cardB2 === null) throw new Error('Card B not found');
+      if (cardC2 === null) throw new Error('Card C not found');
+      expect(cardA2).toHaveClass('note-card-selected');
+      expect(cardB2).toHaveClass('note-card-selected');
+      expect(cardC2).toHaveClass('note-card-selected');
+    });
+
+    // D and E should not be selected
+    const cardD = screen.getByText('Note D').closest('.note-card');
+    const cardE = screen.getByText('Note E').closest('.note-card');
+    if (cardD === null) throw new Error('Card D not found');
+    if (cardE === null) throw new Error('Card E not found');
+    expect(cardD).not.toHaveClass('note-card-selected');
+    expect(cardE).not.toHaveClass('note-card-selected');
+  });
+
+  it('plain click clears selection and opens modal', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    for (const text of ['Note A', 'Note B']) {
+      await user.type(input, text);
+      await user.keyboard('{Enter}');
+      await screen.findByText(text);
+    }
+
+    // Ctrl-click to select Note A
+    const noteA = await screen.findByText('Note A');
+    await user.keyboard('{Control>}');
+    await user.click(noteA);
+    await user.keyboard('{/Control}');
+
+    const cardA = noteA.closest('.note-card');
+    if (cardA === null) throw new Error('Card A not found');
+    expect(cardA).toHaveClass('note-card-selected');
+
+    // Plain click on Note B — should clear selection and open modal
+    const noteB = await screen.findByText('Note B');
+    await user.click(noteB);
+
+    // Modal should open
+    await screen.findByPlaceholderText('Title');
+
+    // Selection should be cleared (no check marks visible)
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Selected')).not.toBeInTheDocument();
+    });
+  });
+
+  it('Ctrl+/ focuses the search input', async () => {
+    await renderApp();
+
+    const searchInput = screen.getByPlaceholderText(/Search notes/);
+    expect(document.activeElement).not.toBe(searchInput);
+
+    // Fire Ctrl+/
+    // eslint-disable-next-line @typescript-eslint/require-await
+    await act(async () => {
+      document.dispatchEvent(
+        new KeyboardEvent('keydown', { key: '/', ctrlKey: true, bubbles: true }),
+      );
+    });
+
+    expect(document.activeElement).toBe(searchInput);
+  });
+
+  it('shows result count when searching and "No results found" for no matches', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Searchable note');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Searchable note');
+
+    // No result count before searching
+    expect(screen.queryByText(/result/i)).not.toBeInTheDocument();
+
+    // Type a matching query
+    const searchInput = screen.getByPlaceholderText(/Search notes/);
+    await user.type(searchInput, 'Searchable');
+
+    // Result count should appear
+    expect(await screen.findByText(/1 result/)).toBeInTheDocument();
+
+    // Clear and type a non-matching query
+    await user.clear(searchInput);
+    await user.type(searchInput, 'zzzznotfound');
+
+    // "No results found" should appear
+    expect(await screen.findByText('No results found')).toBeInTheDocument();
+
+    // Clear search
+    await user.clear(searchInput);
+
+    // Count/message should be gone
+    await waitFor(() => {
+      expect(screen.queryByText(/result/i)).not.toBeInTheDocument();
+      expect(screen.queryByText('No results found')).not.toBeInTheDocument();
+    });
+  });
+
+  it('Links sidebar filter shows only notes containing URLs', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+
+    // Create a note with a URL (markdown renders the URL as an <a> tag)
+    await user.type(input, 'Check https://example.com for details');
+    await user.keyboard('{Enter}');
+
+    // Wait for the link to appear — the URL is rendered as an anchor element
+    const urlLink = await screen.findByText('https://example.com');
+    expect(urlLink.tagName).toBe('A');
+    expect(urlLink).toHaveAttribute('href', 'https://example.com');
+
+    // Create a plain note
+    await user.type(input, 'No links here');
+    await user.keyboard('{Enter}');
+    await screen.findByText('No links here');
+
+    // Both notes visible initially
+    expect(screen.getByText('https://example.com')).toBeInTheDocument();
+    expect(screen.getByText('No links here')).toBeInTheDocument();
+
+    // Click "Links" in sidebar
+    const linksBtn = screen.getByText('Links');
+    await user.click(linksBtn);
+
+    // Only the URL note should be visible
+    await waitFor(() => {
+      expect(screen.getByText('https://example.com')).toBeInTheDocument();
+      expect(screen.queryByText('No links here')).not.toBeInTheDocument();
+    });
+  });
+
+  it('burn button appears only after export and deletes notes on click', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+
+    // Create two notes
+    await user.type(input, 'Burn note 1');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Burn note 1');
+
+    await user.type(input, 'Burn note 2');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Burn note 2');
+
+    // Ctrl-click both to select
+    await user.keyboard('{Control>}');
+    await user.click(screen.getByText('Burn note 1'));
+    await user.click(screen.getByText('Burn note 2'));
+    await user.keyboard('{/Control}');
+
+    // Open export modal
+    await waitFor(() => {
+      expect(screen.getByText('Export')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('Export'));
+
+    // Export modal should open
+    await screen.findByText('Copy to clipboard');
+
+    // Burn button should NOT be visible before export
+    expect(screen.queryByText(/Permanently delete/)).not.toBeInTheDocument();
+
+    // Click download (triggers export completion)
+    await user.click(screen.getByText('Download .txt'));
+
+    // Burn button should now appear
+    const burnBtn = await screen.findByText(/Permanently delete/);
+    expect(burnBtn).toBeInTheDocument();
+
+    // Click burn — notes should be deleted after confirmation
+    // The handleBulkDelete uses window.confirm; jsdom doesn't provide it by default
+    const originalConfirm = window.confirm;
+    window.confirm = vi.fn(() => true);
+    await user.click(burnBtn);
+
+    // Notes should be deleted
+    await waitFor(() => {
+      expect(screen.queryByText('Burn note 1')).not.toBeInTheDocument();
+      expect(screen.queryByText('Burn note 2')).not.toBeInTheDocument();
+    });
+
+    window.confirm = originalConfirm;
+  });
+
+  it('tag chips in note cards show a material icon', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note and add a tag
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Tag icon test');
+    await user.keyboard('{Enter}');
+
+    const noteCard = await screen.findByText('Tag icon test');
+    await user.click(noteCard);
+
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'work');
+    await user.keyboard('{Enter}');
+
+    // Close modal
+    await user.keyboard('{Escape}');
+
+    // The tag chip in the card should contain a material icon
+    await waitFor(() => {
+      const chip = document.querySelector('.note-card-tag');
+      if (chip === null) throw new Error('Tag chip not found');
+      const icon = chip.querySelector('.material-symbols-outlined');
+      if (icon === null) throw new Error('Material icon not found in tag chip');
+      expect(icon.textContent).toBe('label');
+    });
+  });
+
+  it('sidebar icon picker updates tag icon', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note and add a tag
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Icon picker test');
+    await user.keyboard('{Enter}');
+
+    const noteCard = await screen.findByText('Icon picker test');
+    await user.click(noteCard);
+
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'work');
+    await user.keyboard('{Enter}');
+
+    // Close modal
+    await user.keyboard('{Escape}');
+
+    // Find the icon button in the sidebar for the "work" tag
+    const iconBtn = await screen.findByLabelText('Change icon for work');
+    expect(iconBtn).toBeInTheDocument();
+
+    // Default icon should be 'label'
+    const defaultIcon = iconBtn.querySelector('.material-symbols-outlined');
+    if (defaultIcon === null) throw new Error('Default icon not found');
+    expect(defaultIcon.textContent).toBe('label');
+
+    // Click to open icon picker
+    await user.click(iconBtn);
+
+    // Verify picker dialog appeared
+    const dialog = screen.getByRole('dialog', { name: 'Choose an icon' });
+    expect(dialog).toBeInTheDocument();
+
+    // Click the "star" icon in the picker
+    const starButton = screen.getByTitle('star');
+    await user.click(starButton);
+
+    // Verify the sidebar tag icon updated to 'star'
+    await waitFor(() => {
+      const updatedIcon = iconBtn.querySelector('.material-symbols-outlined');
+      if (updatedIcon === null) throw new Error('Updated icon not found');
+      expect(updatedIcon.textContent).toBe('star');
+    });
+  });
+
+  it('double-click sidebar tag enters inline rename mode', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note and add a tag
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Rename tag test');
+    await user.keyboard('{Enter}');
+
+    const noteCard = await screen.findByText('Rename tag test');
+    await user.click(noteCard);
+
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'oldname');
+    await user.keyboard('{Enter}');
+
+    await user.keyboard('{Escape}');
+
+    // Wait for the tag to appear in the sidebar
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    await waitFor(() => {
+      expect(sidebar.textContent).toContain('oldname');
+    });
+    const sidebarTag = Array.from(sidebar.querySelectorAll('.sidebar-tag-name')).find(
+      (el) => el.textContent === 'oldname',
+    );
+    if (sidebarTag === undefined) throw new Error('Sidebar tag not found');
+
+    // Double-click the tag name to rename
+    await user.dblClick(sidebarTag);
+
+    // An input should appear with the tag name
+    const renameInput = await screen.findByDisplayValue('oldname');
+    expect(renameInput).toBeInTheDocument();
+    expect(renameInput.tagName).toBe('INPUT');
+
+    // Type new name and press Enter
+    await user.clear(renameInput);
+    await user.type(renameInput, 'newname');
+    await user.keyboard('{Enter}');
+
+    // The tag should now be renamed in the sidebar
+    await waitFor(() => {
+      const sidebarEl = document.querySelector('.sidebar');
+      if (sidebarEl === null) throw new Error('Sidebar not found');
+      const tagNames = Array.from(sidebarEl.querySelectorAll('.sidebar-tag-name')).map((el) => el.textContent);
+      expect(tagNames).toContain('newname');
+      expect(tagNames).not.toContain('oldname');
+    });
+  });
+
+  it('sidebar tag shows delete button on hover that removes the tag', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note and add a tag
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Delete tag test');
+    await user.keyboard('{Enter}');
+
+    const noteCard = await screen.findByText('Delete tag test');
+    await user.click(noteCard);
+
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'removeme');
+    await user.keyboard('{Enter}');
+
+    await user.keyboard('{Escape}');
+
+    // Wait for tag in sidebar
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    await waitFor(() => {
+      expect(sidebar.textContent).toContain('removeme');
+    });
+
+    // Find the delete button (it's always in the DOM, just hidden with opacity)
+    const deleteBtn = screen.getByLabelText('Delete tag removeme');
+    expect(deleteBtn).toBeInTheDocument();
+
+    // Click the delete button
+    await user.click(deleteBtn);
+
+    // Tag should be removed from sidebar
+    await waitFor(() => {
+      expect(screen.queryByLabelText('Delete tag removeme')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows welcoming empty state when there are no notes', async () => {
+    await renderApp();
+
+    // With no notes, the welcome message and hint should be visible
+    const heading = screen.getByText('No notes yet');
+    expect(heading).toBeInTheDocument();
+    const hint = screen.getByText('Start typing above to capture a note');
+    expect(hint).toBeInTheDocument();
+
+    // Only ONE empty state element should exist in the DOM (no duplicate from NoteGrid)
+    const allEmptyStates = document.querySelectorAll('.empty-state');
+    expect(allEmptyStates).toHaveLength(1);
+    expect(allEmptyStates[0]?.textContent).toContain('No notes yet');
+
+    // The empty state container should contain a Material Symbol icon
+    const emptyState = heading.closest('.empty-state');
+    if (emptyState === null) throw new Error('Empty state container not found');
+    const icon = emptyState.querySelector('.material-symbols-outlined');
+    if (icon === null) throw new Error('Icon not found in empty state');
+    expect(icon.textContent).toBe('sticky_note_2');
+  });
+
+  it('hides empty state after creating a note', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Welcome visible initially
+    expect(screen.getByText('No notes yet')).toBeInTheDocument();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'First note');
+    await user.keyboard('{Enter}');
+
+    // Welcome should disappear
+    await waitFor(() => {
+      expect(screen.queryByText('No notes yet')).not.toBeInTheDocument();
+    });
+  });
+
+  it('does not show empty state when a non-default filter is active', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Welcome should be visible initially on the all filter
+    expect(screen.getByText('No notes yet')).toBeInTheDocument();
+
+    // Switch to the Untagged filter
+    const untaggedBtn = screen.getByText('Untagged');
+    await user.click(untaggedBtn);
+
+    // Welcome should disappear since we're not on the default 'all' view
+    await waitFor(() => {
+      expect(screen.queryByText('No notes yet')).not.toBeInTheDocument();
+    });
+
+    // Switch back to Notes (all) - welcome should reappear
+    const notesBtn = screen.getByText('All Notes');
+    await user.click(notesBtn);
+    await waitFor(() => {
+      expect(screen.getByText('No notes yet')).toBeInTheDocument();
+    });
+  });
+
+  it('does not show empty state when search has no results', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note first
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Hello world');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Hello world');
+
+    // Search for something that doesn't match
+    const searchInput = screen.getByPlaceholderText(/Search notes/);
+    await user.type(searchInput, 'zzzznotfound');
+
+    // Should show "No results found" but NOT the welcome empty state
+    await screen.findByText('No results found');
+    expect(screen.queryByText('No notes yet')).not.toBeInTheDocument();
+  });
+
+  describe('Settings modal', () => {
+    it('opens settings modal when gear icon is clicked', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      const settingsBtn = screen.getByLabelText('Open settings');
+      await user.click(settingsBtn);
+
+      const heading = screen.getByText('Settings');
+      expect(heading).toBeInTheDocument();
+      const keyLabel = screen.getByLabelText('OpenRouter API Key');
+      expect(keyLabel).toBeInTheDocument();
+    });
+
+    it('API key input has type=password', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      const settingsBtn = screen.getByLabelText('Open settings');
+      await user.click(settingsBtn);
+
+      const keyInput = screen.getByLabelText('OpenRouter API Key');
+      expect(keyInput).toHaveAttribute('type', 'password');
+    });
+
+    it('closes settings modal on backdrop click', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      const settingsBtn = screen.getByLabelText('Open settings');
+      await user.click(settingsBtn);
+      expect(screen.getByText('Settings')).toBeInTheDocument();
+
+      // Click the backdrop (modal-backdrop element)
+      const backdrop = document.querySelector('.modal-backdrop');
+      if (backdrop === null) throw new Error('Backdrop not found');
+      await user.click(backdrop);
+
+      await waitFor(() => {
+        expect(screen.queryByText('Settings')).not.toBeInTheDocument();
+      });
+    });
+
+    it('saves and clears API key via settings UI', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      const settingsBtn = screen.getByLabelText('Open settings');
+      await user.click(settingsBtn);
+
+      const keyInput = screen.getByLabelText('OpenRouter API Key');
+      await user.type(keyInput, 'sk-or-test-key');
+
+      const saveBtn = screen.getByText('Save');
+      await user.click(saveBtn);
+
+      // Should show saved confirmation and configured status
+      await screen.findByText('Saved!');
+      const status = screen.getByText('Configured');
+      expect(status).toBeInTheDocument();
+
+      // Should be stored in localStorage
+      const storedKey = localStorage.getItem('keeper-openrouter-key');
+      expect(storedKey).toBe('sk-or-test-key');
+
+      // Clear the key
+      const clearBtn = screen.getByText('Clear key');
+      await user.click(clearBtn);
+
+      // Status should change to not configured
+      const notConfigured = screen.getByText('Not configured');
+      expect(notConfigured).toBeInTheDocument();
+      const clearedKey = localStorage.getItem('keeper-openrouter-key');
+      expect(clearedKey).toBeNull();
+    });
+  });
+
+  it('export separator toggle switches between compact and spaced output', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+
+    // Create two notes
+    await user.type(input, 'Note alpha');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Note alpha');
+
+    await user.type(input, 'Note beta');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Note beta');
+
+    // Ctrl-click both to select
+    await user.keyboard('{Control>}');
+    await user.click(screen.getByText('Note alpha'));
+    await user.click(screen.getByText('Note beta'));
+    await user.keyboard('{/Control}');
+
+    // Open export modal
+    await waitFor(() => {
+      expect(screen.getByText('Export')).toBeInTheDocument();
+    });
+    await user.click(screen.getByText('Export'));
+
+    // The export preview textarea should be visible
+    const preview = document.querySelector<HTMLTextAreaElement>('.export-preview');
+    if (preview === null) throw new Error('Export preview not found');
+
+    // Default is Compact (single newline separator)
+    const compactValue = preview.value;
+    expect(compactValue).toContain('Note alpha');
+    expect(compactValue).toContain('Note beta');
+    // Single newline between them, not double
+    expect(compactValue).not.toContain('\n\n');
+
+    // Switch to Spaced
+    const spacedRadio = screen.getByLabelText('Spaced');
+    await user.click(spacedRadio);
+
+    // Now the preview should have double newlines
+    const spacedValue = preview.value;
+    expect(spacedValue).toContain('\n\n');
+  });
+
+  it('truncation indicator shows [...] when note body overflows', async () => {
+    // Mock ResizeObserver to invoke the callback, and mock scrollHeight > clientHeight
+    const originalRO = globalThis.ResizeObserver;
+    let observedCallback: (() => void) | null = null;
+    globalThis.ResizeObserver = class {
+      constructor(cb: ResizeObserverCallback) {
+        observedCallback = () => { cb([], this as unknown as ResizeObserver); };
+      }
+      observe() { observedCallback?.(); }
+      unobserve() { /* no-op */ }
+      disconnect() { /* no-op */ }
+    } as unknown as typeof ResizeObserver;
+
+    const user = userEvent.setup();
+    await renderApp();
+
+    const longBody = Array.from({ length: 50 }, (_, i) => `Line ${String(i + 1)} of a very long note`).join('\n');
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, longBody);
+    await user.keyboard('{Enter}');
+
+    await screen.findByText(/Line 1 of a very long note/);
+
+    const noteCard = screen.getByText(/Line 1 of a very long note/).closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
+    const bodyDiv = noteCard.querySelector('.note-card-body');
+    if (bodyDiv === null) throw new Error('Note card body div not found');
+
+    // Verify G5 fix: body wrapper is a div (ref target), containing the markdown preview
+    expect(bodyDiv.tagName).toBe('DIV');
+    const bodyText = bodyDiv.querySelector('.markdown-preview');
+    if (bodyText === null) throw new Error('Note card markdown preview not found');
+    expect(bodyText.textContent).toContain('Line 1 of a very long note');
+
+    // Simulate overflow: scrollHeight > clientHeight
+    Object.defineProperty(bodyDiv, 'scrollHeight', { value: 500, configurable: true });
+    Object.defineProperty(bodyDiv, 'clientHeight', { value: 200, configurable: true });
+
+    // Trigger the ResizeObserver callback
+    // eslint-disable-next-line @typescript-eslint/require-await
+    await act(async () => { observedCallback?.(); });
+
+    // The truncation indicator [...] should now appear
+    const truncation = noteCard.querySelector('.note-card-truncation');
+    if (truncation === null) throw new Error('Truncation indicator not found');
+    expect(truncation.textContent).toBe('[...]');
+
+    globalThis.ResizeObserver = originalRO;
+  });
+
+  describe('Chat view', () => {
+    it('shows Chat entry in the sidebar', async () => {
+      await renderApp();
+      const chatBtn = screen.getByText('Chat');
+      expect(chatBtn).toBeInTheDocument();
+    });
+
+    it('shows API key required when clicking Chat without a key', async () => {
+      const user = userEvent.setup();
+      localStorage.removeItem('keeper-openrouter-key');
+      await renderApp();
+
+      const chatBtn = screen.getByText('Chat');
+      await user.click(chatBtn);
+
+      const keyRequired = screen.getByText('API key required');
+      expect(keyRequired).toBeInTheDocument();
+      const hint = screen.getByText(/Configure your OpenRouter API key/);
+      expect(hint).toBeInTheDocument();
+    });
+
+    it('hides notes view when Chat is active', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      // Create a note first
+      const input = await screen.findByPlaceholderText('Take a note...');
+      await user.type(input, 'Test note');
+      await user.keyboard('{Enter}');
+      await screen.findByText('Test note');
+
+      // Switch to Chat
+      const chatBtn = screen.getByText('Chat');
+      await user.click(chatBtn);
+
+      // Note and search bar should not be visible
+      await waitFor(() => {
+        expect(screen.queryByText('Test note')).not.toBeInTheDocument();
+      });
+    });
+
+    it('returns to notes view when switching back from Chat', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      // Create a note
+      const input = await screen.findByPlaceholderText('Take a note...');
+      await user.type(input, 'Persistent note');
+      await user.keyboard('{Enter}');
+      const noteCard = await screen.findByText('Persistent note');
+      expect(noteCard).toBeInTheDocument();
+
+      // Switch to Chat
+      const chatBtn = screen.getByText('Chat');
+      await user.click(chatBtn);
+
+      // Switch back to Notes
+      const notesBtn = screen.getByText('All Notes');
+      await user.click(notesBtn);
+
+      // Note should be visible again
+      const restoredNote = await screen.findByText('Persistent note');
+      expect(restoredNote).toBeInTheDocument();
+    });
+  });
 });

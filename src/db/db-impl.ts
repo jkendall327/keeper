@@ -46,6 +46,13 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
   db.execRaw('CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived)');
 
+  // Migration: Add icon column to tags table if it doesn't exist
+  const tagColumns = db.query('PRAGMA table_info(tags)');
+  const hasIconColumn = tagColumns.some((col) => col['name'] === 'icon');
+  if (!hasIconColumn) {
+    db.execRaw('ALTER TABLE tags ADD COLUMN icon TEXT DEFAULT NULL');
+  }
+
   // ── Helpers ───────────────────────────────────────────────────
 
   /**
@@ -94,12 +101,12 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
   function getTagsForNote(noteId: string): Tag[] {
     const rows = db.query(
-      `SELECT t.id, t.name FROM tags t
+      `SELECT t.id, t.name, t.icon FROM tags t
        JOIN note_tags nt ON nt.tag_id = t.id
        WHERE nt.note_id = ?`,
       [noteId],
     );
-    return rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string }));
+    return rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string, icon: (r['icon'] as string | null) ?? null }));
   }
 
   function withTags(note: Note): NoteWithTags {
@@ -273,14 +280,19 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return Promise.resolve();
     },
 
+    async updateTagIcon(tagId: number, icon: string | null): Promise<void> {
+      db.run('UPDATE tags SET icon = ? WHERE id = ?', [icon, tagId]);
+      return Promise.resolve();
+    },
+
     async deleteTag(tagId: number): Promise<void> {
       db.run('DELETE FROM tags WHERE id = ?', [tagId]);
       return Promise.resolve();
     },
 
     async getAllTags(): Promise<Tag[]> {
-      const rows = db.query('SELECT id, name FROM tags ORDER BY name');
-      return Promise.resolve(rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string })));
+      const rows = db.query('SELECT id, name, icon FROM tags ORDER BY name');
+      return Promise.resolve(rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string, icon: (r['icon'] as string | null) ?? null })));
     },
 
     async search(query: string): Promise<SearchResult[]> {

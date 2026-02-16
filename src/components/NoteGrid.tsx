@@ -8,7 +8,6 @@ interface NoteGridProps {
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
   onToggleArchive: (id: string) => Promise<void>;
-  previewMode: boolean;
   onUpdateNote: (input: UpdateNoteInput) => Promise<void>;
   selectedNoteIds: Set<string>;
   onBulkSelect: (ids: Set<string>) => void;
@@ -26,7 +25,7 @@ const DRAG_THRESHOLD = 5;
 
 export function NoteGrid({
   notes, onSelect, onDelete, onTogglePin, onToggleArchive,
-  previewMode, onUpdateNote, selectedNoteIds, onBulkSelect, onClearSelection,
+  onUpdateNote, selectedNoteIds, onBulkSelect, onClearSelection,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -135,19 +134,56 @@ export function NoteGrid({
     };
   }, [onBulkSelect, onClearSelection]);
 
-  const handleNoteSelect = useCallback((note: NoteWithTags) => {
-    // If we just finished a drag, don't open the modal
-    if (isDraggingRef.current) return;
-    onSelect(note);
-  }, [onSelect]);
+  const lastClickedRef = useRef<string | null>(null);
 
   if (notes.length === 0) {
-    return <p className="empty-state">No notes yet. Start typing above.</p>;
+    return null;
   }
 
   const pinnedNotes = notes.filter((note) => note.pinned && !note.archived);
   const regularNotes = notes.filter((note) => !note.pinned && !note.archived);
   const archivedNotes = notes.filter((note) => note.archived);
+  const flatNotes = [...pinnedNotes, ...regularNotes, ...archivedNotes];
+
+  const handleNoteClick = (note: NoteWithTags, e?: React.MouseEvent) => {
+    // If we just finished a drag, don't do anything
+    if (isDraggingRef.current) return;
+
+    if (e?.shiftKey === true && lastClickedRef.current !== null) {
+      // Shift-click: range select
+      const lastIdx = flatNotes.findIndex((n) => n.id === lastClickedRef.current);
+      const curIdx = flatNotes.findIndex((n) => n.id === note.id);
+      if (lastIdx !== -1 && curIdx !== -1) {
+        const start = Math.min(lastIdx, curIdx);
+        const end = Math.max(lastIdx, curIdx);
+        const rangeIds = new Set(selectedNoteIds);
+        for (let i = start; i <= end; i++) {
+          const n = flatNotes[i];
+          if (n !== undefined) rangeIds.add(n.id);
+        }
+        onBulkSelect(rangeIds);
+      }
+      return;
+    }
+
+    if (e?.ctrlKey === true || e?.metaKey === true) {
+      // Ctrl/Cmd-click: toggle single note
+      const newSet = new Set(selectedNoteIds);
+      if (newSet.has(note.id)) {
+        newSet.delete(note.id);
+      } else {
+        newSet.add(note.id);
+      }
+      lastClickedRef.current = note.id;
+      onBulkSelect(newSet);
+      return;
+    }
+
+    // Plain click: clear selection, open modal
+    lastClickedRef.current = note.id;
+    onClearSelection();
+    onSelect(note);
+  };
 
   const renderGroup = (group: NoteWithTags[]) => (
     <div className="note-grid">
@@ -155,11 +191,10 @@ export function NoteGrid({
         <NoteCard
           key={note.id}
           note={note}
-          onSelect={handleNoteSelect}
+          onSelect={handleNoteClick}
           onDelete={onDelete}
           onTogglePin={onTogglePin}
           onToggleArchive={onToggleArchive}
-          previewMode={previewMode}
           onUpdate={onUpdateNote}
           isSelected={selectedNoteIds.has(note.id)}
         />

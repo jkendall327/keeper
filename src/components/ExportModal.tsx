@@ -14,10 +14,12 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
   const [mode, setMode] = useState<Mode>('text');
   const [sorted, setSorted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [separator, setSeparator] = useState<'\n' | '\n\n'>('\n');
+  const [exportCompleted, setExportCompleted] = useState(false);
 
   const textOutput = useMemo(
-    () => notes.map((n) => n.body).join('\n'),
-    [notes],
+    () => notes.map((n) => n.body).join(separator),
+    [notes, separator],
   );
 
   const urlOutput = useMemo(() => {
@@ -36,6 +38,7 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
       await navigator.clipboard.writeText(output);
       setCopied(true);
       setCopyFailed(false);
+      setExportCompleted(true);
       setTimeout(() => { setCopied(false); }, 1500);
     } catch {
       setCopyFailed(true);
@@ -51,12 +54,10 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
     a.download = mode === 'text' ? 'notes.txt' : 'urls.txt';
     a.click();
     URL.revokeObjectURL(url);
+    setExportCompleted(true);
   }, [output, mode]);
 
-  const handleDelete = useCallback(() => {
-    // Close modal first so it unmounts via its own flag,
-    // not from selectedNoteIds clearing during onDelete.
-    // Confirmation is handled by the onDelete callback (handleBulkDelete).
+  const handleBurn = useCallback(() => {
     onClose();
     onDelete();
   }, [onDelete, onClose]);
@@ -78,6 +79,29 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
             URLs
           </button>
         </div>
+
+        {mode === 'text' && (
+          <div className="export-separator-toggle" role="radiogroup" aria-label="Note separator">
+            <label>
+              <input
+                type="radio"
+                name="separator"
+                checked={separator === '\n'}
+                onChange={() => { setSeparator('\n'); }}
+              />
+              Compact
+            </label>
+            <label>
+              <input
+                type="radio"
+                name="separator"
+                checked={separator === '\n\n'}
+                onChange={() => { setSeparator('\n\n'); }}
+              />
+              Spaced
+            </label>
+          </div>
+        )}
 
         {mode === 'urls' && (
           <label className="export-sort-toggle">
@@ -103,9 +127,11 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
           <button className="export-action-btn export-download-btn" onClick={handleDownload}>
             Download .txt
           </button>
-          <button className="export-action-btn export-delete-btn" onClick={handleDelete}>
-            Delete selected
-          </button>
+          {exportCompleted && (
+            <button className="export-action-btn export-burn-btn" onClick={handleBurn}>
+              Permanently delete {notes.length === 1 ? 'this note' : `these ${String(notes.length)} notes`}
+            </button>
+          )}
         </div>
       </div>
     </div>

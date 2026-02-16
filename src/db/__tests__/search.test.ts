@@ -106,7 +106,7 @@ describe('FTS5 Search', () => {
     await api.addTag(note.id, 'important');
 
     const results = await api.search('tagged');
-    expect(results[0]?.tags).toEqual([{ id: 1, name: 'important' }]);
+    expect(results[0]?.tags).toEqual([{ id: 1, name: 'important', icon: null }]);
   });
 
   it('finds matches in both title and body', async () => {

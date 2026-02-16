@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useCallback } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { QuickAdd } from './components/QuickAdd.tsx';
@@ -7,19 +7,38 @@ import { NoteModal } from './components/NoteModal.tsx';
 import { ExportModal } from './components/ExportModal.tsx';
 import { SearchBar } from './components/SearchBar.tsx';
 import { Sidebar, type FilterType } from './components/Sidebar.tsx';
+import { SettingsModal } from './components/SettingsModal.tsx';
+import { ChatView } from './components/ChatView.tsx';
+import { Icon } from './components/Icon.tsx';
+import { getLLMClient, getApiKey } from './llm/client.ts';
+import { getDB } from './db/db-client.ts';
 import type { NoteWithTags } from './db/types.ts';
 
 interface AppContentProps {
-  previewMode: boolean;
   selectedNoteIds: Set<string>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   onFilterChange: (isArchive: boolean) => void;
 }
 
-function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilterChange }: AppContentProps) {
+function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange }: AppContentProps) {
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Ctrl+/ (or Cmd+/) focuses the search input
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => { document.removeEventListener('keydown', handleKeyDown); };
+  }, []);
+
   const {
     notes,
     allTags,
+    refresh,
     createNote,
     updateNote,
     deleteNote,
@@ -29,18 +48,21 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
     addTag,
     removeTag,
     renameTag,
+    updateTagIcon,
     deleteTag,
     search,
     toggleArchiveNote,
     getArchivedNotes,
     getUntaggedNotes,
     getNotesForTag,
+    getLinkedNotes,
   } = useDB();
 
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   useEffect(() => {
     onFilterChange(activeFilter.type === 'archive');
     setSelectedNoteIds(new Set());
@@ -66,14 +88,21 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           case 'archive':
             setDisplayedNotes(await getArchivedNotes());
             break;
+          case 'links':
+            setDisplayedNotes(await getLinkedNotes());
+            break;
           case 'tag':
             setDisplayedNotes(await getNotesForTag(activeFilter.tagId));
+            break;
+          case 'chat':
+            // Chat view replaces the NoteGrid — no notes to display
+            setDisplayedNotes([]);
             break;
         }
       }
     };
     void loadNotes();
-  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag]);
+  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag, getLinkedNotes]);
 
   // Keep selectedNote in sync with latest data from notes array
   const currentNote = selectedNote !== null
@@ -130,26 +159,75 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           });
         }}
         onDeleteTag={(id) => {
+          // Reset filter if the deleted tag is the active filter
+          if (activeFilter.type === 'tag' && activeFilter.tagId === id) {
+            setActiveFilter({ type: 'all' });
+          }
           deleteTag(id).catch((err: unknown) => {
             console.error('Failed to delete tag:', err);
           });
         }}
+        onUpdateTagIcon={(id, icon) => {
+          updateTagIcon(id, icon).catch((err: unknown) => {
+            console.error('Failed to update tag icon:', err);
+          });
+        }}
+        onOpenSettings={() => { setShowSettings(true); }}
       />
       <div className="app-content">
-        <SearchBar value={searchQuery} onChange={setSearchQuery} />
-        <QuickAdd onCreate={createNote} />
-        <NoteGrid
-          notes={displayedNotes}
-          onSelect={setSelectedNote}
-          onDelete={deleteNote}
-          onTogglePin={togglePinNote}
-          onToggleArchive={toggleArchiveNote}
-          previewMode={previewMode}
-          onUpdateNote={updateNote}
-          selectedNoteIds={selectedNoteIds}
-          onBulkSelect={handleBulkSelect}
-          onClearSelection={clearSelection}
-        />
+        {activeFilter.type === 'chat' ? (
+          (() => {
+            const llmClient = getLLMClient();
+            const apiKey = getApiKey();
+            if (llmClient === null || apiKey === null) {
+              return (
+                <div className="empty-state">
+                  <Icon name="key" size={48} />
+                  <p className="empty-state-text">API key required</p>
+                  <p className="empty-state-hint">Configure your OpenRouter API key in Settings to use chat</p>
+                </div>
+              );
+            }
+            return (
+              <ChatView
+                client={llmClient}
+                db={getDB()}
+                apiKey={apiKey}
+                onMutation={() => { void refresh(); }}
+              />
+            );
+          })()
+        ) : (
+          <>
+            <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
+            {searchQuery.trim() !== '' && (
+              <p className="search-result-count">
+                {displayedNotes.length === 0
+                  ? 'No results found'
+                  : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
+              </p>
+            )}
+            <QuickAdd onCreate={createNote} />
+            {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
+              <div className="empty-state">
+                <Icon name="sticky_note_2" size={48} />
+                <p className="empty-state-text">No notes yet</p>
+                <p className="empty-state-hint">Start typing above to capture a note</p>
+              </div>
+            )}
+            <NoteGrid
+              notes={displayedNotes}
+              onSelect={setSelectedNote}
+              onDelete={deleteNote}
+              onTogglePin={togglePinNote}
+              onToggleArchive={toggleArchiveNote}
+              onUpdateNote={updateNote}
+              selectedNoteIds={selectedNoteIds}
+              onBulkSelect={handleBulkSelect}
+              onClearSelection={clearSelection}
+            />
+          </>
+        )}
       </div>
       {currentNote !== null && (
         <NoteModal
@@ -160,7 +238,6 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           onAddTag={addTag}
           onRemoveTag={removeTag}
           onClose={() => { setSelectedNote(null); }}
-          previewMode={previewMode}
         />
       )}
       {showExportModal && selectedNoteIds.size > 0 && (
@@ -170,12 +247,14 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           onDelete={() => { void handleBulkDelete(); }}
         />
       )}
+      {showSettings && (
+        <SettingsModal onClose={() => { setShowSettings(false); }} />
+      )}
     </div>
   );
 }
 
 function App() {
-  const [previewMode, setPreviewMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [isArchiveView, setIsArchiveView] = useState(false);
 
@@ -215,19 +294,11 @@ function App() {
               </button>
             </div>
           )}
-          <button
-            className="preview-toggle"
-            onClick={() => { setPreviewMode(!previewMode); }}
-            title={previewMode ? 'Switch to edit mode' : 'Switch to preview mode'}
-          >
-            {previewMode ? '📝' : '👁️'}
-          </button>
         </div>
       </header>
       <main className="app-main">
         <Suspense fallback={<p className="loading">Loading...</p>}>
           <AppContent
-            previewMode={previewMode}
             selectedNoteIds={selectedNoteIds}
             setSelectedNoteIds={setSelectedNoteIds}
             onFilterChange={setIsArchiveView}

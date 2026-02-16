@@ -20,14 +20,14 @@ describe('Tags', () => {
     it('adds a new tag to a note', async () => {
       const note = await api.createNote({ body: 'test' });
       const updated = await api.addTag(note.id, 'important');
-      expect(updated.tags).toEqual([{ id: 1, name: 'important' }]);
+      expect(updated.tags).toEqual([{ id: 1, name: 'important', icon: null }]);
     });
 
     it('creates the tag if it does not exist', async () => {
       const note = await api.createNote({ body: 'test' });
       await api.addTag(note.id, 'newtag');
       const tags = await api.getAllTags();
-      expect(tags).toContainEqual({ id: 1, name: 'newtag' });
+      expect(tags).toContainEqual({ id: 1, name: 'newtag', icon: null });
     });
 
     it('is idempotent (adding same tag twice has no effect)', async () => {
@@ -35,7 +35,7 @@ describe('Tags', () => {
       await api.addTag(note.id, 'tag1');
       await api.addTag(note.id, 'tag1');
       const updated = await api.getNote(note.id);
-      expect(updated?.tags).toEqual([{ id: 1, name: 'tag1' }]);
+      expect(updated?.tags).toEqual([{ id: 1, name: 'tag1', icon: null }]);
     });
 
     it('can add multiple different tags to one note', async () => {
@@ -58,8 +58,8 @@ describe('Tags', () => {
 
       const n1 = await api.getNote(note1.id);
       const n2 = await api.getNote(note2.id);
-      expect(n1?.tags).toContainEqual({ id: 1, name: 'shared' });
-      expect(n2?.tags).toContainEqual({ id: 1, name: 'shared' });
+      expect(n1?.tags).toContainEqual({ id: 1, name: 'shared', icon: null });
+      expect(n2?.tags).toContainEqual({ id: 1, name: 'shared', icon: null });
     });
 
     it('throws for nonexistent note', async () => {
@@ -74,7 +74,7 @@ describe('Tags', () => {
       await api.addTag(note.id, 'tag2');
 
       const updated = await api.removeTag(note.id, 'tag1');
-      expect(updated.tags).toEqual([{ id: 2, name: 'tag2' }]);
+      expect(updated.tags).toEqual([{ id: 2, name: 'tag2', icon: null }]);
     });
 
     it('does not delete the tag row itself (other notes may use it)', async () => {
@@ -86,10 +86,10 @@ describe('Tags', () => {
       await api.removeTag(note1.id, 'shared');
 
       const tags = await api.getAllTags();
-      expect(tags).toContainEqual({ id: 1, name: 'shared' });
+      expect(tags).toContainEqual({ id: 1, name: 'shared', icon: null });
 
       const n2 = await api.getNote(note2.id);
-      expect(n2?.tags).toContainEqual({ id: 1, name: 'shared' });
+      expect(n2?.tags).toContainEqual({ id: 1, name: 'shared', icon: null });
     });
 
     it('no-op when tag was not on the note', async () => {
@@ -97,7 +97,7 @@ describe('Tags', () => {
       await api.addTag(note.id, 'tag1');
       await api.removeTag(note.id, 'tag2'); // non-existent tag
       const updated = await api.getNote(note.id);
-      expect(updated?.tags).toEqual([{ id: 1, name: 'tag1' }]);
+      expect(updated?.tags).toEqual([{ id: 1, name: 'tag1', icon: null }]);
     });
 
     it('throws for nonexistent note', async () => {
@@ -116,8 +116,8 @@ describe('Tags', () => {
 
       const n1 = await api.getNote(note1.id);
       const n2 = await api.getNote(note2.id);
-      expect(n1?.tags).toContainEqual({ id: 1, name: 'newname' });
-      expect(n2?.tags).toContainEqual({ id: 1, name: 'newname' });
+      expect(n1?.tags).toContainEqual({ id: 1, name: 'newname', icon: null });
+      expect(n2?.tags).toContainEqual({ id: 1, name: 'newname', icon: null });
     });
 
     it('notes still have the tag (with new name) after rename', async () => {
@@ -127,7 +127,7 @@ describe('Tags', () => {
 
       const updated = await api.getNote(note.id);
       expect(updated?.tags).toHaveLength(1);
-      expect(updated?.tags[0]).toEqual({ id: 1, name: 'after' });
+      expect(updated?.tags[0]).toEqual({ id: 1, name: 'after', icon: null });
     });
 
     it('merges into existing tag when renaming to a name that already exists', async () => {
@@ -208,12 +208,12 @@ describe('Tags', () => {
       await api.addTag(note.id, 'deleteme');
 
       const tagsBefore = await api.getAllTags();
-      expect(tagsBefore).toContainEqual({ id: 1, name: 'deleteme' });
+      expect(tagsBefore).toContainEqual({ id: 1, name: 'deleteme', icon: null });
 
       await api.deleteTag(1);
 
       const tagsAfter = await api.getAllTags();
-      expect(tagsAfter).not.toContainEqual({ id: 1, name: 'deleteme' });
+      expect(tagsAfter).not.toContainEqual({ id: 1, name: 'deleteme', icon: null });
     });
 
     it('removes tag from all notes that used it (CASCADE)', async () => {
@@ -264,7 +264,7 @@ describe('Tags', () => {
       await api.deleteTag(2); // delete the second tag
 
       const updated = await api.getNote(note.id);
-      expect(updated?.tags).toEqual([{ id: 1, name: 'keep' }]);
+      expect(updated?.tags).toEqual([{ id: 1, name: 'keep', icon: null }]);
     });
 
     it('no-op when tag does not exist', async () => {
@@ -315,6 +315,83 @@ describe('Tags', () => {
 
       const tags = await api.getAllTags();
       expect(tags.filter((t) => t.name === 'shared')).toHaveLength(1);
+    });
+  });
+
+  describe('updateTagIcon', () => {
+    it('newly created tag has icon null', async () => {
+      const note = await api.createNote({ body: 'test' });
+      const updated = await api.addTag(note.id, 'work');
+      const tag = updated.tags[0];
+      if (tag === undefined) throw new Error('Expected tag');
+      expect(tag).toEqual({ id: 1, name: 'work', icon: null });
+    });
+
+    it('sets and persists an icon on a tag', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'work');
+      const tags = await api.getAllTags();
+      const tagId = tags[0]?.id;
+      if (tagId === undefined) throw new Error('Expected tag id');
+
+      await api.updateTagIcon(tagId, 'star');
+
+      const tagsAfter = await api.getAllTags();
+      const tag = tagsAfter[0];
+      if (tag === undefined) throw new Error('Expected tag after update');
+      expect(tag.icon).toBe('star');
+    });
+
+    it('icon is included in getTagsForNote via getNote', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'work');
+      const tags = await api.getAllTags();
+      const tagId = tags[0]?.id;
+      if (tagId === undefined) throw new Error('Expected tag id');
+
+      await api.updateTagIcon(tagId, 'briefcase');
+
+      const fetched = await api.getNote(note.id);
+      const tag = fetched?.tags[0];
+      if (tag === undefined) throw new Error('Expected tag on note');
+      expect(tag.icon).toBe('briefcase');
+    });
+
+    it('can clear icon back to null', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'work');
+      const tags = await api.getAllTags();
+      const tagId = tags[0]?.id;
+      if (tagId === undefined) throw new Error('Expected tag id');
+
+      await api.updateTagIcon(tagId, 'star');
+      const tagWithIcon = (await api.getAllTags())[0];
+      if (tagWithIcon === undefined) throw new Error('Expected tag with icon');
+      expect(tagWithIcon.icon).toBe('star');
+
+      await api.updateTagIcon(tagId, null);
+
+      const tagsAfter = await api.getAllTags();
+      const tag = tagsAfter[0];
+      if (tag === undefined) throw new Error('Expected tag after clear');
+      expect(tag).toEqual({ id: tagId, name: 'work', icon: null });
+    });
+
+    it('renameTag preserves icon', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'old');
+      const tags = await api.getAllTags();
+      const tagId = tags[0]?.id;
+      if (tagId === undefined) throw new Error('Expected tag id');
+
+      await api.updateTagIcon(tagId, 'rocket_launch');
+      await api.renameTag('old', 'new');
+
+      const tagsAfter = await api.getAllTags();
+      const tag = tagsAfter[0];
+      if (tag === undefined) throw new Error('Expected tag after rename');
+      expect(tag.name).toBe('new');
+      expect(tag.icon).toBe('rocket_launch');
     });
   });
 });

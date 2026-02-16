@@ -68,7 +68,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
           className={`sidebar-tab ${isActive({ type: 'all' }) ? 'sidebar-tab-active' : ''}`}
           onClick={() => { onFilterChange({ type: 'all' }); }}
         >
-          Notes
+          <Icon name="notes" size={18} /> All Notes
         </button>
 
         {tags.map((tag) => (
@@ -137,7 +137,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
           className={`sidebar-tab ${isActive({ type: 'untagged' }) ? 'sidebar-tab-active' : ''}`}
           onClick={() => { onFilterChange({ type: 'untagged' }); }}
         >
-          Untagged
+          <Icon name="label_off" size={18} /> Untagged
         </button>
 
         <button
@@ -151,7 +151,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
           className={`sidebar-tab ${isActive({ type: 'archive' }) ? 'sidebar-tab-active' : ''}`}
           onClick={() => { onFilterChange({ type: 'archive' }); }}
         >
-          Archive
+          <Icon name="archive" size={18} /> Archive
         </button>
 
         <button

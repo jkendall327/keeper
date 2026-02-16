@@ -1,12 +1,15 @@
-'use no memo';
 /// <reference lib="webworker" />
 
-import * as Comlink from 'comlink';
-import sqlite3InitModule from '@sqlite.org/sqlite-wasm';
-import type { Sqlite3Static, OpfsDatabase, SqlValue } from '@sqlite.org/sqlite-wasm';
-import { createKeeperDB } from './db-impl.ts';
-import type { SqliteDb, SqlRow } from './sqlite-db.ts';
-import type { KeeperDB, Media, StoreMediaInput } from './types.ts';
+import * as Comlink from "comlink";
+import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
+import type {
+  Sqlite3Static,
+  OpfsDatabase,
+  SqlValue,
+} from "@sqlite.org/sqlite-wasm";
+import { createKeeperDB } from "./db-impl.ts";
+import type { SqliteDb, SqlRow } from "./sqlite-db.ts";
+import type { KeeperDB, Media, StoreMediaInput } from "./types.ts";
 
 let db: OpfsDatabase;
 let sqlite3: Sqlite3Static;
@@ -14,28 +17,28 @@ let baseApi: KeeperDB;
 
 function mimeToExt(mime: string): string {
   const map: Record<string, string> = {
-    'image/png': 'png',
-    'image/jpeg': 'jpg',
-    'image/gif': 'gif',
-    'image/webp': 'webp',
-    'audio/mpeg': 'mp3',
-    'audio/ogg': 'ogg',
-    'video/mp4': 'mp4',
-    'application/pdf': 'pdf',
+    "image/png": "png",
+    "image/jpeg": "jpg",
+    "image/gif": "gif",
+    "image/webp": "webp",
+    "audio/mpeg": "mp3",
+    "audio/ogg": "ogg",
+    "video/mp4": "mp4",
+    "application/pdf": "pdf",
   };
-  return map[mime] ?? 'bin';
+  return map[mime] ?? "bin";
 }
 
 /** Remove a file from the OPFS media directory. Non-critical — logs and returns on failure. */
 async function removeOpfsFile(filename: string): Promise<void> {
   const root = await navigator.storage.getDirectory();
-  const mediaDir = await root.getDirectoryHandle('media');
+  const mediaDir = await root.getDirectoryHandle("media");
   await mediaDir.removeEntry(filename);
 }
 
 const ready: Promise<void> = (async () => {
   sqlite3 = await sqlite3InitModule();
-  db = new sqlite3.oo1.OpfsDb('/keeper.sqlite3', 'cw');
+  db = new sqlite3.oo1.OpfsDb("/keeper.sqlite3", "cw");
 
   // Create the base DB implementation after OpfsDatabase is initialized
   baseApi = createKeeperDB({
@@ -50,9 +53,9 @@ const ready: Promise<void> = (async () => {
       query(sql: string, bind?: SqlValue[]): SqlRow[] {
         const rows: SqlRow[] = [];
         if (bind !== undefined) {
-          db.exec({ sql, bind, rowMode: 'object', resultRows: rows });
+          db.exec({ sql, bind, rowMode: "object", resultRows: rows });
         } else {
-          db.exec({ sql, rowMode: 'object', resultRows: rows });
+          db.exec({ sql, rowMode: "object", resultRows: rows });
         }
         return rows;
       },
@@ -61,7 +64,7 @@ const ready: Promise<void> = (async () => {
       },
     } satisfies SqliteDb,
     generateId: () => crypto.randomUUID(),
-    now: () => new Date().toISOString().replace('T', ' ').slice(0, 19),
+    now: () => new Date().toISOString().replace("T", " ").slice(0, 19),
   });
 })();
 
@@ -76,26 +79,26 @@ function delegate<K extends keyof KeeperDB>(method: K): KeeperDB[K] {
 // Extend base implementation with OPFS-backed media operations
 const api: KeeperDB = {
   // Auto-delegate all baseApi methods
-  createNote: delegate('createNote'),
-  getNote: delegate('getNote'),
-  getAllNotes: delegate('getAllNotes'),
-  updateNote: delegate('updateNote'),
-  addTag: delegate('addTag'),
-  removeTag: delegate('removeTag'),
-  renameTag: delegate('renameTag'),
-  updateTagIcon: delegate('updateTagIcon'),
-  deleteTag: delegate('deleteTag'),
-  getAllTags: delegate('getAllTags'),
-  search: delegate('search'),
-  getUntaggedNotes: delegate('getUntaggedNotes'),
-  getLinkedNotes: delegate('getLinkedNotes'),
-  getNotesForTag: delegate('getNotesForTag'),
-  deleteNotes: delegate('deleteNotes'),
-  archiveNotes: delegate('archiveNotes'),
-  togglePinNote: delegate('togglePinNote'),
-  toggleArchiveNote: delegate('toggleArchiveNote'),
-  getArchivedNotes: delegate('getArchivedNotes'),
-  getMediaForNote: delegate('getMediaForNote'),
+  createNote: delegate("createNote"),
+  getNote: delegate("getNote"),
+  getAllNotes: delegate("getAllNotes"),
+  updateNote: delegate("updateNote"),
+  addTag: delegate("addTag"),
+  removeTag: delegate("removeTag"),
+  renameTag: delegate("renameTag"),
+  updateTagIcon: delegate("updateTagIcon"),
+  deleteTag: delegate("deleteTag"),
+  getAllTags: delegate("getAllTags"),
+  search: delegate("search"),
+  getUntaggedNotes: delegate("getUntaggedNotes"),
+  getLinkedNotes: delegate("getLinkedNotes"),
+  getNotesForTag: delegate("getNotesForTag"),
+  deleteNotes: delegate("deleteNotes"),
+  archiveNotes: delegate("archiveNotes"),
+  togglePinNote: delegate("togglePinNote"),
+  toggleArchiveNote: delegate("toggleArchiveNote"),
+  getArchivedNotes: delegate("getArchivedNotes"),
+  getMediaForNote: delegate("getMediaForNote"),
 
   // Override methods that need special OPFS handling
   async deleteNote(id: string): Promise<void> {
@@ -103,13 +106,13 @@ const api: KeeperDB = {
     // Collect media filenames before SQL delete removes the rows
     const mediaRows: Record<string, SqlValue>[] = [];
     db.exec({
-      sql: 'SELECT id, mime_type FROM media WHERE note_id = ?',
+      sql: "SELECT id, mime_type FROM media WHERE note_id = ?",
       bind: [id],
-      rowMode: 'object',
+      rowMode: "object",
       resultRows: mediaRows,
     });
     const filenames = mediaRows.map(
-      (m) => `${m['id'] as string}.${mimeToExt(m['mime_type'] as string)}`,
+      (m) => `${m["id"] as string}.${mimeToExt(m["mime_type"] as string)}`,
     );
     // SQL delete first (cascade removes media table rows)
     await baseApi.deleteNote(id);
@@ -132,30 +135,36 @@ const api: KeeperDB = {
 
     // Write to OPFS
     const root = await navigator.storage.getDirectory();
-    const mediaDir = await root.getDirectoryHandle('media', { create: true });
+    const mediaDir = await root.getDirectoryHandle("media", { create: true });
     const fileHandle = await mediaDir.getFileHandle(filename, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(input.data);
     await writable.close();
 
     // Record in DB
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const now = new Date().toISOString().replace("T", " ").slice(0, 19);
     db.exec({
       sql: `INSERT INTO media (id, note_id, mime_type, filename, created_at)
             VALUES (?, ?, ?, ?, ?)`,
       bind: [id, input.noteId, input.mimeType, filename, now],
     });
 
-    return { id, note_id: input.noteId, mime_type: input.mimeType, filename, created_at: now };
+    return {
+      id,
+      note_id: input.noteId,
+      mime_type: input.mimeType,
+      filename,
+      created_at: now,
+    };
   },
 
   async getMedia(id: string): Promise<ArrayBuffer | null> {
     await ready;
     const rows: Record<string, SqlValue>[] = [];
     db.exec({
-      sql: 'SELECT filename FROM media WHERE id = ?',
+      sql: "SELECT filename FROM media WHERE id = ?",
       bind: [id],
-      rowMode: 'object',
+      rowMode: "object",
       resultRows: rows,
     });
     const row = rows[0];
@@ -163,8 +172,10 @@ const api: KeeperDB = {
 
     try {
       const root = await navigator.storage.getDirectory();
-      const mediaDir = await root.getDirectoryHandle('media');
-      const fileHandle = await mediaDir.getFileHandle(row['filename'] as string);
+      const mediaDir = await root.getDirectoryHandle("media");
+      const fileHandle = await mediaDir.getFileHandle(
+        row["filename"] as string,
+      );
       const file = await fileHandle.getFile();
       return await file.arrayBuffer();
     } catch {
@@ -176,25 +187,25 @@ const api: KeeperDB = {
     await ready;
     const rows: Record<string, SqlValue>[] = [];
     db.exec({
-      sql: 'SELECT filename FROM media WHERE id = ?',
+      sql: "SELECT filename FROM media WHERE id = ?",
       bind: [id],
-      rowMode: 'object',
+      rowMode: "object",
       resultRows: rows,
     });
     const row = rows[0];
     // Remove OPFS file first, then DB row
     if (row !== undefined) {
-      const fname = row['filename'] as string;
+      const fname = row["filename"] as string;
       try {
         await removeOpfsFile(fname);
       } catch (err: unknown) {
         console.warn(`OPFS cleanup skipped for ${fname}:`, err);
         // Proceed to delete DB record even if file removal failed
-        db.exec({ sql: 'DELETE FROM media WHERE id = ?', bind: [id] });
+        db.exec({ sql: "DELETE FROM media WHERE id = ?", bind: [id] });
         return;
       }
     }
-    db.exec({ sql: 'DELETE FROM media WHERE id = ?', bind: [id] });
+    db.exec({ sql: "DELETE FROM media WHERE id = ?", bind: [id] });
   },
 };
 
@@ -202,11 +213,14 @@ const api: KeeperDB = {
 const proxy = new Proxy(api, {
   get(_target, prop) {
     const method = api[prop as keyof KeeperDB];
-    if (typeof method === 'function') {
+    if (typeof method === "function") {
       return async (...args: unknown[]) => {
         await ready;
         // Use bind to preserve the correct 'this' context
-        return (method as (...args: unknown[]) => Promise<unknown>).apply(api, args);
+        return (method as (...args: unknown[]) => Promise<unknown>).apply(
+          api,
+          args,
+        );
       };
     }
     return method;

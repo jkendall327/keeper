@@ -1,5 +1,3 @@
-'use no memo';
-
 // ── Data types ──────────────────────────────────────────────
 
 export interface Note {
@@ -38,7 +36,7 @@ export interface NoteWithTags extends Note {
 
 /** Default icon for tags without a custom icon */
 export function tagDisplayIcon(tag: Tag): string {
-  return tag.icon ?? 'label';
+  return tag.icon ?? "label";
 }
 
 export interface SearchResult extends NoteWithTags {

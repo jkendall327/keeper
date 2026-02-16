@@ -1,6 +1,4 @@
-'use no memo';
-
-import type { SqlValue } from '@sqlite.org/sqlite-wasm';
+import type { SqlValue } from "@sqlite.org/sqlite-wasm";
 
 /** A row returned by SQLite in object mode */
 export type SqlRow = Record<string, SqlValue>;

@@ -1,38 +1,46 @@
-'use no memo';
-
-import type { NoteWithTags, Tag } from '../db/types.ts';
+import type { NoteWithTags, Tag } from "../db/types.ts";
 
 const MAX_NOTE_CHARS = 10_000;
 const MAX_RECENT_NOTES = 10;
 
 function formatNoteContext(note: NoteWithTags): string {
-  const tags = note.tags.map((t) => t.name).join(', ');
-  const body = note.body.length > MAX_NOTE_CHARS
-    ? note.body.slice(0, MAX_NOTE_CHARS) + '... [truncated]'
-    : note.body;
+  const tags = note.tags.map((t) => t.name).join(", ");
+  const body =
+    note.body.length > MAX_NOTE_CHARS
+      ? note.body.slice(0, MAX_NOTE_CHARS) + "... [truncated]"
+      : note.body;
   const lines = [
     `ID: ${note.id}`,
-    `Title: ${note.title !== '' ? note.title : '(none)'}`,
+    `Title: ${note.title !== "" ? note.title : "(none)"}`,
     `Body: ${body}`,
-    `Tags: ${tags !== '' ? tags : '(none)'}`,
+    `Tags: ${tags !== "" ? tags : "(none)"}`,
     `Pinned: ${String(note.pinned)}`,
     `Archived: ${String(note.archived)}`,
   ];
-  return lines.join('\n');
+  return lines.join("\n");
 }
 
 function formatTagList(tags: Tag[]): string {
-  if (tags.length === 0) return 'No tags exist yet.';
-  return tags.map((t) => `- ${t.name}${t.icon !== null ? ` (icon: ${t.icon})` : ''}`).join('\n');
+  if (tags.length === 0) return "No tags exist yet.";
+  return tags
+    .map((t) => `- ${t.name}${t.icon !== null ? ` (icon: ${t.icon})` : ""}`)
+    .join("\n");
 }
 
-export function buildSystemPrompt(recentNotes: NoteWithTags[], tags: Tag[]): string {
+export function buildSystemPrompt(
+  recentNotes: NoteWithTags[],
+  tags: Tag[],
+): string {
   const now = new Date();
   const localTime = now.toLocaleString();
 
-  const noteContext = recentNotes.length > 0
-    ? recentNotes.slice(0, MAX_RECENT_NOTES).map(formatNoteContext).join('\n---\n')
-    : 'No notes exist yet.';
+  const noteContext =
+    recentNotes.length > 0
+      ? recentNotes
+          .slice(0, MAX_RECENT_NOTES)
+          .map(formatNoteContext)
+          .join("\n---\n")
+      : "No notes exist yet.";
 
   return `You are a helpful assistant for the Keeper note-taking app. You can manage the user's notes using the tools below.
 

@@ -1,8 +1,6 @@
-'use no memo';
-
-import type { SqliteDb, SqlRow } from './sqlite-db.ts';
-import { SCHEMA_SQL } from './schema.ts';
-import { containsUrl } from './url-detect.ts';
+import type { SqliteDb, SqlRow } from "./sqlite-db.ts";
+import { SCHEMA_SQL } from "./schema.ts";
+import { containsUrl } from "./url-detect.ts";
 import type {
   KeeperDB,
   Note,
@@ -13,7 +11,7 @@ import type {
   CreateNoteInput,
   UpdateNoteInput,
   StoreMediaInput,
-} from './types.ts';
+} from "./types.ts";
 
 /** Dependencies injected into the DB implementation */
 export interface KeeperDBDeps {
@@ -29,28 +27,34 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
   db.execRaw(SCHEMA_SQL);
 
   // Migration: Add pinned column if it doesn't exist (for existing databases)
-  const columns = db.query('PRAGMA table_info(notes)');
-  const hasPinnedColumn = columns.some((col) => col['name'] === 'pinned');
+  const columns = db.query("PRAGMA table_info(notes)");
+  const hasPinnedColumn = columns.some((col) => col["name"] === "pinned");
   if (!hasPinnedColumn) {
-    db.execRaw('ALTER TABLE notes ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0');
+    db.execRaw(
+      "ALTER TABLE notes ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
+    );
   }
 
   // Create the pinned index (handled separately from main schema for migration compatibility)
-  db.execRaw('CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned)');
+  db.execRaw("CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned)");
 
   // Migration: Add archived column if it doesn't exist (for existing databases)
-  const hasArchivedColumn = columns.some((col) => col['name'] === 'archived');
+  const hasArchivedColumn = columns.some((col) => col["name"] === "archived");
   if (!hasArchivedColumn) {
-    db.execRaw('ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
+    db.execRaw(
+      "ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
+    );
   }
 
-  db.execRaw('CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived)');
+  db.execRaw(
+    "CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived)",
+  );
 
   // Migration: Add icon column to tags table if it doesn't exist
-  const tagColumns = db.query('PRAGMA table_info(tags)');
-  const hasIconColumn = tagColumns.some((col) => col['name'] === 'icon');
+  const tagColumns = db.query("PRAGMA table_info(tags)");
+  const hasIconColumn = tagColumns.some((col) => col["name"] === "icon");
   if (!hasIconColumn) {
-    db.execRaw('ALTER TABLE tags ADD COLUMN icon TEXT DEFAULT NULL');
+    db.execRaw("ALTER TABLE tags ADD COLUMN icon TEXT DEFAULT NULL");
   }
 
   // ── Helpers ───────────────────────────────────────────────────
@@ -68,34 +72,34 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
    */
   function prepareFts5Query(input: string): string {
     const trimmed = input.trim();
-    if (trimmed === '') return '';
+    if (trimmed === "") return "";
 
     // Split into words and filter empty strings
     const words = trimmed.split(/\s+/).filter((w) => w.length > 0);
-    if (words.length === 0) return '';
+    if (words.length === 0) return "";
 
     // Quote each word to escape special characters, append * to last word
     const quotedWords = words.map((word, i) => {
       // Escape double quotes in the word by doubling them
       const escaped = word.replace(/"/g, '""');
       // Add * to last word for prefix matching
-      const suffix = i === words.length - 1 ? '*' : '';
+      const suffix = i === words.length - 1 ? "*" : "";
       return `"${escaped}"${suffix}`;
     });
 
-    return quotedWords.join(' ');
+    return quotedWords.join(" ");
   }
 
   function rowToNote(row: SqlRow): Note {
     return {
-      id: row['id'] as string,
-      title: row['title'] as string,
-      body: row['body'] as string,
-      has_links: row['has_links'] === 1,
-      pinned: row['pinned'] === 1,
-      archived: row['archived'] === 1,
-      created_at: row['created_at'] as string,
-      updated_at: row['updated_at'] as string,
+      id: row["id"] as string,
+      title: row["title"] as string,
+      body: row["body"] as string,
+      has_links: row["has_links"] === 1,
+      pinned: row["pinned"] === 1,
+      archived: row["archived"] === 1,
+      created_at: row["created_at"] as string,
+      updated_at: row["updated_at"] as string,
     };
   }
 
@@ -106,7 +110,11 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
        WHERE nt.note_id = ?`,
       [noteId],
     );
-    return rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string, icon: r['icon'] as string | null }));
+    return rows.map((r) => ({
+      id: r["id"] as number,
+      name: r["name"] as string,
+      icon: r["icon"] as string | null,
+    }));
   }
 
   function withTags(note: Note): NoteWithTags {
@@ -118,7 +126,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
   const api: KeeperDB = {
     async createNote(input: CreateNoteInput): Promise<NoteWithTags> {
       const id = generateId();
-      const title = input.title ?? '';
+      const title = input.title ?? "";
       const body = input.body;
       const hasLinks = containsUrl(body) ? 1 : 0;
       const timestamp = now();
@@ -129,27 +137,31 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         [id, title, body, hasLinks, timestamp, timestamp],
       );
 
-      return Promise.resolve(withTags({
-        id,
-        title,
-        body,
-        has_links: hasLinks === 1,
-        pinned: false,
-        archived: false,
-        created_at: timestamp,
-        updated_at: timestamp,
-      }));
+      return Promise.resolve(
+        withTags({
+          id,
+          title,
+          body,
+          has_links: hasLinks === 1,
+          pinned: false,
+          archived: false,
+          created_at: timestamp,
+          updated_at: timestamp,
+        }),
+      );
     },
 
     async getNote(id: string): Promise<NoteWithTags | null> {
-      const rows = db.query('SELECT * FROM notes WHERE id = ?', [id]);
+      const rows = db.query("SELECT * FROM notes WHERE id = ?", [id]);
       const row = rows[0];
       if (row === undefined) return Promise.resolve(null);
       return Promise.resolve(withTags(rowToNote(row)));
     },
 
     async getAllNotes(): Promise<NoteWithTags[]> {
-      const rows = db.query('SELECT * FROM notes WHERE archived = 0 ORDER BY pinned DESC, updated_at DESC');
+      const rows = db.query(
+        "SELECT * FROM notes WHERE archived = 0 ORDER BY pinned DESC, updated_at DESC",
+      );
       return Promise.resolve(rows.map((r) => withTags(rowToNote(r))));
     },
 
@@ -178,7 +190,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     },
 
     async deleteNote(id: string): Promise<void> {
-      db.run('DELETE FROM notes WHERE id = ?', [id]);
+      db.run("DELETE FROM notes WHERE id = ?", [id]);
       return Promise.resolve();
     },
 
@@ -190,8 +202,11 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     async archiveNotes(ids: string[]): Promise<void> {
       if (ids.length === 0) return Promise.resolve();
-      const placeholders = ids.map(() => '?').join(',');
-      db.run(`UPDATE notes SET archived = 1 WHERE id IN (${placeholders})`, ids);
+      const placeholders = ids.map(() => "?").join(",");
+      db.run(
+        `UPDATE notes SET archived = 1 WHERE id IN (${placeholders})`,
+        ids,
+      );
       return Promise.resolve();
     },
 
@@ -200,7 +215,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       if (existing === null) throw new Error(`Note not found: ${id}`);
 
       const newPinned = existing.pinned ? 0 : 1;
-      db.run('UPDATE notes SET pinned = ? WHERE id = ?', [newPinned, id]);
+      db.run("UPDATE notes SET pinned = ? WHERE id = ?", [newPinned, id]);
 
       return { ...existing, pinned: !existing.pinned };
     },
@@ -210,7 +225,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       if (existing === null) throw new Error(`Note not found: ${id}`);
 
       const newArchived = existing.archived ? 0 : 1;
-      db.run('UPDATE notes SET archived = ? WHERE id = ?', [newArchived, id]);
+      db.run("UPDATE notes SET archived = ? WHERE id = ?", [newArchived, id]);
 
       return { ...existing, archived: !existing.archived };
     },
@@ -220,14 +235,20 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const existing = await api.getNote(noteId);
       if (existing === null) throw new Error(`Note not found: ${noteId}`);
 
-      db.run('INSERT OR IGNORE INTO tags (name) VALUES (?)', [tagName]);
+      db.run("INSERT OR IGNORE INTO tags (name) VALUES (?)", [tagName]);
 
       // Tag is guaranteed to exist after INSERT OR IGNORE
-      const tagRow = db.query('SELECT id FROM tags WHERE name = ?', [tagName])[0];
-      if (tagRow === undefined) throw new Error('Unreachable: tag must exist after INSERT OR IGNORE');
-      const tagId = tagRow['id'] as number;
+      const tagRow = db.query("SELECT id FROM tags WHERE name = ?", [
+        tagName,
+      ])[0];
+      if (tagRow === undefined)
+        throw new Error("Unreachable: tag must exist after INSERT OR IGNORE");
+      const tagId = tagRow["id"] as number;
 
-      db.run('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)', [noteId, tagId]);
+      db.run(
+        "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
+        [noteId, tagId],
+      );
 
       // Re-read tags since they changed; note itself still exists
       return { ...existing, tags: getTagsForNote(noteId) };
@@ -251,51 +272,62 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     async renameTag(oldName: string, newName: string): Promise<void> {
       if (oldName === newName) return Promise.resolve();
 
-      const existingRows = db.query('SELECT id FROM tags WHERE name = ?', [newName]);
+      const existingRows = db.query("SELECT id FROM tags WHERE name = ?", [
+        newName,
+      ]);
       if (existingRows.length > 0) {
         // newName already exists — merge: move note_tags from old to new, then delete old
-        const oldRows = db.query('SELECT id FROM tags WHERE name = ?', [oldName]);
+        const oldRows = db.query("SELECT id FROM tags WHERE name = ?", [
+          oldName,
+        ]);
         const oldRow = oldRows[0];
         if (oldRow === undefined) throw new Error(`Tag not found: ${oldName}`);
-        const oldTagId = oldRow['id'] as number;
+        const oldTagId = oldRow["id"] as number;
         // Guaranteed non-undefined: we checked existingRows.length > 0
         const existingRow = existingRows[0];
-        if (existingRow === undefined) throw new Error('Unreachable: checked length > 0');
-        const newTagId = existingRow['id'] as number;
+        if (existingRow === undefined)
+          throw new Error("Unreachable: checked length > 0");
+        const newTagId = existingRow["id"] as number;
 
         // Reassign note associations (ignore duplicates)
-        db.run(
-          'UPDATE OR IGNORE note_tags SET tag_id = ? WHERE tag_id = ?',
-          [newTagId, oldTagId],
-        );
+        db.run("UPDATE OR IGNORE note_tags SET tag_id = ? WHERE tag_id = ?", [
+          newTagId,
+          oldTagId,
+        ]);
         // Remove any remaining links that were duplicates (already pointed to newTagId)
-        db.run('DELETE FROM note_tags WHERE tag_id = ?', [oldTagId]);
+        db.run("DELETE FROM note_tags WHERE tag_id = ?", [oldTagId]);
         // Delete the now-orphaned old tag
-        db.run('DELETE FROM tags WHERE id = ?', [oldTagId]);
+        db.run("DELETE FROM tags WHERE id = ?", [oldTagId]);
       } else {
-        db.run('UPDATE tags SET name = ? WHERE name = ?', [newName, oldName]);
+        db.run("UPDATE tags SET name = ? WHERE name = ?", [newName, oldName]);
       }
       return Promise.resolve();
     },
 
     async updateTagIcon(tagId: number, icon: string | null): Promise<void> {
-      db.run('UPDATE tags SET icon = ? WHERE id = ?', [icon, tagId]);
+      db.run("UPDATE tags SET icon = ? WHERE id = ?", [icon, tagId]);
       return Promise.resolve();
     },
 
     async deleteTag(tagId: number): Promise<void> {
-      db.run('DELETE FROM tags WHERE id = ?', [tagId]);
+      db.run("DELETE FROM tags WHERE id = ?", [tagId]);
       return Promise.resolve();
     },
 
     async getAllTags(): Promise<Tag[]> {
-      const rows = db.query('SELECT id, name, icon FROM tags ORDER BY name');
-      return Promise.resolve(rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string, icon: r['icon'] as string | null })));
+      const rows = db.query("SELECT id, name, icon FROM tags ORDER BY name");
+      return Promise.resolve(
+        rows.map((r) => ({
+          id: r["id"] as number,
+          name: r["name"] as string,
+          icon: r["icon"] as string | null,
+        })),
+      );
     },
 
     async search(query: string): Promise<SearchResult[]> {
       const fts5Query = prepareFts5Query(query);
-      if (fts5Query === '') return Promise.resolve([]);
+      if (fts5Query === "") return Promise.resolve([]);
 
       const rows = db.query(
         `SELECT n.*, rank
@@ -305,10 +337,12 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
          ORDER BY n.archived ASC, rank`,
         [fts5Query],
       );
-      return Promise.resolve(rows.map((r) => ({
-        ...withTags(rowToNote(r)),
-        rank: r['rank'] as number,
-      })));
+      return Promise.resolve(
+        rows.map((r) => ({
+          ...withTags(rowToNote(r)),
+          rank: r["rank"] as number,
+        })),
+      );
     },
 
     async getUntaggedNotes(): Promise<NoteWithTags[]> {
@@ -321,7 +355,9 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     },
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
-      const rows = db.query('SELECT * FROM notes WHERE has_links = 1 AND archived = 0 ORDER BY pinned DESC, updated_at DESC');
+      const rows = db.query(
+        "SELECT * FROM notes WHERE has_links = 1 AND archived = 0 ORDER BY pinned DESC, updated_at DESC",
+      );
       return Promise.resolve(rows.map((r) => withTags(rowToNote(r))));
     },
 
@@ -338,32 +374,45 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     async getArchivedNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
-        'SELECT * FROM notes WHERE archived = 1 ORDER BY pinned DESC, updated_at DESC',
+        "SELECT * FROM notes WHERE archived = 1 ORDER BY pinned DESC, updated_at DESC",
       );
       return Promise.resolve(rows.map((r) => withTags(rowToNote(r))));
     },
 
     async storeMedia(_input: StoreMediaInput): Promise<Media> {
-      return Promise.reject(new Error('storeMedia: must be implemented by worker with OPFS access'));
+      return Promise.reject(
+        new Error("storeMedia: must be implemented by worker with OPFS access"),
+      );
     },
 
     async getMedia(_id: string): Promise<ArrayBuffer | null> {
-      return Promise.reject(new Error('getMedia: must be implemented by worker with OPFS access'));
+      return Promise.reject(
+        new Error("getMedia: must be implemented by worker with OPFS access"),
+      );
     },
 
     async deleteMedia(_id: string): Promise<void> {
-      return Promise.reject(new Error('deleteMedia: must be implemented by worker with OPFS access'));
+      return Promise.reject(
+        new Error(
+          "deleteMedia: must be implemented by worker with OPFS access",
+        ),
+      );
     },
 
     async getMediaForNote(noteId: string): Promise<Media[]> {
-      const rows = db.query('SELECT * FROM media WHERE note_id = ? ORDER BY created_at', [noteId]);
-      return Promise.resolve(rows.map((r) => ({
-        id: r['id'] as string,
-        note_id: r['note_id'] as string,
-        mime_type: r['mime_type'] as string,
-        filename: r['filename'] as string,
-        created_at: r['created_at'] as string,
-      })));
+      const rows = db.query(
+        "SELECT * FROM media WHERE note_id = ? ORDER BY created_at",
+        [noteId],
+      );
+      return Promise.resolve(
+        rows.map((r) => ({
+          id: r["id"] as string,
+          note_id: r["note_id"] as string,
+          mime_type: r["mime_type"] as string,
+          filename: r["filename"] as string,
+          created_at: r["created_at"] as string,
+        })),
+      );
     },
   };
 

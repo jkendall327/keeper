@@ -12,7 +12,6 @@ interface NoteModalProps {
   onAddTag: (noteId: string, tagName: string) => Promise<void>;
   onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
   onClose: () => void;
-  previewMode: boolean;
 }
 
 export function NoteModal({
@@ -23,7 +22,6 @@ export function NoteModal({
   onAddTag,
   onRemoveTag,
   onClose,
-  previewMode,
 }: NoteModalProps) {
   const [title, setTitle] = useState(note.title);
   const [body, setBody] = useState(note.body);
@@ -177,34 +175,22 @@ export function NoteModal({
             value={title}
             onChange={(e) => { setTitle(e.target.value); }}
           />
-          {previewMode ? (
-            <div className="modal-body-preview">
-              <MarkdownPreview
-                content={body}
-                noteId={note.id}
-                onCheckboxToggle={handleCheckboxToggle}
-              />
+          <textarea
+            ref={bodyTextareaRef}
+            className="modal-body-input"
+            placeholder="Note"
+            value={body}
+            onChange={(e) => { setBody(e.target.value); }}
+            onPaste={(e) => {
+              handlePaste(e).catch((err: unknown) => {
+                console.error('Failed to handle paste:', err);
+              });
+            }}
+          />
+          {body.includes('media://') && (
+            <div className="modal-body-live-preview">
+              <MarkdownPreview content={body} noteId={note.id} onCheckboxToggle={handleCheckboxToggle} />
             </div>
-          ) : (
-            <>
-              <textarea
-                ref={bodyTextareaRef}
-                className="modal-body-input"
-                placeholder="Note"
-                value={body}
-                onChange={(e) => { setBody(e.target.value); }}
-                onPaste={(e) => {
-                  handlePaste(e).catch((err: unknown) => {
-                    console.error('Failed to handle paste:', err);
-                  });
-                }}
-              />
-              {body.includes('media://') && (
-                <div className="modal-body-live-preview">
-                  <MarkdownPreview content={body} noteId={note.id} />
-                </div>
-              )}
-            </>
           )}
           {body.trim() === '' && (
             <p className="modal-empty-warning">This note will be deleted when closed.</p>

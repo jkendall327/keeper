@@ -205,12 +205,12 @@ describe('App Integration Tests', () => {
   it('Icon component renders material-symbols-outlined span', async () => {
     await renderApp();
 
-    // The preview toggle button in the header should contain a Material Symbol icon
-    const previewToggle = screen.getByTitle('Switch to preview mode');
-    const iconSpan = previewToggle.querySelector('.material-symbols-outlined');
-    if (iconSpan === null) throw new Error('Material Symbol icon not found in preview toggle');
+    // The settings button in the sidebar should contain a Material Symbol icon
+    const settingsBtn = screen.getByLabelText('Open settings');
+    const iconSpan = settingsBtn.querySelector('.material-symbols-outlined');
+    if (iconSpan === null) throw new Error('Material Symbol icon not found in settings button');
     expect(iconSpan).toBeInTheDocument();
-    expect(iconSpan.textContent).toBe('visibility');
+    expect(iconSpan.textContent).toBe('settings');
   });
 
   it('note card action buttons use Material Symbol icons', async () => {
@@ -508,10 +508,14 @@ describe('App Integration Tests', () => {
 
     const input = await screen.findByPlaceholderText('Take a note...');
 
-    // Create a note with a URL
+    // Create a note with a URL (markdown renders the URL as an <a> tag)
     await user.type(input, 'Check https://example.com for details');
     await user.keyboard('{Enter}');
-    await screen.findByText('Check https://example.com for details');
+
+    // Wait for the link to appear — the URL is rendered as an anchor element
+    const urlLink = await screen.findByText('https://example.com');
+    expect(urlLink.tagName).toBe('A');
+    expect(urlLink).toHaveAttribute('href', 'https://example.com');
 
     // Create a plain note
     await user.type(input, 'No links here');
@@ -519,7 +523,7 @@ describe('App Integration Tests', () => {
     await screen.findByText('No links here');
 
     // Both notes visible initially
-    expect(screen.getByText('Check https://example.com for details')).toBeInTheDocument();
+    expect(screen.getByText('https://example.com')).toBeInTheDocument();
     expect(screen.getByText('No links here')).toBeInTheDocument();
 
     // Click "Links" in sidebar
@@ -528,7 +532,7 @@ describe('App Integration Tests', () => {
 
     // Only the URL note should be visible
     await waitFor(() => {
-      expect(screen.getByText('Check https://example.com for details')).toBeInTheDocument();
+      expect(screen.getByText('https://example.com')).toBeInTheDocument();
       expect(screen.queryByText('No links here')).not.toBeInTheDocument();
     });
   });
@@ -989,10 +993,10 @@ describe('App Integration Tests', () => {
     const bodyDiv = noteCard.querySelector('.note-card-body');
     if (bodyDiv === null) throw new Error('Note card body div not found');
 
-    // Verify G5 fix: body wrapper is a div (ref target), containing the text paragraph
+    // Verify G5 fix: body wrapper is a div (ref target), containing the markdown preview
     expect(bodyDiv.tagName).toBe('DIV');
-    const bodyText = bodyDiv.querySelector('.note-card-body-text');
-    if (bodyText === null) throw new Error('Note card body text not found');
+    const bodyText = bodyDiv.querySelector('.markdown-preview');
+    if (bodyText === null) throw new Error('Note card markdown preview not found');
     expect(bodyText.textContent).toContain('Line 1 of a very long note');
 
     // Simulate overflow: scrollHeight > clientHeight

@@ -8,7 +8,6 @@ interface NoteGridProps {
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
   onToggleArchive: (id: string) => Promise<void>;
-  previewMode: boolean;
   onUpdateNote: (input: UpdateNoteInput) => Promise<void>;
   selectedNoteIds: Set<string>;
   onBulkSelect: (ids: Set<string>) => void;
@@ -26,7 +25,7 @@ const DRAG_THRESHOLD = 5;
 
 export function NoteGrid({
   notes, onSelect, onDelete, onTogglePin, onToggleArchive,
-  previewMode, onUpdateNote, selectedNoteIds, onBulkSelect, onClearSelection,
+  onUpdateNote, selectedNoteIds, onBulkSelect, onClearSelection,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -196,7 +195,6 @@ export function NoteGrid({
           onDelete={onDelete}
           onTogglePin={onTogglePin}
           onToggleArchive={onToggleArchive}
-          previewMode={previewMode}
           onUpdate={onUpdateNote}
           isSelected={selectedNoteIds.has(note.id)}
         />

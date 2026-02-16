@@ -9,12 +9,11 @@ interface NoteCardProps {
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
   onToggleArchive: (id: string) => Promise<void>;
-  previewMode: boolean;
   onUpdate: (input: UpdateNoteInput) => Promise<void>;
   isSelected?: boolean;
 }
 
-export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, previewMode, onUpdate, isSelected }: NoteCardProps) {
+export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, onUpdate, isSelected }: NoteCardProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
 
@@ -94,15 +93,11 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
       </div>
       {note.title !== '' && <h3 className="note-card-title">{note.title}</h3>}
       <div ref={bodyRef} className="note-card-body">
-        {previewMode ? (
-          <MarkdownPreview
-            content={note.body}
-            noteId={note.id}
-            onCheckboxToggle={handleCheckboxToggle}
-          />
-        ) : (
-          <p className="note-card-body-text">{note.body}</p>
-        )}
+        <MarkdownPreview
+          content={note.body}
+          noteId={note.id}
+          onCheckboxToggle={handleCheckboxToggle}
+        />
       </div>
       {isTruncated && <span className="note-card-truncation">[...]</span>}
       {note.tags.length > 0 && (

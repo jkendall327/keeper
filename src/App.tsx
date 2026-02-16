@@ -15,13 +15,12 @@ import { getDB } from './db/db-client.ts';
 import type { NoteWithTags } from './db/types.ts';
 
 interface AppContentProps {
-  previewMode: boolean;
   selectedNoteIds: Set<string>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   onFilterChange: (isArchive: boolean) => void;
 }
 
-function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilterChange }: AppContentProps) {
+function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange }: AppContentProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Ctrl+/ (or Cmd+/) focuses the search input
@@ -222,7 +221,6 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
               onDelete={deleteNote}
               onTogglePin={togglePinNote}
               onToggleArchive={toggleArchiveNote}
-              previewMode={previewMode}
               onUpdateNote={updateNote}
               selectedNoteIds={selectedNoteIds}
               onBulkSelect={handleBulkSelect}
@@ -240,7 +238,6 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
           onAddTag={addTag}
           onRemoveTag={removeTag}
           onClose={() => { setSelectedNote(null); }}
-          previewMode={previewMode}
         />
       )}
       {showExportModal && selectedNoteIds.size > 0 && (
@@ -258,7 +255,6 @@ function AppContent({ previewMode, selectedNoteIds, setSelectedNoteIds, onFilter
 }
 
 function App() {
-  const [previewMode, setPreviewMode] = useState(false);
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [isArchiveView, setIsArchiveView] = useState(false);
 
@@ -298,19 +294,11 @@ function App() {
               </button>
             </div>
           )}
-          <button
-            className="preview-toggle"
-            onClick={() => { setPreviewMode(!previewMode); }}
-            title={previewMode ? 'Switch to edit mode' : 'Switch to preview mode'}
-          >
-            <Icon name={previewMode ? 'edit' : 'visibility'} />
-          </button>
         </div>
       </header>
       <main className="app-main">
         <Suspense fallback={<p className="loading">Loading...</p>}>
           <AppContent
-            previewMode={previewMode}
             selectedNoteIds={selectedNoteIds}
             setSelectedNoteIds={setSelectedNoteIds}
             onFilterChange={setIsArchiveView}

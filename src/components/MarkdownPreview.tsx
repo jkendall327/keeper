@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect, useState } from 'react';
-import MarkdownIt from 'markdown-it';
+import { markdown } from '@motioneffector/markdown';
 import { getDB } from '../db/db-client.ts';
 
 interface MarkdownPreviewProps {
@@ -29,17 +29,18 @@ export function MarkdownPreview({
     const mediaIds = Array.from(matches, (m) => m[1]).filter(
       (id): id is string => id !== undefined,
     );
-    if (mediaIds.length === 0) {
-      // Clean up any existing blob URLs if no media in content
-      mediaUrlsRef.current.forEach((url) => { URL.revokeObjectURL(url); });
-      mediaUrlsRef.current = new Map();
-      setMediaUrls(new Map());
-      return;
-    }
 
     const createdUrls: string[] = [];
 
     const loadMedia = async () => {
+      if (mediaIds.length === 0) {
+        // Clean up any existing blob URLs if no media in content
+        mediaUrlsRef.current.forEach((url) => { URL.revokeObjectURL(url); });
+        mediaUrlsRef.current = new Map();
+        setMediaUrls(new Map());
+        return;
+      }
+
       const db = getDB();
       const mediaList = await db.getMediaForNote(noteId);
       const blobUrlMap = new Map<string, string>();
@@ -68,62 +69,29 @@ export function MarkdownPreview({
     };
   }, [content, noteId]);
 
-  // Configure markdown-it with custom image renderer
-  const md = useMemo(() => {
-    const mdInstance = MarkdownIt({
-      html: false, // Disable HTML tags for security
-      breaks: true, // Convert \n to <br>
-      linkify: true, // Auto-detect URLs
-    });
-
-    // Open external links in new tab
-    const defaultLinkOpen =
-      mdInstance.renderer.rules['link_open'] ??
-      ((tokens, idx, options, _env, self) =>
-        self.renderToken(tokens, idx, options));
-
-    mdInstance.renderer.rules['link_open'] = (tokens, idx, options, env, self) => {
-      const token = tokens[idx];
-      if (token !== undefined) {
-        token.attrSet('target', '_blank');
-        token.attrSet('rel', 'noopener noreferrer');
-      }
-      return defaultLinkOpen(tokens, idx, options, env, self);
-    };
-
-    // Override image renderer to handle media:// protocol
-    const defaultImageRender =
-      mdInstance.renderer.rules.image ??
-      ((tokens, idx, options, _env, self) =>
-        self.renderToken(tokens, idx, options));
-
-    mdInstance.renderer.rules.image = (tokens, idx, options, env, self) => {
-      const token = tokens[idx];
-      if (token === undefined) {
-        return defaultImageRender(tokens, idx, options, env, self);
-      }
-
-      const srcIndex = token.attrIndex('src');
-      if (srcIndex >= 0 && token.attrs !== null) {
-        const src = token.attrs[srcIndex]?.[1];
-        if (src?.startsWith('media://') === true) {
-          const mediaId = src.replace('media://', '');
-          const blobUrl = mediaUrls.get(mediaId);
-          if (blobUrl !== undefined && token.attrs[srcIndex] !== undefined) {
-            token.attrs[srcIndex][1] = blobUrl;
-          }
-        }
-      }
-      return defaultImageRender(tokens, idx, options, env, self);
-    };
-
-    return mdInstance;
-  }, [mediaUrls]);
-
   // Render markdown to HTML
+  const rawHtml = useMemo(() => {
+    try {
+      return markdown(content, {
+        breaks: true,
+        linkTarget: '_blank',
+        gfm: true,
+      });
+    } catch (err: unknown) {
+      console.warn('Markdown rendering failed, showing raw content:', err);
+      return content;
+    }
+  }, [content]);
+
+  // Post-process HTML: replace media:// URLs and add rel attributes
   const html = useMemo(() => {
-    return md.render(content);
-  }, [content, md]);
+    let result = rawHtml;
+    for (const [mediaId, blobUrl] of mediaUrls) {
+      result = result.replaceAll(`media://${mediaId}`, blobUrl);
+    }
+    result = result.replaceAll('target="_blank"', 'target="_blank" rel="noopener noreferrer"');
+    return result;
+  }, [rawHtml, mediaUrls]);
 
   // Add checkbox interactivity
   useEffect(() => {
@@ -162,9 +130,10 @@ export function MarkdownPreview({
       }
     };
 
-    // Attach click handlers
+    // Attach click handlers — remove disabled attribute so clicks fire
     const handlers: (() => void)[] = [];
     checkboxes.forEach((checkbox, index) => {
+      checkbox.removeAttribute('disabled');
       const handler = () => {
         handleCheckboxClick(index);
       };

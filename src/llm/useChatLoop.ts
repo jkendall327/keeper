@@ -162,29 +162,64 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
     if (pendingConfirmation === null) return;
     setPendingConfirmation(null);
 
-    if (!confirmed) {
-      const cancelMsg: ChatMessage = { role: 'tool', content: 'Delete cancelled by user.' };
-      setMessages((prev) => [...prev, cancelMsg]);
-      return;
-    }
-
     setLoading(true);
     try {
-      const result = await executeTool(db, {
-        name: 'confirm_delete_note',
-        args: pendingConfirmation.args,
-      });
-      const toolMsg: ChatMessage = { role: 'tool', content: result.result, toolResult: result };
-      setMessages((prev) => [...prev, toolMsg]);
-      onMutation();
+      let toolMsg: ChatMessage;
+
+      if (!confirmed) {
+        toolMsg = { role: 'tool', content: 'Delete cancelled by user.' };
+      } else {
+        const result = await executeTool(db, {
+          name: 'confirm_delete_note',
+          args: pendingConfirmation.args,
+        });
+        toolMsg = { role: 'tool', content: result.result, toolResult: result };
+        onMutation();
+      }
+
+      // Build the updated message list with the confirmation result
+      const updatedMessages: ChatMessage[] = [...messages, toolMsg];
+      setMessages(updatedMessages);
+
+      // Send the confirmation result back to the LLM for a follow-up response
+      const llmMessages = buildLLMMessages(updatedMessages);
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      let accumulated = '';
+      let lastFlush = 0;
+      const THROTTLE_MS = 50;
+      for await (const token of client.stream(llmMessages, { signal: controller.signal })) {
+        accumulated += token;
+        const now = performance.now();
+        if (now - lastFlush >= THROTTLE_MS) {
+          lastFlush = now;
+          setStreaming(accumulated);
+        }
+      }
+      setStreaming('');
+
+      if (accumulated !== '') {
+        const { text } = parseMCPResponse(accumulated);
+        if (text !== '') {
+          const assistantMsg: ChatMessage = { role: 'assistant', content: text };
+          setMessages([...updatedMessages, assistantMsg]);
+        }
+      }
     } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : 'An unknown error occurred';
-      const errorChatMsg: ChatMessage = { role: 'tool', content: `Error: ${errorMsg}` };
-      setMessages((prev) => [...prev, errorChatMsg]);
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setStreaming('');
+      } else {
+        setStreaming('');
+        const errorMsg = err instanceof Error ? err.message : 'An unknown error occurred';
+        const errorChatMsg: ChatMessage = { role: 'tool', content: `Error: ${errorMsg}` };
+        setMessages((prev) => [...prev, errorChatMsg]);
+      }
     } finally {
       setLoading(false);
+      abortRef.current = null;
     }
-  }, [pendingConfirmation, db, onMutation]);
+  }, [pendingConfirmation, db, onMutation, messages, client, buildLLMMessages]);
 
   const clear = useCallback(() => {
     setMessages([]);

@@ -104,7 +104,7 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
   };
 
   return (
-    <div className="icon-picker" ref={popoverRef}>
+    <div className="icon-picker" ref={popoverRef} role="dialog" aria-label="Choose an icon">
       <input
         ref={searchRef}
         type="text"

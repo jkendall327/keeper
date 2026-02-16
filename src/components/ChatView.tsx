@@ -149,7 +149,7 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
         <div className="chat-model-error">{modelError}</div>
       )}
 
-      <div className="chat-messages">
+      <div className="chat-messages" aria-live="polite">
         {messages.length === 0 && (
           <div className="chat-empty">
             <Icon name="chat" size={48} />

@@ -1481,4 +1481,19 @@ body.is-drag-selecting {
   .chat-message-assistant {
     background: #f0f0f0;
   }
+
+  .chat-message-tool {
+    background: rgba(100, 108, 255, 0.06);
+    border-color: rgba(100, 108, 255, 0.15);
+  }
+
+  .chat-confirmation {
+    background: rgba(255, 152, 0, 0.08);
+    border-color: rgba(255, 152, 0, 0.25);
+  }
+
+  .modal-body-live-preview {
+    border-color: rgba(0, 0, 0, 0.1);
+    background: rgba(0, 0, 0, 0.03);
+  }
 }

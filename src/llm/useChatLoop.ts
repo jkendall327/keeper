@@ -139,19 +139,19 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
         setMessages((prev) => [...prev, limitMsg]);
       }
     } catch (err: unknown) {
+      setStreaming('');
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Preserve any partially streamed text as an assistant message
-        setStreaming('');
         if (accumulated !== '') {
           const partialMsg: ChatMessage = { role: 'assistant', content: accumulated };
           setMessages([...iterMessages, partialMsg]);
         }
       } else {
-        setStreaming('');
         const errorMsg = err instanceof Error ? err.message : 'An unknown error occurred';
         const assistantMsg: ChatMessage = { role: 'assistant', content: `Error: ${errorMsg}` };
         setMessages([...iterMessages, assistantMsg]);
       }
+      return;
     } finally {
       setLoading(false);
       abortRef.current = null;

@@ -77,6 +77,20 @@ After the bad block.`;
     expect(result.toolCalls[0]?.args).toEqual({});
   });
 
+  it('skips blocks with an unknown tool name', () => {
+    // Valid tool name is accepted
+    const valid = parseMCPResponse('```tool_call\n{"name": "list_notes", "args": {}}\n```');
+    expect(valid.toolCalls).toHaveLength(1);
+    expect(valid.toolCalls[0]?.name).toBe('list_notes');
+
+    // Unknown tool name is rejected
+    const response = `\`\`\`tool_call
+{"name": "nonexistent_tool", "args": {}}
+\`\`\``;
+    const result = parseMCPResponse(response);
+    expect(result.toolCalls).toHaveLength(0);
+  });
+
   it('skips blocks without a name field', () => {
     // Prove valid blocks with name field are extracted
     const valid = parseMCPResponse('```tool_call\n{"name": "list_tags", "args": {}}\n```');

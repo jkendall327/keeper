@@ -2,13 +2,29 @@
 
 import type { KeeperDB, NoteWithTags, Tag } from '../db/types.ts';
 
+export type ToolName =
+  | 'list_notes'
+  | 'search_notes'
+  | 'get_note'
+  | 'create_note'
+  | 'update_note'
+  | 'delete_note'
+  | 'confirm_delete_note'
+  | 'add_tag'
+  | 'remove_tag'
+  | 'get_notes_for_tag'
+  | 'get_untagged_notes'
+  | 'list_tags'
+  | 'toggle_pin'
+  | 'toggle_archive';
+
 export interface ToolCall {
-  name: string;
+  name: ToolName;
   args: Record<string, unknown>;
 }
 
 export interface ToolResult {
-  name: string;
+  name: ToolName;
   result: string;
   needsConfirmation?: boolean;
 }
@@ -174,7 +190,9 @@ export async function executeTool(db: KeeperDB, call: ToolCall): Promise<ToolRes
       return { name, result: `Note ${note.archived ? 'archived' : 'unarchived'}.\n${formatNote(note)}` };
     }
 
-    default:
-      return { name, result: `Error: Unknown tool "${name}".` };
+    default: {
+      const _exhaustive: never = name;
+      return { name: _exhaustive, result: `Error: Unknown tool "${String(name)}".` };
+    }
   }
 }

@@ -157,10 +157,10 @@ describe('Tool executor', () => {
     expect(note?.archived).toBe(true);
   });
 
-  it('unknown tool returns error', async () => {
-    const result = await executeTool(db, { name: 'nonexistent_tool', args: {} });
-    expect(result.result).toContain('Error');
-    expect(result.result).toContain('Unknown tool');
+  it('unknown tool name is rejected by ToolName type at compile time', () => {
+    // @ts-expect-error — ToolName union prevents unknown names at compile time
+    const invalidCall: Parameters<typeof executeTool>[1] = { name: 'nonexistent_tool', args: {} };
+    expect(invalidCall.name).toBe('nonexistent_tool');
   });
 
   it('returns error for missing required parameters', async () => {

@@ -14,6 +14,24 @@ import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
 import type { NoteWithTags } from './db/types.ts';
 
+// Typed custom event system — prevents typos in event names at compile time
+interface KeeperEventMap {
+  'keeper:bulk-delete': CustomEvent<void>;
+  'keeper:bulk-archive': CustomEvent<void>;
+  'keeper:export': CustomEvent<void>;
+}
+
+type KeeperEventName = keyof KeeperEventMap;
+
+function dispatchKeeper(name: KeeperEventName): void {
+  window.dispatchEvent(new CustomEvent(name));
+}
+
+function onKeeper(name: KeeperEventName, handler: () => void): () => void {
+  window.addEventListener(name, handler);
+  return () => { window.removeEventListener(name, handler); };
+}
+
 interface AppContentProps {
   selectedNoteIds: Set<string>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
@@ -139,17 +157,12 @@ function AppContent({ selectedNoteIds, setSelectedNoteIds, onFilterChange, onDis
 
   // Listen for bulk action events from header buttons
   useEffect(() => {
-    const onBulkDelete = () => { void handleBulkDelete(); };
-    const onBulkArchive = () => { void handleBulkArchive(); };
-    const onExport = () => { setShowExportModal(true); };
-    window.addEventListener('keeper:bulk-delete', onBulkDelete);
-    window.addEventListener('keeper:bulk-archive', onBulkArchive);
-    window.addEventListener('keeper:export', onExport);
-    return () => {
-      window.removeEventListener('keeper:bulk-delete', onBulkDelete);
-      window.removeEventListener('keeper:bulk-archive', onBulkArchive);
-      window.removeEventListener('keeper:export', onExport);
-    };
+    const cleanups = [
+      onKeeper('keeper:bulk-delete', () => { void handleBulkDelete(); }),
+      onKeeper('keeper:bulk-archive', () => { void handleBulkArchive(); }),
+      onKeeper('keeper:export', () => { setShowExportModal(true); }),
+    ];
+    return () => { cleanups.forEach((fn) => { fn(); }); };
   }, [handleBulkDelete, handleBulkArchive]);
 
   return (
@@ -293,26 +306,20 @@ function App() {
               {!isArchiveView && (
                 <button
                   className="bulk-action-btn bulk-archive-btn"
-                  onClick={() => {
-                    window.dispatchEvent(new CustomEvent('keeper:bulk-archive'));
-                  }}
+                  onClick={() => { dispatchKeeper('keeper:bulk-archive'); }}
                 >
                   Archive
                 </button>
               )}
               <button
                 className="bulk-action-btn bulk-export-btn"
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('keeper:export'));
-                }}
+                onClick={() => { dispatchKeeper('keeper:export'); }}
               >
                 Export
               </button>
               <button
                 className="bulk-action-btn bulk-delete-btn"
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('keeper:bulk-delete'));
-                }}
+                onClick={() => { dispatchKeeper('keeper:bulk-delete'); }}
               >
                 Delete
               </button>

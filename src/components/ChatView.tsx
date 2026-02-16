@@ -79,7 +79,7 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
   const [selectedModel, setSelectedModel] = useState(client.getModel());
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, loading, pendingConfirmation, send, confirmDelete, clear } = useChatLoop({
+  const { messages, loading, streaming, pendingConfirmation, send, confirmDelete, clear } = useChatLoop({
     client,
     db,
     onMutation,
@@ -96,7 +96,7 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
+  }, [messages, loading, streaming]);
 
   const handleModelChange = useCallback((modelId: string) => {
     client.setModel(modelId);
@@ -170,7 +170,12 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
             </div>
           </div>
         )}
-        {loading && (
+        {streaming !== '' && (
+          <div className="chat-message chat-message-assistant chat-message-streaming">
+            <div className="chat-message-content">{streaming}<span className="chat-cursor" /></div>
+          </div>
+        )}
+        {loading && streaming === '' && (
           <div className="chat-loading">
             <Icon name="hourglass_empty" size={16} /> Thinking...
           </div>

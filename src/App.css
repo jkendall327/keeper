@@ -1423,6 +1423,24 @@ body.is-drag-selecting {
   padding: 4px 0;
 }
 
+.chat-message-streaming {
+  opacity: 0.9;
+}
+
+.chat-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background: currentColor;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
 .chat-input-bar {
   display: flex;
   gap: 8px;

@@ -27,6 +27,7 @@ const MAX_TOOL_ITERATIONS = 10;
 export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
+  const [streaming, setStreaming] = useState('');
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -55,6 +56,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
 
     let iterMessages = currentMessages;
     let iterations = 0;
+    let accumulated = '';
 
     try {
       while (iterations < MAX_TOOL_ITERATIONS) {
@@ -63,8 +65,21 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
         const controller = new AbortController();
         abortRef.current = controller;
 
-        const response = await client.chat(llmMessages, { signal: controller.signal });
-        const { toolCalls, text } = parseMCPResponse(response.content);
+        // Stream the response token-by-token
+        accumulated = '';
+        let lastFlush = 0;
+        const THROTTLE_MS = 50;
+        for await (const token of client.stream(llmMessages, { signal: controller.signal })) {
+          accumulated += token;
+          const now = performance.now();
+          if (now - lastFlush >= THROTTLE_MS) {
+            lastFlush = now;
+            setStreaming(accumulated);
+          }
+        }
+        // Final flush
+        setStreaming('');
+        const { toolCalls, text } = parseMCPResponse(accumulated);
 
         if (toolCalls.length === 0) {
           // No tool calls — stream the final response for display
@@ -116,8 +131,14 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       }
     } catch (err: unknown) {
       if (err instanceof DOMException && err.name === 'AbortError') {
-        // User cancelled
+        // Preserve any partially streamed text as an assistant message
+        setStreaming('');
+        if (accumulated !== '') {
+          const partialMsg: ChatMessage = { role: 'assistant', content: accumulated };
+          setMessages([...iterMessages, partialMsg]);
+        }
       } else {
+        setStreaming('');
         const errorMsg = err instanceof Error ? err.message : 'An unknown error occurred';
         const assistantMsg: ChatMessage = { role: 'assistant', content: `Error: ${errorMsg}` };
         setMessages([...iterMessages, assistantMsg]);
@@ -175,6 +196,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
   return {
     messages,
     loading,
+    streaming,
     pendingConfirmation,
     send,
     confirmDelete,

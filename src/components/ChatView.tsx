@@ -34,6 +34,14 @@ async function fetchModels(apiKey: string): Promise<FetchModelsResult> {
       if (typeof m !== 'object' || m === null) continue;
       const obj = m as Record<string, unknown>;
       if (typeof obj['id'] !== 'string') continue;
+      // Filter to chat-capable models (text in both input and output modalities)
+      const arch = obj['architecture'];
+      if (typeof arch === 'object' && arch !== null) {
+        const a = arch as Record<string, unknown>;
+        const inputMods = Array.isArray(a['input_modalities']) ? a['input_modalities'] : [];
+        const outputMods = Array.isArray(a['output_modalities']) ? a['output_modalities'] : [];
+        if (!inputMods.includes('text') || !outputMods.includes('text')) continue;
+      }
       const name = typeof obj['name'] === 'string' ? obj['name'] : obj['id'];
       filtered.push({ id: obj['id'], name });
     }

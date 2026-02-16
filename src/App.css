@@ -566,7 +566,6 @@
 
 .note-card-body {
   margin: 0;
-  white-space: pre-wrap;
   word-break: break-word;
   font-size: 0.9rem;
   line-height: 1.5;
@@ -575,6 +574,11 @@
   -webkit-line-clamp: 10;
   overflow: hidden;
   padding-right: 64px;
+}
+
+.note-card-body-text {
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .note-card-truncation {

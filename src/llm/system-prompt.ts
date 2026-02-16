@@ -30,12 +30,14 @@ Get a single note by ID.
 Create a new note.
 - Parameters:
   - body (string, required): The note body text
+  - title (string, optional): The note title
 
 ### update_note
-Update an existing note's body.
+Update an existing note's body and/or title.
 - Parameters:
   - id (string, required): The note ID
   - body (string, required): The new body text
+  - title (string, optional): The new title
 
 ### delete_note
 Delete a note (requires confirmation).

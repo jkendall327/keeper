@@ -17,6 +17,7 @@ function formatNote(note: NoteWithTags): string {
   const tags = note.tags.map((t) => t.name).join(', ');
   const lines = [
     `ID: ${note.id}`,
+    `Title: ${note.title !== '' ? note.title : '(none)'}`,
     `Body: ${note.body}`,
     `Tags: ${tags !== '' ? tags : '(none)'}`,
     `Pinned: ${String(note.pinned)}`,
@@ -67,7 +68,8 @@ export async function executeTool(db: KeeperDB, call: ToolCall): Promise<ToolRes
       if (typeof body !== 'string' || body.trim() === '') {
         return { name, result: 'Error: "body" parameter is required and must be a non-empty string.' };
       }
-      const note = await db.createNote({ body });
+      const title = typeof args['title'] === 'string' ? args['title'] : undefined;
+      const note = await db.createNote({ body, title });
       return { name, result: `Note created.\n${formatNote(note)}` };
     }
 
@@ -80,7 +82,8 @@ export async function executeTool(db: KeeperDB, call: ToolCall): Promise<ToolRes
       if (typeof body !== 'string') {
         return { name, result: 'Error: "body" parameter is required and must be a string.' };
       }
-      const note = await db.updateNote({ id, body });
+      const title = typeof args['title'] === 'string' ? args['title'] : undefined;
+      const note = await db.updateNote({ id, body, title });
       return { name, result: `Note updated.\n${formatNote(note)}` };
     }
 

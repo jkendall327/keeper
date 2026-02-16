@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
+import { tagDisplayIcon, type NoteWithTags, type Tag, type UpdateNoteInput } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { getDB } from '../db/db-client.ts';
@@ -201,7 +201,7 @@ export function NoteModal({
           <div className="modal-tag-list">
             {note.tags.map((tag) => (
               <span key={tag.id} className="modal-tag-chip">
-                <Icon name={tag.icon ?? 'label'} size={14} />
+                <Icon name={tagDisplayIcon(tag)} size={14} />
                 {tag.name}
                 <button
                   className="modal-tag-remove"

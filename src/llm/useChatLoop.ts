@@ -5,11 +5,10 @@ import { executeTool, type ToolResult } from './tools.ts';
 import { buildSystemPrompt } from './system-prompt.ts';
 import type { KeeperDB, NoteWithTags, Tag } from '../db/types.ts';
 
-export interface ChatMessage {
-  role: 'user' | 'assistant' | 'tool';
-  content: string;
-  toolResult?: ToolResult;
-}
+export type ChatMessage =
+  | { role: 'user'; content: string }
+  | { role: 'assistant'; content: string }
+  | { role: 'tool'; content: string; toolResult: ToolResult };
 
 interface PendingConfirmation {
   toolResult: ToolResult;
@@ -40,8 +39,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       } else if (msg.role === 'assistant') {
         llmMessages.push({ role: 'assistant', content: msg.content });
       } else {
-        // Tool results are fed back as user messages with tool context
-        llmMessages.push({ role: 'user', content: `[Tool Result: ${msg.toolResult?.name ?? 'unknown'}]\n${msg.content}` });
+        llmMessages.push({ role: 'user', content: `[Tool Result: ${msg.toolResult.name}]\n${msg.content}` });
       }
     }
     return llmMessages;
@@ -109,12 +107,16 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
             result = await executeTool(db, call);
           } catch (toolErr: unknown) {
             const msg = toolErr instanceof Error ? toolErr.message : 'Tool execution failed';
-            const errorToolMsg: ChatMessage = { role: 'tool', content: `Error: ${msg}` };
+            const errorToolMsg: ChatMessage = {
+              role: 'tool',
+              content: `Error: ${msg}`,
+              toolResult: { name: call.name, result: `Error: ${msg}`, needsConfirmation: false },
+            };
             iterMessages = [...iterMessages, errorToolMsg];
             continue;
           }
 
-          if (result.needsConfirmation === true) {
+          if (result.needsConfirmation) {
             // Pause for user confirmation
             const toolMsg: ChatMessage = { role: 'tool', content: result.result, toolResult: result };
             iterMessages = [...iterMessages, toolMsg];
@@ -171,7 +173,11 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       let toolMsg: ChatMessage;
 
       if (!confirmed) {
-        toolMsg = { role: 'tool', content: 'Delete cancelled by user.' };
+        toolMsg = {
+          role: 'tool',
+          content: 'Delete cancelled by user.',
+          toolResult: { name: pendingConfirmation.toolResult.name, result: 'Delete cancelled by user.', needsConfirmation: false },
+        };
       } else {
         const result = await executeTool(db, {
           name: 'confirm_delete_note',
@@ -217,8 +223,8 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       } else {
         setStreaming('');
         const errorMsg = err instanceof Error ? err.message : 'An unknown error occurred';
-        const errorChatMsg: ChatMessage = { role: 'tool', content: `Error: ${errorMsg}` };
-        setMessages((prev) => [...prev, errorChatMsg]);
+        const assistantMsg: ChatMessage = { role: 'assistant', content: `Error: ${errorMsg}` };
+        setMessages((prev) => [...prev, assistantMsg]);
       }
     } finally {
       setLoading(false);

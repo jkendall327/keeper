@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
-import type { NoteWithTags, UpdateNoteInput } from '../db/types.ts';
+import { tagDisplayIcon, type NoteWithTags, type UpdateNoteInput } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 
@@ -104,7 +104,7 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
         <div className="note-card-tags">
           {note.tags.map((tag) => (
             <span key={tag.id} className="note-card-tag">
-              <Icon name={tag.icon ?? 'label'} size={14} />
+              <Icon name={tagDisplayIcon(tag)} size={14} />
               {tag.name}
             </span>
           ))}

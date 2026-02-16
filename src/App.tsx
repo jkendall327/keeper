@@ -13,24 +13,7 @@ import { Icon } from './components/Icon.tsx';
 import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
 import type { NoteWithTags } from './db/types.ts';
-
-// Typed custom event system — prevents typos in event names at compile time
-interface KeeperEventMap {
-  'keeper:bulk-delete': CustomEvent<void>;
-  'keeper:bulk-archive': CustomEvent<void>;
-  'keeper:export': CustomEvent<void>;
-}
-
-type KeeperEventName = keyof KeeperEventMap;
-
-function dispatchKeeper(name: KeeperEventName): void {
-  window.dispatchEvent(new CustomEvent(name));
-}
-
-function onKeeper(name: KeeperEventName, handler: () => void): () => void {
-  window.addEventListener(name, handler);
-  return () => { window.removeEventListener(name, handler); };
-}
+import { dispatchKeeper, onKeeper } from './keeper-events.ts';
 
 interface AppContentProps {
   selectedNoteIds: Set<string>;

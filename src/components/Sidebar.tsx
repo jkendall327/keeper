@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Tag } from '../db/types.ts';
+import { tagDisplayIcon, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { IconPicker } from './IconPicker.tsx';
 
@@ -98,7 +98,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
                     title="Change tag icon"
                     aria-label={`Change icon for ${tag.name}`}
                   >
-                    <Icon name={tag.icon ?? 'label'} size={18} />
+                    <Icon name={tagDisplayIcon(tag)} size={18} />
                   </button>
                   {iconPickerTagId === tag.id && (
                     <IconPicker

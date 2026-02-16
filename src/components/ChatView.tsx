@@ -87,7 +87,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
       <div className="chat-message chat-message-tool">
         <div className="chat-tool-label">
           <Icon name="build" size={14} />
-          {msg.toolResult?.name ?? 'Tool'}
+          {msg.toolResult.name}
         </div>
         <pre className="chat-tool-result">{msg.content}</pre>
       </div>

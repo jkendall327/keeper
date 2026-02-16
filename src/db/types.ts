@@ -1,3 +1,5 @@
+'use no memo';
+
 // ── Data types ──────────────────────────────────────────────
 
 export interface Note {
@@ -34,6 +36,11 @@ export interface NoteWithTags extends Note {
   tags: Tag[];
 }
 
+/** Default icon for tags without a custom icon */
+export function tagDisplayIcon(tag: Tag): string {
+  return tag.icon ?? 'label';
+}
+
 export interface SearchResult extends NoteWithTags {
   rank: number;
 }
@@ -41,14 +48,14 @@ export interface SearchResult extends NoteWithTags {
 // ── Input types ─────────────────────────────────────────────
 
 export interface CreateNoteInput {
-  title?: string | undefined;
+  title?: string;
   body: string;
 }
 
 export interface UpdateNoteInput {
   id: string;
-  title?: string | undefined;
-  body?: string | undefined;
+  title?: string;
+  body?: string;
 }
 
 export interface StoreMediaInput {

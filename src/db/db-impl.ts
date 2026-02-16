@@ -106,7 +106,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
        WHERE nt.note_id = ?`,
       [noteId],
     );
-    return rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string, icon: (r['icon'] as string | null) ?? null }));
+    return rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string, icon: r['icon'] as string | null }));
   }
 
   function withTags(note: Note): NoteWithTags {
@@ -202,9 +202,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const newPinned = existing.pinned ? 0 : 1;
       db.run('UPDATE notes SET pinned = ? WHERE id = ?', [newPinned, id]);
 
-      const note = await api.getNote(id);
-      if (note === null) throw new Error(`Note not found: ${id}`);
-      return note;
+      return { ...existing, pinned: !existing.pinned };
     },
 
     async toggleArchiveNote(id: string): Promise<NoteWithTags> {
@@ -214,9 +212,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const newArchived = existing.archived ? 0 : 1;
       db.run('UPDATE notes SET archived = ? WHERE id = ?', [newArchived, id]);
 
-      const note = await api.getNote(id);
-      if (note === null) throw new Error(`Note not found: ${id}`);
-      return note;
+      return { ...existing, archived: !existing.archived };
     },
 
     async addTag(noteId: string, tagName: string): Promise<NoteWithTags> {
@@ -226,19 +222,21 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
       db.run('INSERT OR IGNORE INTO tags (name) VALUES (?)', [tagName]);
 
-      const tagRows = db.query('SELECT id FROM tags WHERE name = ?', [tagName]);
-      const tagRow = tagRows[0];
-      if (tagRow === undefined) throw new Error(`Tag not found: ${tagName}`);
+      // Tag is guaranteed to exist after INSERT OR IGNORE
+      const tagRow = db.query('SELECT id FROM tags WHERE name = ?', [tagName])[0];
+      if (tagRow === undefined) throw new Error('Unreachable: tag must exist after INSERT OR IGNORE');
       const tagId = tagRow['id'] as number;
 
       db.run('INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)', [noteId, tagId]);
 
-      const note = await api.getNote(noteId);
-      if (note === null) throw new Error(`Note not found: ${noteId}`);
-      return note;
+      // Re-read tags since they changed; note itself still exists
+      return { ...existing, tags: getTagsForNote(noteId) };
     },
 
     async removeTag(noteId: string, tagName: string): Promise<NoteWithTags> {
+      const existing = await api.getNote(noteId);
+      if (existing === null) throw new Error(`Note not found: ${noteId}`);
+
       db.run(
         `DELETE FROM note_tags WHERE note_id = ? AND tag_id = (
            SELECT id FROM tags WHERE name = ?
@@ -246,9 +244,8 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         [noteId, tagName],
       );
 
-      const note = await api.getNote(noteId);
-      if (note === null) throw new Error(`Note not found: ${noteId}`);
-      return note;
+      // Re-read tags since they changed; note itself still exists
+      return { ...existing, tags: getTagsForNote(noteId) };
     },
 
     async renameTag(oldName: string, newName: string): Promise<void> {
@@ -259,10 +256,11 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         // newName already exists — merge: move note_tags from old to new, then delete old
         const oldRows = db.query('SELECT id FROM tags WHERE name = ?', [oldName]);
         const oldRow = oldRows[0];
-        if (oldRow === undefined) return Promise.resolve();
+        if (oldRow === undefined) throw new Error(`Tag not found: ${oldName}`);
         const oldTagId = oldRow['id'] as number;
+        // Guaranteed non-undefined: we checked existingRows.length > 0
         const existingRow = existingRows[0];
-        if (existingRow === undefined) return Promise.resolve();
+        if (existingRow === undefined) throw new Error('Unreachable: checked length > 0');
         const newTagId = existingRow['id'] as number;
 
         // Reassign note associations (ignore duplicates)
@@ -292,7 +290,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     async getAllTags(): Promise<Tag[]> {
       const rows = db.query('SELECT id, name, icon FROM tags ORDER BY name');
-      return Promise.resolve(rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string, icon: (r['icon'] as string | null) ?? null })));
+      return Promise.resolve(rows.map((r) => ({ id: r['id'] as number, name: r['name'] as string, icon: r['icon'] as string | null })));
     },
 
     async search(query: string): Promise<SearchResult[]> {

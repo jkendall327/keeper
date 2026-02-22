@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import { mkdirSync } from "node:fs";
 import Fastify from "fastify";
 import fastifyMultipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
@@ -9,7 +10,11 @@ import { createKeeperDB } from "../src/db/db-impl.ts";
 import { randomUUID } from "node:crypto";
 
 const dataDir = process.env["DATA_DIR"] ?? "./data";
-const port = Number(process.env["PORT"] ?? "3001");
+const portRaw = Number(process.env["PORT"] ?? "3001");
+const port = Number.isNaN(portRaw) ? 3001 : portRaw;
+
+// Ensure data directory exists before opening database
+mkdirSync(dataDir, { recursive: true });
 
 const app = Fastify({ logger: true });
 

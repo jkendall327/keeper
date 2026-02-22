@@ -24,7 +24,7 @@ export function registerRoutes(
   app.get<{ Params: { id: string } }>(
     "/api/notes/:id",
     async (req, reply) => {
-      const note = await db.getNote(req.params["id"]);
+      const note = await db.getNote(req.params.id);
       if (note === null) {
         return reply.code(404).send({ error: "Not found" });
       }
@@ -35,14 +35,14 @@ export function registerRoutes(
   app.put<{ Params: { id: string }; Body: Omit<UpdateNoteInput, "id"> }>(
     "/api/notes/:id",
     async (req) => {
-      return db.updateNote({ ...req.body, id: req.params["id"] });
+      return db.updateNote({ ...req.body, id: req.params.id });
     },
   );
 
   app.delete<{ Params: { id: string } }>(
     "/api/notes/:id",
     async (req) => {
-      await db.deleteNote(req.params["id"]);
+      await db.deleteNote(req.params.id);
       return {};
     },
   );
@@ -50,7 +50,7 @@ export function registerRoutes(
   app.post<{ Body: { ids: string[] } }>(
     "/api/notes/delete",
     async (req) => {
-      await db.deleteNotes(req.body["ids"]);
+      await db.deleteNotes(req.body.ids);
       return {};
     },
   );
@@ -58,7 +58,7 @@ export function registerRoutes(
   app.post<{ Body: { ids: string[] } }>(
     "/api/notes/archive",
     async (req) => {
-      await db.archiveNotes(req.body["ids"]);
+      await db.archiveNotes(req.body.ids);
       return {};
     },
   );
@@ -66,14 +66,14 @@ export function registerRoutes(
   app.post<{ Params: { id: string } }>(
     "/api/notes/:id/pin",
     async (req) => {
-      return db.togglePinNote(req.params["id"]);
+      return db.togglePinNote(req.params.id);
     },
   );
 
   app.post<{ Params: { id: string } }>(
     "/api/notes/:id/archive",
     async (req) => {
-      return db.toggleArchiveNote(req.params["id"]);
+      return db.toggleArchiveNote(req.params.id);
     },
   );
 
@@ -86,21 +86,21 @@ export function registerRoutes(
   app.post<{ Params: { noteId: string }; Body: { name: string } }>(
     "/api/notes/:noteId/tags",
     async (req) => {
-      return db.addTag(req.params["noteId"], req.body["name"]);
+      return db.addTag(req.params.noteId, req.body.name);
     },
   );
 
   app.delete<{ Params: { noteId: string; tagName: string } }>(
     "/api/notes/:noteId/tags/:tagName",
     async (req) => {
-      return db.removeTag(req.params["noteId"], req.params["tagName"]);
+      return db.removeTag(req.params.noteId, req.params.tagName);
     },
   );
 
   app.put<{ Body: { oldName: string; newName: string } }>(
     "/api/tags/rename",
     async (req) => {
-      await db.renameTag(req.body["oldName"], req.body["newName"]);
+      await db.renameTag(req.body.oldName, req.body.newName);
       return {};
     },
   );
@@ -108,7 +108,7 @@ export function registerRoutes(
   app.put<{ Params: { id: string }; Body: { icon: string | null } }>(
     "/api/tags/:id/icon",
     async (req) => {
-      await db.updateTagIcon(Number(req.params["id"]), req.body["icon"]);
+      await db.updateTagIcon(Number(req.params.id), req.body.icon);
       return {};
     },
   );
@@ -116,7 +116,7 @@ export function registerRoutes(
   app.delete<{ Params: { id: string } }>(
     "/api/tags/:id",
     async (req) => {
-      await db.deleteTag(Number(req.params["id"]));
+      await db.deleteTag(Number(req.params.id));
       return {};
     },
   );
@@ -124,7 +124,7 @@ export function registerRoutes(
   // ── Search & Views ─────────────────────────
 
   app.get<{ Querystring: { q?: string } }>("/api/search", async (req) => {
-    return db.search(req.query["q"] ?? "");
+    return db.search(req.query.q ?? "");
   });
 
   app.get("/api/views/untagged", async () => {
@@ -142,7 +142,7 @@ export function registerRoutes(
   app.get<{ Params: { tagId: string } }>(
     "/api/views/tag/:tagId",
     async (req) => {
-      return db.getNotesForTag(Number(req.params["tagId"]));
+      return db.getNotesForTag(Number(req.params.tagId));
     },
   );
 
@@ -178,7 +178,7 @@ export function registerRoutes(
   app.get<{ Params: { id: string } }>(
     "/api/media/:id",
     async (req, reply) => {
-      const result = await media.serveMedia(req.params["id"]);
+      const result = await media.serveMedia(req.params.id);
       if (result === null) {
         return reply.code(404).send({ error: "Media not found" });
       }
@@ -192,7 +192,7 @@ export function registerRoutes(
   app.delete<{ Params: { id: string } }>(
     "/api/media/:id",
     async (req) => {
-      await media.deleteMedia(req.params["id"]);
+      await media.deleteMedia(req.params.id);
       return {};
     },
   );
@@ -200,7 +200,7 @@ export function registerRoutes(
   app.get<{ Params: { noteId: string } }>(
     "/api/notes/:noteId/media",
     async (req) => {
-      return db.getMediaForNote(req.params["noteId"]);
+      return db.getMediaForNote(req.params.noteId);
     },
   );
 }

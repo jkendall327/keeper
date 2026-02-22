@@ -84,7 +84,7 @@ export async function createMediaHandler(
         try {
           await unlink(join(mediaDir, row["filename"] as string));
         } catch (err: unknown) {
-          console.warn("Media file cleanup skipped:", err);
+          if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
         }
       }
       db.run("DELETE FROM media WHERE id = ?", [id]);
@@ -105,7 +105,7 @@ export async function createMediaHandler(
         try {
           await unlink(join(mediaDir, filename));
         } catch (err: unknown) {
-          console.warn(`Media file cleanup skipped for ${filename}:`, err);
+          if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
         }
       }
     },

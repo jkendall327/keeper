@@ -13,7 +13,7 @@ import type {
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, init);
   if (!res.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${url}: ${res.status}`);
+    throw new Error(`${init?.method ?? "GET"} ${url}: ${String(res.status)}`);
   }
   return res.json() as Promise<T>;
 }
@@ -21,14 +21,14 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
 async function fetchNullable<T>(url: string): Promise<T | null> {
   const res = await fetch(url);
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`GET ${url}: ${res.status}`);
+  if (!res.ok) throw new Error(`GET ${url}: ${String(res.status)}`);
   return res.json() as Promise<T>;
 }
 
 async function fetchVoid(url: string, init?: RequestInit): Promise<void> {
   const res = await fetch(url, init);
   if (!res.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${url}: ${res.status}`);
+    throw new Error(`${init?.method ?? "GET"} ${url}: ${String(res.status)}`);
   }
 }
 
@@ -88,10 +88,10 @@ const db: KeeperDB = {
     fetchVoid("/api/tags/rename", jsonOpts("PUT", { oldName, newName })),
 
   updateTagIcon: (tagId: number, icon: string | null) =>
-    fetchVoid(`/api/tags/${tagId}/icon`, jsonOpts("PUT", { icon })),
+    fetchVoid(`/api/tags/${String(tagId)}/icon`, jsonOpts("PUT", { icon })),
 
   deleteTag: (tagId: number) =>
-    fetchVoid(`/api/tags/${tagId}`, { method: "DELETE" }),
+    fetchVoid(`/api/tags/${String(tagId)}`, { method: "DELETE" }),
 
   // Search
   search: (query: string) =>
@@ -104,7 +104,7 @@ const db: KeeperDB = {
   getLinkedNotes: () => fetchJson<NoteWithTags[]>("/api/views/links"),
   getArchivedNotes: () => fetchJson<NoteWithTags[]>("/api/views/archived"),
   getNotesForTag: (tagId: number) =>
-    fetchJson<NoteWithTags[]>(`/api/views/tag/${tagId}`),
+    fetchJson<NoteWithTags[]>(`/api/views/tag/${String(tagId)}`),
 
   // Media
   async storeMedia(input) {
@@ -118,7 +118,7 @@ const db: KeeperDB = {
   async getMedia(id: string) {
     const res = await fetch(`/api/media/${id}`);
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`GET /api/media/${id}: ${res.status}`);
+    if (!res.ok) throw new Error(`GET /api/media/${id}: ${String(res.status)}`);
     return res.arrayBuffer();
   },
 

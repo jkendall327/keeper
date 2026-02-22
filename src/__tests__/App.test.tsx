@@ -1015,6 +1015,42 @@ describe('App Integration Tests', () => {
     globalThis.ResizeObserver = originalRO;
   });
 
+  it('clicking a note in archive view opens the modal', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    // Create a note
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Archive modal test');
+    await user.keyboard('{Enter}');
+
+    // Archive the note
+    const noteText = await screen.findByText('Archive modal test');
+    const noteCard = noteText.closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
+    const archiveBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Archive note"]');
+    if (archiveBtn === null) throw new Error('Archive button not found');
+    await user.click(archiveBtn);
+
+    // Note should disappear from the default view
+    await waitFor(() => {
+      expect(screen.queryByText('Archive modal test')).not.toBeInTheDocument();
+    });
+
+    // Switch to Archive filter
+    const archiveFilterBtn = screen.getByText('Archive');
+    await user.click(archiveFilterBtn);
+
+    // Note should appear in the archive view
+    const archivedNote = await screen.findByText('Archive modal test');
+
+    // Click to open modal
+    await user.click(archivedNote);
+
+    // Modal should open with the note content
+    await screen.findByDisplayValue('Archive modal test');
+  });
+
   describe('Chat view', () => {
     it('shows Chat entry in the sidebar', async () => {
       await renderApp();

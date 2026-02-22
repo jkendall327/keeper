@@ -31,6 +31,9 @@ export function NoteModal({
   const tagInputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const bodyHistoryRef = useRef<string[]>([note.body]);
+  const bodyHistoryIndexRef = useRef(0);
+  const bodyNextCheckpointRef = useRef(false);
 
   const noteTagNames = new Set(note.tags.map((t) => t.name));
 
@@ -44,6 +47,14 @@ export function NoteModal({
               !noteTagNames.has(t.name),
           )
           .slice(0, 8);
+
+  const pushBodyCheckpoint = (value: string) => {
+    const history = bodyHistoryRef.current;
+    const index = bodyHistoryIndexRef.current;
+    if (history[index] === value) return;
+    bodyHistoryRef.current = [...history.slice(0, index + 1), value];
+    bodyHistoryIndexRef.current = bodyHistoryRef.current.length - 1;
+  };
 
   const handleCheckboxToggle = (newBody: string) => {
     setBody(newBody);
@@ -95,6 +106,8 @@ export function NoteModal({
         before + spacing + insertions.join('\n\n') + endSpacing + after;
 
       setBody(newBody);
+      pushBodyCheckpoint(newBody);
+      bodyNextCheckpointRef.current = false;
 
       // Move cursor after inserted content
       setTimeout(() => {
@@ -104,6 +117,42 @@ export function NoteModal({
         textarea.focus();
       }, 0);
     }
+  };
+
+  const handleBodyKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    const ctrl = e.ctrlKey || e.metaKey;
+
+    if (ctrl && !e.shiftKey && e.key === 'z') {
+      e.preventDefault();
+      pushBodyCheckpoint(body);
+      if (bodyHistoryIndexRef.current > 0) {
+        bodyHistoryIndexRef.current--;
+        setBody(bodyHistoryRef.current[bodyHistoryIndexRef.current]);
+      }
+      return;
+    }
+
+    if (ctrl && (e.key === 'y' || (e.shiftKey && e.key === 'z'))) {
+      e.preventDefault();
+      if (bodyHistoryIndexRef.current < bodyHistoryRef.current.length - 1) {
+        bodyHistoryIndexRef.current++;
+        setBody(bodyHistoryRef.current[bodyHistoryIndexRef.current]);
+      }
+      return;
+    }
+
+    if (new Set([' ', 'Enter', '.', ',', '!', '?', ';', ':']).has(e.key)) {
+      bodyNextCheckpointRef.current = true;
+    }
+  };
+
+  const handleBodyChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newValue = e.target.value;
+    if (bodyNextCheckpointRef.current) {
+      pushBodyCheckpoint(newValue);
+      bodyNextCheckpointRef.current = false;
+    }
+    setBody(newValue);
   };
 
   const saveAndClose = useCallback(async () => {
@@ -143,6 +192,15 @@ export function NoteModal({
     }
   };
 
+  // Reset undo history when a different note is opened.
+  // Intentionally omits note.body — we only reset on note ID change, not on every
+  // body update (e.g. checkbox toggles that update the prop while the modal is open).
+  useEffect(() => {
+    bodyHistoryRef.current = [note.body];
+    bodyHistoryIndexRef.current = 0;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [note.id]);
+
   // Focus the modal panel on mount so keyboard events (Escape) are captured
   useEffect(() => {
     panelRef.current?.focus();
@@ -180,8 +238,10 @@ export function NoteModal({
             className="modal-body-input"
             placeholder="Note"
             value={body}
-            onChange={(e) => { setBody(e.target.value); }}
+            onChange={handleBodyChange}
+            onKeyDown={handleBodyKeyDown}
             onPaste={(e) => {
+              bodyNextCheckpointRef.current = true;
               handlePaste(e).catch((err: unknown) => {
                 console.error('Failed to handle paste:', err);
               });

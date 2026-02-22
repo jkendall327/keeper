@@ -1,13 +1,14 @@
-import type { SqlValue } from "@sqlite.org/sqlite-wasm";
+/** SQLite bind value — replaces the @sqlite.org/sqlite-wasm import */
+export type SqlValue = string | number | null | Uint8Array;
 
 /** A row returned by SQLite in object mode */
 export type SqlRow = Record<string, SqlValue>;
 
 /**
  * Minimal database adapter matching the three db.exec() call patterns
- * used throughout db.worker.ts. Implementations:
- * - OpfsSqliteDb: wraps OpfsDatabase for production (browser)
- * - MemorySqliteDb: wraps better-sqlite3 for testing (Node)
+ * used throughout the codebase. Implementations:
+ * - server/sqlite-adapter.ts: wraps better-sqlite3 for production (Node)
+ * - src/db/__tests__/test-db.ts: wraps better-sqlite3 in-memory for testing
  */
 export interface SqliteDb {
   /** Execute SQL with no result (INSERT, UPDATE, DELETE, DDL) */

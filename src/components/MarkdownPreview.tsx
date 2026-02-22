@@ -1,73 +1,18 @@
-import { useMemo, useRef, useEffect, useState } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import { markdown } from '@motioneffector/markdown';
-import { getDB } from '../db/db-client.ts';
 
 interface MarkdownPreviewProps {
   content: string;
-  noteId?: string;
   onCheckboxToggle?: (newContent: string) => void;
   className?: string;
 }
 
 export function MarkdownPreview({
   content,
-  noteId,
   onCheckboxToggle,
   className = '',
 }: MarkdownPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mediaUrls, setMediaUrls] = useState<Map<string, string>>(new Map());
-  // Track URLs for cleanup without triggering re-renders
-  const mediaUrlsRef = useRef<Map<string, string>>(new Map());
-
-  // Load media and create blob URLs
-  useEffect(() => {
-    if (noteId === undefined) return;
-
-    // Extract media IDs from markdown (inline to avoid React Compiler issues)
-    const matches = content.matchAll(/media:\/\/([a-f0-9-]+)/gi);
-    const mediaIds = Array.from(matches, (m) => m[1]).filter(
-      (id): id is string => id !== undefined,
-    );
-
-    const createdUrls: string[] = [];
-
-    const loadMedia = async () => {
-      if (mediaIds.length === 0) {
-        // Clean up any existing blob URLs if no media in content
-        mediaUrlsRef.current.forEach((url) => { URL.revokeObjectURL(url); });
-        mediaUrlsRef.current = new Map();
-        setMediaUrls(new Map());
-        return;
-      }
-
-      const db = getDB();
-      const mediaList = await db.getMediaForNote(noteId);
-      const blobUrlMap = new Map<string, string>();
-
-      for (const mediaId of mediaIds) {
-        const mediaItem = mediaList.find((m) => m.id === mediaId);
-        if (mediaItem === undefined) continue;
-
-        const buffer = await db.getMedia(mediaId);
-        if (buffer !== null) {
-          const blob = new Blob([buffer], { type: mediaItem.mime_type });
-          const url = URL.createObjectURL(blob);
-          blobUrlMap.set(mediaId, url);
-          createdUrls.push(url);
-        }
-      }
-      mediaUrlsRef.current = blobUrlMap;
-      setMediaUrls(blobUrlMap);
-    };
-
-    void loadMedia();
-
-    // CRITICAL: Cleanup to prevent memory leaks
-    return () => {
-      createdUrls.forEach((url) => { URL.revokeObjectURL(url); });
-    };
-  }, [content, noteId]);
 
   // Render markdown to HTML
   const rawHtml = useMemo(() => {
@@ -83,18 +28,18 @@ export function MarkdownPreview({
     }
   }, [content]);
 
-  // Post-process HTML: replace media:// URLs and add rel attributes
+  // Post-process HTML: replace media:// URLs with API URLs and add rel attributes
   const html = useMemo(() => {
-    let result = rawHtml;
-    for (const [mediaId, blobUrl] of mediaUrls) {
-      result = result.replaceAll(`media://${mediaId}`, blobUrl);
-    }
+    let result = rawHtml.replaceAll(
+      /media:\/\/([a-f0-9-]+)/gi,
+      '/api/media/$1',
+    );
     // Ensure all links open in a new tab with safe rel.
     // First strip any target the library already added, then add uniformly.
     result = result.replaceAll(' target="_blank"', '');
     result = result.replaceAll('<a href=', '<a target="_blank" rel="noopener noreferrer" href=');
     return result;
-  }, [rawHtml, mediaUrls]);
+  }, [rawHtml]);
 
   // Add checkbox interactivity
   useEffect(() => {

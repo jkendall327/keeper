@@ -249,7 +249,7 @@ export function NoteModal({
           />
           {body.includes('media://') && (
             <div className="modal-body-live-preview">
-              <MarkdownPreview content={body} noteId={note.id} onCheckboxToggle={handleCheckboxToggle} />
+              <MarkdownPreview content={body} onCheckboxToggle={handleCheckboxToggle} />
             </div>
           )}
           {body.trim() === '' && (

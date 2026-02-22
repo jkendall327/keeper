@@ -95,7 +95,6 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
       <div ref={bodyRef} className="note-card-body">
         <MarkdownPreview
           content={note.body}
-          noteId={note.id}
           onCheckboxToggle={handleCheckboxToggle}
         />
       </div>

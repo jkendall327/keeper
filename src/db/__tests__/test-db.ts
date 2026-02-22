@@ -1,6 +1,5 @@
 import Database from 'better-sqlite3';
-import type { SqliteDb, SqlRow } from '../sqlite-db.ts';
-import type { SqlValue } from '@sqlite.org/sqlite-wasm';
+import type { SqliteDb, SqlRow, SqlValue } from '../sqlite-db.ts';
 
 export function createTestDb(): SqliteDb {
   const db = new Database(':memory:');

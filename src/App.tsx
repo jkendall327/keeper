@@ -127,9 +127,10 @@ function AppContent({
     void loadNotes();
   }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag, getLinkedNotes, onDisplayedNotesChange, onDisplayedNoteIdsChange]);
 
-  // Keep selectedNote in sync with latest data from notes array
+  // Keep selectedNote in sync with latest data from displayed notes
+  // (using displayedNotes so archived notes are findable in archive view)
   const currentNote = selectedNote !== null
-    ? notes.find((n) => n.id === selectedNote.id) ?? null
+    ? displayedNotes.find((n) => n.id === selectedNote.id) ?? null
     : null;
 
   const clearSelection = useCallback(() => {

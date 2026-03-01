@@ -4,7 +4,7 @@
   "description": "Quick-capture notes to your Keeper instance",
   "version": "1.0.0",
   "permissions": ["contextMenus", "activeTab", "storage"],
-  "host_permissions": ["http://localhost:3001/*"],
+  "host_permissions": ["http://localhost:*/*"],
   "background": {
     "service_worker": "background.js"
   },

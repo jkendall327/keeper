@@ -62,6 +62,16 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.type === "test-connection") {
+    const url = msg.url.replace(/\/+$/, "");
+    fetch(`${url}/api/notes`, { method: "GET" })
+      .then((res) => sendResponse({ ok: res.ok }))
+      .catch(() => sendResponse({ ok: false, error: "unreachable" }));
+    return true; // keep channel open for async sendResponse
+  }
+});
+
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
     const body = buildNoteBody(info, tab);

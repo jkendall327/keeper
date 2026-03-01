@@ -9,10 +9,12 @@ function showStatus(text, ok) {
   statusEl.className = ok ? "ok" : "err";
 }
 
-async function testConnection(url) {
-  const cleanUrl = url.replace(/\/+$/, "");
-  const response = await fetch(`${cleanUrl}/api/notes`, { method: "GET" });
-  return response.ok;
+function testConnection(url) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: "test-connection", url }, (response) => {
+      resolve(response?.ok ?? false);
+    });
+  });
 }
 
 // Load saved URL
@@ -29,15 +31,11 @@ saveBtn.addEventListener("click", async () => {
 
   showStatus("Testing connection...", true);
 
-  try {
-    const ok = await testConnection(url);
-    if (ok) {
-      chrome.storage.sync.set({ serverUrl: url });
-      showStatus("Connected and saved", true);
-    } else {
-      showStatus("Server responded with an error", false);
-    }
-  } catch {
+  const ok = await testConnection(url);
+  if (ok) {
+    chrome.storage.sync.set({ serverUrl: url });
+    showStatus("Connected and saved", true);
+  } else {
     showStatus("Could not reach server", false);
   }
 });

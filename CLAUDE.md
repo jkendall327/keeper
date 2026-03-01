@@ -27,7 +27,7 @@ Both commands must pass with zero errors before committing. When modifying code,
 ## Workflow
 
 - Read the git log briefly to see what work's been done already.
-- Always create a git commit when you're done working.
+- Always create a git commit when you're done working. You have a skill for creating commits that you should use.
 
 
 ## ClaudeCatcher

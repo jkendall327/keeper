@@ -50,6 +50,18 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     "CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived)",
   );
 
+  // Migration: Add trashed column if it doesn't exist (for existing databases)
+  const hasTrashedColumn = columns.some((col) => col["name"] === "trashed");
+  if (!hasTrashedColumn) {
+    db.execRaw(
+      "ALTER TABLE notes ADD COLUMN trashed INTEGER NOT NULL DEFAULT 0",
+    );
+  }
+
+  db.execRaw(
+    "CREATE INDEX IF NOT EXISTS idx_notes_trashed ON notes(trashed)",
+  );
+
   // Migration: Add icon column to tags table if it doesn't exist
   const tagColumns = db.query("PRAGMA table_info(tags)");
   const hasIconColumn = tagColumns.some((col) => col["name"] === "icon");
@@ -98,6 +110,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       has_links: row["has_links"] === 1,
       pinned: row["pinned"] === 1,
       archived: row["archived"] === 1,
+      trashed: row["trashed"] === 1,
       created_at: row["created_at"] as string,
       updated_at: row["updated_at"] as string,
     };
@@ -170,6 +183,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
           has_links: hasLinks === 1,
           pinned: false,
           archived: false,
+          trashed: false,
           created_at: timestamp,
           updated_at: timestamp,
         }),
@@ -185,7 +199,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     async getAllNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
-        "SELECT * FROM notes WHERE archived = 0 ORDER BY pinned DESC, updated_at DESC",
+        "SELECT * FROM notes WHERE archived = 0 AND trashed = 0 ORDER BY pinned DESC, updated_at DESC",
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },
@@ -233,6 +247,33 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         ids,
       );
       return Promise.resolve();
+    },
+
+    async trashNote(id: string): Promise<void> {
+      db.run("UPDATE notes SET trashed = 1 WHERE id = ?", [id]);
+      return Promise.resolve();
+    },
+
+    async trashNotes(ids: string[]): Promise<void> {
+      if (ids.length === 0) return Promise.resolve();
+      const placeholders = ids.map(() => "?").join(",");
+      db.run(
+        `UPDATE notes SET trashed = 1 WHERE id IN (${placeholders})`,
+        ids,
+      );
+      return Promise.resolve();
+    },
+
+    async restoreNote(id: string): Promise<void> {
+      db.run("UPDATE notes SET trashed = 0 WHERE id = ?", [id]);
+      return Promise.resolve();
+    },
+
+    async getTrashedNotes(): Promise<NoteWithTags[]> {
+      const rows = db.query(
+        "SELECT * FROM notes WHERE trashed = 1 ORDER BY updated_at DESC",
+      );
+      return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },
 
     async togglePinNote(id: string): Promise<NoteWithTags> {
@@ -358,7 +399,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         `SELECT n.*, rank
          FROM notes_fts fts
          JOIN notes n ON n.rowid = fts.rowid
-         WHERE notes_fts MATCH ?
+         WHERE notes_fts MATCH ? AND n.trashed = 0
          ORDER BY n.archived ASC, rank`,
         [fts5Query],
       );
@@ -374,7 +415,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     async getUntaggedNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
         `SELECT * FROM notes
-         WHERE id NOT IN (SELECT note_id FROM note_tags) AND archived = 0
+         WHERE id NOT IN (SELECT note_id FROM note_tags) AND archived = 0 AND trashed = 0
          ORDER BY pinned DESC, updated_at DESC`,
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
@@ -382,7 +423,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
-        "SELECT * FROM notes WHERE has_links = 1 AND archived = 0 ORDER BY pinned DESC, updated_at DESC",
+        "SELECT * FROM notes WHERE has_links = 1 AND archived = 0 AND trashed = 0 ORDER BY pinned DESC, updated_at DESC",
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },
@@ -391,7 +432,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const rows = db.query(
         `SELECT n.* FROM notes n
          JOIN note_tags nt ON nt.note_id = n.id
-         WHERE nt.tag_id = ? AND n.archived = 0
+         WHERE nt.tag_id = ? AND n.archived = 0 AND n.trashed = 0
          ORDER BY n.pinned DESC, n.updated_at DESC`,
         [tagId],
       );
@@ -400,7 +441,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     async getArchivedNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
-        "SELECT * FROM notes WHERE archived = 1 ORDER BY pinned DESC, updated_at DESC",
+        "SELECT * FROM notes WHERE archived = 1 AND trashed = 0 ORDER BY pinned DESC, updated_at DESC",
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },

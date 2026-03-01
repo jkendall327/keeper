@@ -7,6 +7,7 @@ export type FilterType =
   | { type: 'all' }
   | { type: 'untagged' }
   | { type: 'archive' }
+  | { type: 'trash' }
   | { type: 'links' }
   | { type: 'chat' }
   | { type: 'tag'; tagId: number };
@@ -30,6 +31,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
     if (activeFilter.type === 'all' && filter.type === 'all') return true;
     if (activeFilter.type === 'untagged' && filter.type === 'untagged') return true;
     if (activeFilter.type === 'archive' && filter.type === 'archive') return true;
+    if (activeFilter.type === 'trash' && filter.type === 'trash') return true;
     if (activeFilter.type === 'links' && filter.type === 'links') return true;
     if (activeFilter.type === 'chat' && filter.type === 'chat') return true;
     if (
@@ -152,6 +154,13 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
           onClick={() => { onFilterChange({ type: 'archive' }); }}
         >
           <Icon name="archive" size={18} /> Archive
+        </button>
+
+        <button
+          className={`sidebar-tab ${isActive({ type: 'trash' }) ? 'sidebar-tab-active' : ''}`}
+          onClick={() => { onFilterChange({ type: 'trash' }); }}
+        >
+          <Icon name="delete" size={18} /> Trash
         </button>
 
         <button

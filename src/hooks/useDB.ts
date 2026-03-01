@@ -121,6 +121,34 @@ export function useDB() {
     return await getDB().search(query);
   }, []);
 
+  const trashNote = useCallback(
+    async (id: string) => {
+      await getDB().trashNote(id);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const trashNotes = useCallback(
+    async (ids: string[]) => {
+      await getDB().trashNotes(ids);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const restoreNote = useCallback(
+    async (id: string) => {
+      await getDB().restoreNote(id);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const getTrashedNotes = useCallback(async () => {
+    return await getDB().getTrashedNotes();
+  }, []);
+
   const toggleArchiveNote = useCallback(
     async (id: string) => {
       await getDB().toggleArchiveNote(id);
@@ -161,6 +189,10 @@ export function useDB() {
     updateTagIcon,
     deleteTag,
     search,
+    trashNote,
+    trashNotes,
+    restoreNote,
+    getTrashedNotes,
     toggleArchiveNote,
     getArchivedNotes,
     getUntaggedNotes,

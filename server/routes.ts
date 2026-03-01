@@ -90,6 +90,30 @@ export function registerRoutes(
   );
 
   app.post<{ Params: { id: string } }>(
+    "/api/notes/:id/trash",
+    async (req) => {
+      await db.trashNote(req.params.id);
+      return {};
+    },
+  );
+
+  app.post<{ Body: { ids: string[] } }>(
+    "/api/notes/trash",
+    async (req) => {
+      await db.trashNotes(req.body.ids);
+      return {};
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
+    "/api/notes/:id/restore",
+    async (req) => {
+      await db.restoreNote(req.params.id);
+      return {};
+    },
+  );
+
+  app.post<{ Params: { id: string } }>(
     "/api/notes/:id/pin",
     async (req) => {
       return db.togglePinNote(req.params.id);
@@ -163,6 +187,10 @@ export function registerRoutes(
 
   app.get("/api/views/archived", async () => {
     return db.getArchivedNotes();
+  });
+
+  app.get("/api/views/trash", async () => {
+    return db.getTrashedNotes();
   });
 
   app.get<{ Params: { tagId: string } }>(

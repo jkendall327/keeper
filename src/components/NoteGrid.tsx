@@ -12,6 +12,8 @@ interface NoteGridProps {
   selectedNoteIds: Set<string>;
   onBulkSelect: (ids: Set<string>) => void;
   onClearSelection: () => void;
+  isTrashView?: boolean;
+  onRestore?: (id: string) => Promise<void>;
 }
 
 interface DragState {
@@ -26,6 +28,7 @@ const DRAG_THRESHOLD = 5;
 export function NoteGrid({
   notes, onSelect, onDelete, onTogglePin, onToggleArchive,
   onUpdateNote, selectedNoteIds, onBulkSelect, onClearSelection,
+  isTrashView, onRestore,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -197,6 +200,8 @@ export function NoteGrid({
           onToggleArchive={onToggleArchive}
           onUpdate={onUpdateNote}
           isSelected={selectedNoteIds.has(note.id)}
+          isTrashView={isTrashView}
+          onRestore={onRestore}
         />
       ))}
     </div>

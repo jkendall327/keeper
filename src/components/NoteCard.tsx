@@ -11,9 +11,11 @@ interface NoteCardProps {
   onToggleArchive: (id: string) => Promise<void>;
   onUpdate: (input: UpdateNoteInput) => Promise<void>;
   isSelected?: boolean;
+  isTrashView?: boolean;
+  onRestore?: (id: string) => Promise<void>;
 }
 
-export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, onUpdate, isSelected }: NoteCardProps) {
+export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, onUpdate, isSelected, isTrashView, onRestore }: NoteCardProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
 
@@ -69,17 +71,31 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
         >
           <Icon name="push_pin" className={note.pinned ? 'icon-filled' : ''} />
         </button>
-        <button
-          className="note-card-archive"
-          onClick={(e) => {
-            e.stopPropagation();
-            void onToggleArchive(note.id);
-          }}
-          aria-label={note.archived ? 'Unarchive note' : 'Archive note'}
-          title={note.archived ? 'Unarchive note' : 'Archive note'}
-        >
-          <Icon name={note.archived ? 'unarchive' : 'archive'} />
-        </button>
+        {isTrashView === true ? (
+          <button
+            className="note-card-archive"
+            onClick={(e) => {
+              e.stopPropagation();
+              void onRestore?.(note.id);
+            }}
+            aria-label="Restore note"
+            title="Restore note"
+          >
+            <Icon name="restore_from_trash" />
+          </button>
+        ) : (
+          <button
+            className="note-card-archive"
+            onClick={(e) => {
+              e.stopPropagation();
+              void onToggleArchive(note.id);
+            }}
+            aria-label={note.archived ? 'Unarchive note' : 'Archive note'}
+            title={note.archived ? 'Unarchive note' : 'Archive note'}
+          >
+            <Icon name={note.archived ? 'unarchive' : 'archive'} />
+          </button>
+        )}
         <button
           className="note-card-delete"
           onClick={(e) => {

@@ -38,6 +38,7 @@ export function createMockDB(): MockDB {
         has_links: hasUrl(input.body),
         pinned: false,
         archived: false,
+        trashed: false,
         created_at: now(),
         updated_at: now(),
         tags: [],
@@ -53,7 +54,7 @@ export function createMockDB(): MockDB {
     async getAllNotes(): Promise<NoteWithTags[]> {
       return Promise.resolve(
         Array.from(notes.values())
-          .filter(n => !n.archived)
+          .filter(n => !n.archived && !n.trashed)
           .sort((a, b) => {
             if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
             return b.updated_at.localeCompare(a.updated_at);
@@ -87,6 +88,40 @@ export function createMockDB(): MockDB {
         notes.delete(id);
       }
       return Promise.resolve();
+    },
+
+    async trashNote(id: string): Promise<void> {
+      const note = notes.get(id);
+      if (note !== undefined) {
+        notes.set(id, { ...note, trashed: true });
+      }
+      return Promise.resolve();
+    },
+
+    async trashNotes(ids: string[]): Promise<void> {
+      for (const id of ids) {
+        const note = notes.get(id);
+        if (note !== undefined) {
+          notes.set(id, { ...note, trashed: true });
+        }
+      }
+      return Promise.resolve();
+    },
+
+    async restoreNote(id: string): Promise<void> {
+      const note = notes.get(id);
+      if (note !== undefined) {
+        notes.set(id, { ...note, trashed: false });
+      }
+      return Promise.resolve();
+    },
+
+    async getTrashedNotes(): Promise<NoteWithTags[]> {
+      return Promise.resolve(
+        Array.from(notes.values())
+          .filter(n => n.trashed)
+          .sort((a, b) => b.updated_at.localeCompare(a.updated_at)),
+      );
     },
 
     async archiveNotes(ids: string[]): Promise<void> {
@@ -201,7 +236,7 @@ export function createMockDB(): MockDB {
       const q = query.toLowerCase();
       return Promise.resolve(
         Array.from(notes.values())
-          .filter((n) => n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q))
+          .filter((n) => !n.trashed && (n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q)))
           .map((n, i) => ({ ...n, rank: -(i + 1) })),
       );
     },
@@ -209,7 +244,7 @@ export function createMockDB(): MockDB {
     async getUntaggedNotes(): Promise<NoteWithTags[]> {
       return Promise.resolve(
         Array.from(notes.values())
-          .filter(n => n.tags.length === 0 && !n.archived)
+          .filter(n => n.tags.length === 0 && !n.archived && !n.trashed)
           .sort((a, b) => {
             if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
             return b.updated_at.localeCompare(a.updated_at);
@@ -218,13 +253,13 @@ export function createMockDB(): MockDB {
     },
 
     async getLinkedNotes(): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()).filter(n => n.has_links && !n.archived));
+      return Promise.resolve(Array.from(notes.values()).filter(n => n.has_links && !n.archived && !n.trashed));
     },
 
     async getNotesForTag(tagId: number): Promise<NoteWithTags[]> {
       return Promise.resolve(
         Array.from(notes.values())
-          .filter(n => n.tags.some(t => t.id === tagId) && !n.archived)
+          .filter(n => n.tags.some(t => t.id === tagId) && !n.archived && !n.trashed)
           .sort((a, b) => {
             if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
             return b.updated_at.localeCompare(a.updated_at);
@@ -233,7 +268,7 @@ export function createMockDB(): MockDB {
     },
 
     async getArchivedNotes(): Promise<NoteWithTags[]> {
-      return Promise.resolve(Array.from(notes.values()).filter(n => n.archived));
+      return Promise.resolve(Array.from(notes.values()).filter(n => n.archived && !n.trashed));
     },
 
     storeMedia(): Promise<never> {

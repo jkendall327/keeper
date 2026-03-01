@@ -63,6 +63,15 @@ const db: KeeperDB = {
   archiveNotes: (ids: string[]) =>
     fetchVoid("/api/notes/archive", jsonOpts("POST", { ids })),
 
+  trashNote: (id: string) =>
+    fetchVoid(`/api/notes/${id}/trash`, { method: "POST" }),
+
+  trashNotes: (ids: string[]) =>
+    fetchVoid("/api/notes/trash", jsonOpts("POST", { ids })),
+
+  restoreNote: (id: string) =>
+    fetchVoid(`/api/notes/${id}/restore`, { method: "POST" }),
+
   togglePinNote: (id: string) =>
     fetchJson<NoteWithTags>(`/api/notes/${id}/pin`, { method: "POST" }),
 
@@ -103,6 +112,7 @@ const db: KeeperDB = {
   getUntaggedNotes: () => fetchJson<NoteWithTags[]>("/api/views/untagged"),
   getLinkedNotes: () => fetchJson<NoteWithTags[]>("/api/views/links"),
   getArchivedNotes: () => fetchJson<NoteWithTags[]>("/api/views/archived"),
+  getTrashedNotes: () => fetchJson<NoteWithTags[]>("/api/views/trash"),
   getNotesForTag: (tagId: number) =>
     fetchJson<NoteWithTags[]>(`/api/views/tag/${String(tagId)}`),
 

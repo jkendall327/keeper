@@ -33,9 +33,12 @@ interface AppContentProps {
   getUntaggedNotes: ReturnType<typeof useDB>['getUntaggedNotes'];
   getNotesForTag: ReturnType<typeof useDB>['getNotesForTag'];
   getLinkedNotes: ReturnType<typeof useDB>['getLinkedNotes'];
+  trashNote: ReturnType<typeof useDB>['trashNote'];
+  restoreNote: ReturnType<typeof useDB>['restoreNote'];
+  getTrashedNotes: ReturnType<typeof useDB>['getTrashedNotes'];
   selectedNoteIds: Set<string>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
-  onFilterChange: (isArchive: boolean) => void;
+  onFilterChange: (filter: { isArchive: boolean; isTrash: boolean }) => void;
   onDisplayedNoteIdsChange: (ids: string[]) => void;
   onDisplayedNotesChange: (notes: NoteWithTags[]) => void;
 }
@@ -59,6 +62,9 @@ function AppContent({
   getUntaggedNotes,
   getNotesForTag,
   getLinkedNotes,
+  trashNote,
+  restoreNote,
+  getTrashedNotes,
   selectedNoteIds,
   setSelectedNoteIds,
   onFilterChange,
@@ -84,7 +90,7 @@ function AppContent({
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
   const [showSettings, setShowSettings] = useState(false);
   useEffect(() => {
-    onFilterChange(activeFilter.type === 'archive');
+    onFilterChange({ isArchive: activeFilter.type === 'archive', isTrash: activeFilter.type === 'trash' });
     setSelectedNoteIds(new Set());
   }, [activeFilter, onFilterChange, setSelectedNoteIds]);
   const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(notes);
@@ -108,6 +114,9 @@ function AppContent({
           case 'archive':
             notes_ = await getArchivedNotes();
             break;
+          case 'trash':
+            notes_ = await getTrashedNotes();
+            break;
           case 'links':
             notes_ = await getLinkedNotes();
             break;
@@ -125,7 +134,7 @@ function AppContent({
       onDisplayedNoteIdsChange(notes_.map((n) => n.id));
     };
     void loadNotes();
-  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getUntaggedNotes, getNotesForTag, getLinkedNotes, onDisplayedNotesChange, onDisplayedNoteIdsChange]);
+  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getTrashedNotes, getUntaggedNotes, getNotesForTag, getLinkedNotes, onDisplayedNotesChange, onDisplayedNoteIdsChange]);
 
   // Keep selectedNote in sync with latest data from displayed notes
   // (using displayedNotes so archived notes are findable in archive view)
@@ -212,13 +221,20 @@ function AppContent({
             <NoteGrid
               notes={displayedNotes}
               onSelect={setSelectedNote}
-              onDelete={deleteNote}
+              onDelete={activeFilter.type === 'trash'
+                ? async (id: string) => {
+                    if (!window.confirm('Permanently delete this note? This cannot be undone.')) return;
+                    await deleteNote(id);
+                  }
+                : trashNote}
               onTogglePin={togglePinNote}
               onToggleArchive={toggleArchiveNote}
               onUpdateNote={updateNote}
               selectedNoteIds={selectedNoteIds}
               onBulkSelect={handleBulkSelect}
               onClearSelection={clearSelection}
+              isTrashView={activeFilter.type === 'trash'}
+              onRestore={restoreNote}
             />
           </>
         )}
@@ -228,7 +244,12 @@ function AppContent({
           note={currentNote}
           allTags={allTags}
           onUpdate={updateNote}
-          onDelete={deleteNote}
+          onDelete={activeFilter.type === 'trash'
+            ? async (id: string) => {
+                if (!window.confirm('Permanently delete this note? This cannot be undone.')) return;
+                await deleteNote(id);
+              }
+            : trashNote}
           onAddTag={addTag}
           onRemoveTag={removeTag}
           onClose={() => { setSelectedNote(null); }}
@@ -243,9 +264,10 @@ function AppContent({
 
 function App() {
   const db = useDB();
-  const { deleteNotes, archiveNotes } = db;
+  const { deleteNotes, archiveNotes, trashNotes, restoreNote: restoreNoteFromDB } = db;
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [isArchiveView, setIsArchiveView] = useState(false);
+  const [isTrashView, setIsTrashView] = useState(false);
   const [displayedNoteIds, setDisplayedNoteIds] = useState<string[]>([]);
   const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
@@ -281,10 +303,23 @@ function App() {
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedNoteIds);
     if (ids.length === 0) return;
-    if (!window.confirm(`Delete ${String(ids.length)} selected note${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
-    await deleteNotes(ids);
+    if (isTrashView) {
+      if (!window.confirm(`Permanently delete ${String(ids.length)} selected note${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
+      await deleteNotes(ids);
+    } else {
+      await trashNotes(ids);
+    }
     setSelectedNoteIds(new Set());
-  }, [selectedNoteIds, deleteNotes]);
+  }, [selectedNoteIds, isTrashView, deleteNotes, trashNotes]);
+
+  const handleBulkRestore = useCallback(async () => {
+    const ids = Array.from(selectedNoteIds);
+    if (ids.length === 0) return;
+    for (const id of ids) {
+      await restoreNoteFromDB(id);
+    }
+    setSelectedNoteIds(new Set());
+  }, [selectedNoteIds, restoreNoteFromDB]);
 
   const handleBulkArchive = useCallback(async () => {
     const ids = Array.from(selectedNoteIds);
@@ -311,7 +346,15 @@ function App() {
           {selectedNoteIds.size > 0 && (
             <div className="bulk-actions">
               <span className="bulk-count">{selectedNoteIds.size} selected</span>
-              {!isArchiveView && (
+              {isTrashView && (
+                <button
+                  className="bulk-action-btn bulk-archive-btn"
+                  onClick={() => { void handleBulkRestore(); }}
+                >
+                  Restore
+                </button>
+              )}
+              {!isArchiveView && !isTrashView && (
                 <button
                   className="bulk-action-btn bulk-archive-btn"
                   onClick={() => { void handleBulkArchive(); }}
@@ -356,9 +399,15 @@ function App() {
             getUntaggedNotes={db.getUntaggedNotes}
             getNotesForTag={db.getNotesForTag}
             getLinkedNotes={db.getLinkedNotes}
+            trashNote={db.trashNote}
+            restoreNote={db.restoreNote}
+            getTrashedNotes={db.getTrashedNotes}
             selectedNoteIds={selectedNoteIds}
             setSelectedNoteIds={setSelectedNoteIds}
-            onFilterChange={setIsArchiveView}
+            onFilterChange={useCallback((f: { isArchive: boolean; isTrash: boolean }) => {
+              setIsArchiveView(f.isArchive);
+              setIsTrashView(f.isTrash);
+            }, [])}
             onDisplayedNoteIdsChange={setDisplayedNoteIds}
             onDisplayedNotesChange={setDisplayedNotes}
           />

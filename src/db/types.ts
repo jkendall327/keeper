@@ -7,6 +7,7 @@ export interface Note {
   has_links: boolean;
   pinned: boolean;
   archived: boolean;
+  trashed: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -86,6 +87,12 @@ export interface KeeperDB {
 
   // Search
   search(query: string): Promise<SearchResult[]>;
+
+  // Trash
+  trashNote(id: string): Promise<void>;
+  trashNotes(ids: string[]): Promise<void>;
+  restoreNote(id: string): Promise<void>;
+  getTrashedNotes(): Promise<NoteWithTags[]>;
 
   // Smart views
   getUntaggedNotes(): Promise<NoteWithTags[]>;

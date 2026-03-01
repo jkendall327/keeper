@@ -5,12 +5,14 @@ async function getServerUrl() {
   return result.serverUrl.replace(/\/+$/, "");
 }
 
-async function saveNote(body) {
+async function saveNote({ title, body }) {
   const serverUrl = await getServerUrl();
+  const payload = { body };
+  if (title) payload.title = title;
   const response = await fetch(`${serverUrl}/api/notes`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ body }),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     throw new Error(`Server responded ${response.status}`);
@@ -18,25 +20,18 @@ async function saveNote(body) {
   return response.json();
 }
 
-function buildNoteBody(info, tab) {
+function buildNote(info, tab) {
   if (info.selectionText) {
-    return `${info.selectionText}\n\nSource: ${tab.url}`;
+    return { body: info.selectionText };
   }
   if (info.srcUrl) {
-    return `${info.srcUrl}\n\nFound on: ${tab.url}`;
+    return { body: info.srcUrl };
   }
   if (info.linkUrl) {
-    const body = info.linkUrl;
-    if (tab.url && tab.url !== info.linkUrl) {
-      return `${body}\n\nFound on: ${tab.url}`;
-    }
-    return body;
+    return { body: info.linkUrl };
   }
   // Page save
-  const parts = [];
-  if (tab.title) parts.push(tab.title);
-  if (tab.url) parts.push(tab.url);
-  return parts.join("\n");
+  return { title: tab.title || undefined, body: tab.url || "" };
 }
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -74,8 +69,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
-    const body = buildNoteBody(info, tab);
-    await saveNote(body);
+    const note = buildNote(info, tab);
+    await saveNote(note);
     chrome.action.setBadgeText({ text: "✓", tabId: tab.id });
     chrome.action.setBadgeBackgroundColor({ color: "#16a34a", tabId: tab.id });
     setTimeout(() => chrome.action.setBadgeText({ text: "", tabId: tab.id }), 2000);

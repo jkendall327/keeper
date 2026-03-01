@@ -250,6 +250,26 @@ function App() {
   const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
 
+  // Handle Web Share Target: when opened via /share?title=...&text=...&url=...
+  useEffect(() => {
+    if (window.location.pathname !== '/share') return;
+    const params = new URLSearchParams(window.location.search);
+    const title = params.get('title') ?? '';
+    const text = params.get('text') ?? '';
+    const url = params.get('url') ?? '';
+
+    const parts: string[] = [];
+    if (title !== '') parts.push(title);
+    if (text !== '') parts.push(text);
+    if (url !== '' && url !== text) parts.push(url);
+    const body = parts.join('\n');
+
+    if (body !== '') {
+      void db.createNote({ body });
+    }
+    window.history.replaceState(null, '', '/');
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const handleSelectAll = useCallback(() => {
     if (selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0) {
       setSelectedNoteIds(new Set());

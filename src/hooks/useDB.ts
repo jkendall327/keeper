@@ -1,4 +1,4 @@
-import { useState, useCallback, use } from 'react';
+import { useState, useCallback, useEffect, use } from 'react';
 import { getDB } from '../db/db-client.ts';
 import type { NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput } from '../db/types.ts';
 
@@ -20,6 +20,14 @@ export function useDB() {
     setNotes(freshNotes);
     setAllTags(freshTags);
   }, []);
+
+  // Listen for server-sent events so external changes (e.g. browser extension)
+  // automatically refresh the UI without a manual page reload.
+  useEffect(() => {
+    const es = new EventSource('/api/events');
+    es.addEventListener('refresh', () => { void refresh(); });
+    return () => { es.close(); };
+  }, [refresh]);
 
   const createNote = useCallback(
     async (input: CreateNoteInput) => {

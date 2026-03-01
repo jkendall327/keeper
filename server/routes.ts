@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyReply } from "fastify";
 import type {
   KeeperDB,
   CreateNoteInput,
@@ -11,10 +11,36 @@ export function registerRoutes(
   db: KeeperDB,
   media: MediaHandler,
 ): void {
+  // ── SSE (Server-Sent Events) ─────────────
+
+  const sseClients = new Set<FastifyReply>();
+
+  function broadcast(event: string) {
+    for (const client of sseClients) {
+      client.raw.write(`event: ${event}\ndata: {}\n\n`);
+    }
+  }
+
+  app.get("/api/events", (_req, reply) => {
+    reply.raw.writeHead(200, {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    });
+    reply.raw.write("\n");
+    sseClients.add(reply);
+    reply.raw.on("close", () => {
+      sseClients.delete(reply);
+    });
+    // Don't call reply.send() — we keep the connection open
+  });
+
   // ── Notes ──────────────────────────────────
 
   app.post<{ Body: CreateNoteInput }>("/api/notes", async (req) => {
-    return db.createNote(req.body);
+    const note = await db.createNote(req.body);
+    broadcast("refresh");
+    return note;
   });
 
   app.get("/api/notes", async () => {

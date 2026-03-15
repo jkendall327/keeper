@@ -1,4 +1,4 @@
-import { Suspense, useState, useEffect, useCallback, useRef } from 'react';
+import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { QuickAdd } from './components/QuickAdd.tsx';
@@ -13,6 +13,17 @@ import { Icon } from './components/Icon.tsx';
 import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
 import type { NoteWithTags } from './db/types.ts';
+
+function useIsMobile() {
+  const query = useMemo(() => window.matchMedia('(max-width: 768px)'), []);
+  const [isMobile, setIsMobile] = useState(query.matches);
+  useEffect(() => {
+    const handler = (e: MediaQueryListEvent) => { setIsMobile(e.matches); };
+    query.addEventListener('change', handler);
+    return () => { query.removeEventListener('change', handler); };
+  }, [query]);
+  return isMobile;
+}
 
 interface AppContentProps {
   notes: NoteWithTags[];
@@ -41,6 +52,9 @@ interface AppContentProps {
   onFilterChange: (filter: { isArchive: boolean; isTrash: boolean }) => void;
   onDisplayedNoteIdsChange: (ids: string[]) => void;
   onDisplayedNotesChange: (notes: NoteWithTags[]) => void;
+  sidebarOpen: boolean;
+  onSidebarClose: () => void;
+  isMobile: boolean;
 }
 
 function AppContent({
@@ -70,6 +84,9 @@ function AppContent({
   onFilterChange,
   onDisplayedNoteIdsChange,
   onDisplayedNotesChange,
+  sidebarOpen,
+  onSidebarClose,
+  isMobile,
 }: AppContentProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -152,10 +169,16 @@ function AppContent({
 
   return (
     <div className="app-layout">
+      {isMobile && sidebarOpen && (
+        <div className="sidebar-overlay" onClick={onSidebarClose} />
+      )}
       <Sidebar
         tags={allTags}
         activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
+        onFilterChange={(filter) => {
+          setActiveFilter(filter);
+          if (isMobile) onSidebarClose();
+        }}
         onRenameTag={(old, new_) => {
           renameTag(old, new_).catch((err: unknown) => {
             console.error('Failed to rename tag:', err);
@@ -175,7 +198,11 @@ function AppContent({
             console.error('Failed to update tag icon:', err);
           });
         }}
-        onOpenSettings={() => { setShowSettings(true); }}
+        onOpenSettings={() => {
+          setShowSettings(true);
+          if (isMobile) onSidebarClose();
+        }}
+        isOpen={sidebarOpen}
       />
       <div className="app-content">
         {activeFilter.type === 'chat' ? (
@@ -271,6 +298,8 @@ function App() {
   const [displayedNoteIds, setDisplayedNoteIds] = useState<string[]>([]);
   const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Handle Web Share Target: when opened via /share?title=...&text=...&url=...
   useEffect(() => {
@@ -331,7 +360,18 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Keeper</h1>
+        <div className="app-header-left">
+          {isMobile && (
+            <button
+              className="hamburger-btn"
+              onClick={() => { setSidebarOpen((v) => !v); }}
+              aria-label="Toggle sidebar"
+            >
+              <Icon name="menu" size={24} />
+            </button>
+          )}
+          <h1>Keeper</h1>
+        </div>
         <div className="app-header-actions">
           {displayedNoteIds.length > 0 && (
             <button
@@ -410,6 +450,9 @@ function App() {
             }, [])}
             onDisplayedNoteIdsChange={setDisplayedNoteIds}
             onDisplayedNotesChange={setDisplayedNotes}
+            sidebarOpen={sidebarOpen}
+            onSidebarClose={useCallback(() => { setSidebarOpen(false); }, [])}
+            isMobile={isMobile}
           />
         </Suspense>
       </main>

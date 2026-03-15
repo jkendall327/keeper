@@ -14,9 +14,6 @@
 }
 
 .app-header h1 {
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
   margin: 0;
 }
 
@@ -1480,5 +1477,109 @@ body.is-drag-selecting {
   .modal-body-live-preview {
     border-color: rgba(0, 0, 0, 0.1);
     background: rgba(0, 0, 0, 0.03);
+  }
+}
+
+/* ── App Header Left ───────────────────────────────────── */
+
+.app-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.app-header-left h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
+}
+
+/* ── Hamburger Button ──────────────────────────────────── */
+
+.hamburger-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.hamburger-btn:hover {
+  background: rgba(128, 128, 128, 0.1);
+}
+
+/* ── Mobile Styles ─────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  /* Sidebar: fly-out from left */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 200;
+    width: 240px;
+    border-radius: 0;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    overflow-y: auto;
+  }
+
+  .sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+  }
+
+  /* Single-column note grid */
+  .note-grid {
+    columns: 1;
+  }
+
+  /* Full-screen note modal */
+  .modal-backdrop {
+    align-items: stretch;
+    justify-content: stretch;
+  }
+
+  .modal-panel {
+    flex-direction: column;
+    max-width: none;
+    width: 100%;
+    max-height: none;
+    height: 100%;
+    border-radius: 0;
+    border: none;
+  }
+
+  .modal-tags {
+    width: auto;
+    border-left: none;
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+    flex-shrink: 0;
+  }
+
+  .modal-body-input {
+    max-height: none;
+    flex: 1;
+  }
+
+  /* Layout adjustments */
+  .app-layout {
+    gap: 0;
+  }
+
+  .app-header h1 {
+    font-size: 1.3rem;
   }
 }

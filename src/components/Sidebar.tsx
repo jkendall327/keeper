@@ -20,9 +20,10 @@ interface SidebarProps {
   onDeleteTag: (tagId: number) => void;
   onUpdateTagIcon: (tagId: number, icon: string | null) => void;
   onOpenSettings: () => void;
+  isOpen?: boolean;
 }
 
-export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDeleteTag, onUpdateTagIcon, onOpenSettings }: SidebarProps) {
+export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDeleteTag, onUpdateTagIcon, onOpenSettings, isOpen }: SidebarProps) {
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [iconPickerTagId, setIconPickerTagId] = useState<number | null>(null);
@@ -64,7 +65,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isOpen === true ? 'sidebar-open' : ''}`}>
       <nav className="sidebar-nav">
         <button
           className={`sidebar-tab ${isActive({ type: 'all' }) ? 'sidebar-tab-active' : ''}`}

@@ -370,17 +370,22 @@ function App() {
               <Icon name="menu" size={24} />
             </button>
           )}
-          <h1>Keeper</h1>
+          {!isMobile && <h1>Keeper</h1>}
         </div>
         <div className="app-header-actions">
           {displayedNoteIds.length > 0 && (
             <button
               className="bulk-action-btn select-all-btn"
               onClick={handleSelectAll}
-            >
-              {selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0
+              title={selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0
                 ? 'Deselect All'
                 : 'Select All'}
+            >
+              {isMobile
+                ? <Icon name={selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0 ? 'deselect' : 'select_all'} size={20} />
+                : selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0
+                  ? 'Deselect All'
+                  : 'Select All'}
             </button>
           )}
           {selectedNoteIds.size > 0 && (
@@ -390,29 +395,34 @@ function App() {
                 <button
                   className="bulk-action-btn bulk-archive-btn"
                   onClick={() => { void handleBulkRestore(); }}
+                  title="Restore"
                 >
-                  Restore
+                  {isMobile ? <Icon name="restore_from_trash" size={20} /> : 'Restore'}
                 </button>
               )}
               {!isArchiveView && !isTrashView && (
                 <button
                   className="bulk-action-btn bulk-archive-btn"
                   onClick={() => { void handleBulkArchive(); }}
+                  title="Archive"
                 >
-                  Archive
+                  {isMobile ? <Icon name="archive" size={20} /> : 'Archive'}
+                </button>
+              )}
+              {!isMobile && (
+                <button
+                  className="bulk-action-btn bulk-export-btn"
+                  onClick={() => { setShowExportModal(true); }}
+                >
+                  Export
                 </button>
               )}
               <button
-                className="bulk-action-btn bulk-export-btn"
-                onClick={() => { setShowExportModal(true); }}
-              >
-                Export
-              </button>
-              <button
                 className="bulk-action-btn bulk-delete-btn"
                 onClick={() => { void handleBulkDelete(); }}
+                title="Delete"
               >
-                Delete
+                {isMobile ? <Icon name="delete" size={20} /> : 'Delete'}
               </button>
             </div>
           )}

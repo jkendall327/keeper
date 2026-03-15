@@ -1613,4 +1613,13 @@ body.is-drag-selecting {
   .app-header h1 {
     font-size: 1.3rem;
   }
+
+  /* Icon-only bulk action buttons on mobile */
+  .bulk-action-btn {
+    padding: 6px 8px;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }

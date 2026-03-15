@@ -208,6 +208,23 @@ export function NoteModal({
     panelRef.current?.focus();
   }, []);
 
+  // Push a history entry so that back-swipe / back-button closes the modal
+  // instead of navigating away from the app.
+  useEffect(() => {
+    history.pushState({ noteModal: true }, '');
+    const handlePopState = () => {
+      void saveAndClose();
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      // Clean up the history entry if the modal closes by other means (Escape, backdrop click)
+      if (history.state != null && (history.state as { noteModal?: boolean }).noteModal === true) {
+        history.back();
+      }
+    };
+  }, [saveAndClose]);
+
   // Auto-resize textarea based on content
   useEffect(() => {
     const textarea = bodyTextareaRef.current;
@@ -228,13 +245,22 @@ export function NoteModal({
         onKeyDown={handleKeyDown}
       >
         <div className="modal-editor">
-          <input
-            className="modal-title-input"
-            type="text"
-            placeholder="Title"
-            value={title}
-            onChange={(e) => { setTitle(e.target.value); }}
-          />
+          <div className="modal-header">
+            <input
+              className="modal-title-input"
+              type="text"
+              placeholder="Title"
+              value={title}
+              onChange={(e) => { setTitle(e.target.value); }}
+            />
+            <button
+              className="modal-close-btn"
+              onClick={() => { void saveAndClose(); }}
+              aria-label="Close note"
+            >
+              <Icon name="close" size={20} />
+            </button>
+          </div>
           <textarea
             ref={bodyTextareaRef}
             className="modal-body-input"

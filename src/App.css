@@ -1,13 +1,13 @@
 /* ── App layout ─────────────────────────────────────────── */
 
 .app {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 16px;
+  max-width: none;
+  margin: 0;
+  padding: 0 0 0 220px;
 }
 
 .app-header {
-  padding: 24px 0 8px;
+  padding: 24px 24px 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -19,12 +19,12 @@
 
 
 .app-main {
-  padding-bottom: 48px;
+  padding: 0 24px 48px;
 }
 
 .app-layout {
   display: flex;
-  gap: 24px;
+  gap: 0;
 }
 
 .app-content {
@@ -41,20 +41,22 @@
 /* ── Sidebar ───────────────────────────────────────────── */
 
 .sidebar {
-  width: 200px;
-  flex-shrink: 0;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 220px;
   background: #1e1e2e;
-  border-radius: 8px;
-  padding: 8px;
+  border-radius: 0;
+  padding: 12px 8px;
+  overflow-y: auto;
+  z-index: 100;
 }
 
 .sidebar-nav {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  position: sticky;
-  top: 16px;
-  z-index: 100;
 }
 
 .sidebar-tab {
@@ -1606,6 +1608,14 @@ body.is-drag-selecting {
   }
 
   /* Layout adjustments */
+  .app {
+    padding-left: 0;
+  }
+
+  .app-main {
+    padding: 0 8px 48px;
+  }
+
   .app-layout {
     gap: 0;
   }

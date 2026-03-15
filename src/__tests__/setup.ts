@@ -5,8 +5,8 @@ import { cleanup } from '@testing-library/react';
 // Stub EventSource for jsdom (used by useDB for SSE)
 if (typeof globalThis.EventSource === 'undefined') {
   globalThis.EventSource = class EventSource {
-    close() {}
-    addEventListener() {}
+    close() { /* noop stub for jsdom */ }
+    addEventListener(_type: string, _listener: unknown) { /* noop stub for jsdom */ }
   } as unknown as typeof globalThis.EventSource;
 }
 

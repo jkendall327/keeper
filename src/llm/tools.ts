@@ -134,7 +134,7 @@ export async function executeTool(
       const body = requireStr(name, args, "body", { nonEmpty: true });
       if (typeof body !== "string") return body;
       const title = optionalStr(args, "title");
-      const note = await db.createNote({ body, title });
+      const note = await db.createNote({ body, ...(title !== undefined ? { title } : {}) });
       return ok(name, `Note created.\n${formatNote(note)}`);
     }
 
@@ -144,7 +144,7 @@ export async function executeTool(
       const body = requireStr(name, args, "body");
       if (typeof body !== "string") return body;
       const title = optionalStr(args, "title");
-      const note = await db.updateNote({ id, body, title });
+      const note = await db.updateNote({ id, body, ...(title !== undefined ? { title } : {}) });
       return ok(name, `Note updated.\n${formatNote(note)}`);
     }
 

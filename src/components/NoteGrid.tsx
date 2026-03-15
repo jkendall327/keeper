@@ -233,8 +233,8 @@ export function NoteGrid({
           onToggleArchive={onToggleArchive}
           onUpdate={onUpdateNote}
           isSelected={selectedNoteIds.has(note.id)}
-          isTrashView={isTrashView}
-          onRestore={onRestore}
+          {...(isTrashView !== undefined ? { isTrashView } : {})}
+          {...(onRestore !== undefined ? { onRestore } : {})}
         />
       ))}
     </div>

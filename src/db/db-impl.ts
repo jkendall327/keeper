@@ -405,10 +405,13 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       );
       const notesWithTags = withTagsBatch(rows.map(rowToNote));
       return Promise.resolve(
-        notesWithTags.map((n, i) => ({
-          ...n,
-          rank: rows[i]["rank"] as number,
-        })),
+        notesWithTags.map((n, i) => {
+          const row = rows[i];
+          return {
+            ...n,
+            rank: (row != null ? row["rank"] : 0) as number,
+          };
+        }),
       );
     },
 

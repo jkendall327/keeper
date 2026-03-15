@@ -27,7 +27,7 @@ describe('CRUD Invariants (Property-Based)', () => {
         async (input) => {
           const created = await api.createNote({
             body: input.body,
-            title: input.title ?? undefined,
+            ...(input.title != null ? { title: input.title } : {}),
           });
           const fetched = await api.getNote(created.id);
           expect(fetched).toEqual(created);
@@ -131,8 +131,8 @@ describe('CRUD Invariants (Property-Based)', () => {
           const note = await api.createNote({ title: initialTitle, body: initialBody });
           const updated = await api.updateNote({
             id: note.id,
-            title: updateTitle ?? undefined,
-            body: updateBody ?? undefined,
+            ...(updateTitle != null ? { title: updateTitle } : {}),
+            ...(updateBody != null ? { body: updateBody } : {}),
           });
 
           // If we didn't update title, it should be preserved

@@ -127,7 +127,8 @@ export function NoteModal({
       pushBodyCheckpoint(body);
       if (bodyHistoryIndexRef.current > 0) {
         bodyHistoryIndexRef.current--;
-        setBody(bodyHistoryRef.current[bodyHistoryIndexRef.current]);
+        const value = bodyHistoryRef.current[bodyHistoryIndexRef.current];
+        if (value !== undefined) setBody(value);
       }
       return;
     }
@@ -136,7 +137,8 @@ export function NoteModal({
       e.preventDefault();
       if (bodyHistoryIndexRef.current < bodyHistoryRef.current.length - 1) {
         bodyHistoryIndexRef.current++;
-        setBody(bodyHistoryRef.current[bodyHistoryIndexRef.current]);
+        const value = bodyHistoryRef.current[bodyHistoryIndexRef.current];
+        if (value !== undefined) setBody(value);
       }
       return;
     }

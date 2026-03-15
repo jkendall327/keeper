@@ -210,20 +210,32 @@ export function NoteModal({
 
   // Push a history entry so that back-swipe / back-button closes the modal
   // instead of navigating away from the app.
+  // Use a ref for saveAndClose so this effect is mount-only — otherwise
+  // StrictMode's double-fire (mount → cleanup → mount) causes cleanup to call
+  // history.back() whose async popstate is caught by the re-mounted listener,
+  // immediately closing the modal.
+  const saveAndCloseRef = useRef(saveAndClose);
+  saveAndCloseRef.current = saveAndClose;
+  const ignoreNextPopState = useRef(false);
   useEffect(() => {
     history.pushState({ noteModal: true }, '');
     const handlePopState = () => {
-      void saveAndClose();
+      if (ignoreNextPopState.current) {
+        ignoreNextPopState.current = false;
+        return;
+      }
+      void saveAndCloseRef.current();
     };
     window.addEventListener('popstate', handlePopState);
     return () => {
       window.removeEventListener('popstate', handlePopState);
       // Clean up the history entry if the modal closes by other means (Escape, backdrop click)
       if (history.state != null && (history.state as { noteModal?: boolean }).noteModal === true) {
+        ignoreNextPopState.current = true;
         history.back();
       }
     };
-  }, [saveAndClose]);
+  }, []);
 
   // Auto-resize textarea based on content
   useEffect(() => {

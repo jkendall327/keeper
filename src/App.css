@@ -443,7 +443,7 @@
 /* ── Note Grid (CSS columns masonry) ──────────────────── */
 
 .note-grid {
-  columns: 3 240px;
+  columns: 25ch;
   column-gap: 16px;
 }
 

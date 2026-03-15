@@ -414,7 +414,7 @@ describe('App Integration Tests', () => {
     expect(cardE).not.toHaveClass('note-card-selected');
   });
 
-  it('plain click clears selection and opens modal', async () => {
+  it('plain click in selection mode toggles selection instead of opening modal', async () => {
     const user = userEvent.setup();
     await renderApp();
 
@@ -435,14 +435,26 @@ describe('App Integration Tests', () => {
     if (cardA === null) throw new Error('Card A not found');
     expect(cardA).toHaveClass('note-card-selected');
 
-    // Plain click on Note B — should clear selection and open modal
+    // Plain click on Note B — should add it to selection (not open modal)
     const noteB = await screen.findByText('Note B');
     await user.click(noteB);
 
-    // Modal should open
-    await screen.findByPlaceholderText('Title');
+    // Modal should NOT open
+    expect(screen.queryByPlaceholderText('Title')).not.toBeInTheDocument();
 
-    // Selection should be cleared (no check marks visible)
+    // Both notes should now be selected
+    const cardB = noteB.closest('.note-card');
+    if (cardB === null) throw new Error('Card B not found');
+    expect(cardA).toHaveClass('note-card-selected');
+    expect(cardB).toHaveClass('note-card-selected');
+
+    // Plain click on Note A again — should deselect it
+    await user.click(noteA);
+    expect(cardA).not.toHaveClass('note-card-selected');
+    expect(cardB).toHaveClass('note-card-selected');
+
+    // Deselect Note B — should exit selection mode
+    await user.click(noteB);
     await waitFor(() => {
       expect(screen.queryByLabelText('Selected')).not.toBeInTheDocument();
     });

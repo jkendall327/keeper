@@ -3,9 +3,13 @@ import { tagDisplayIcon, type NoteWithTags, type UpdateNoteInput } from '../db/t
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 
+const LONG_PRESS_MS = 500;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
+
 interface NoteCardProps {
   note: NoteWithTags;
   onSelect: (note: NoteWithTags, e?: React.MouseEvent) => void;
+  onLongPress: (note: NoteWithTags) => void;
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
   onToggleArchive: (id: string) => Promise<void>;
@@ -15,9 +19,12 @@ interface NoteCardProps {
   onRestore?: (id: string) => Promise<void>;
 }
 
-export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchive, onUpdate, isSelected, isTrashView, onRestore }: NoteCardProps) {
+export function NoteCard({ note, onSelect, onLongPress, onDelete, onTogglePin, onToggleArchive, onUpdate, isSelected, isTrashView, onRestore }: NoteCardProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressFired = useRef(false);
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const el = bodyRef.current;
@@ -29,6 +36,39 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
     return () => { observer.disconnect(); };
   }, [note.body]);
 
+  const cancelLongPress = () => {
+    if (longPressTimer.current !== null) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (touch === undefined) return;
+    touchStart.current = { x: touch.clientX, y: touch.clientY };
+    longPressFired.current = false;
+    longPressTimer.current = setTimeout(() => {
+      longPressFired.current = true;
+      longPressTimer.current = null;
+      onLongPress(note);
+    }, LONG_PRESS_MS);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const touch = e.touches[0];
+    if (touch === undefined || touchStart.current === null) return;
+    const dx = touch.clientX - touchStart.current.x;
+    const dy = touch.clientY - touchStart.current.y;
+    if (Math.abs(dx) > LONG_PRESS_MOVE_TOLERANCE || Math.abs(dy) > LONG_PRESS_MOVE_TOLERANCE) {
+      cancelLongPress();
+    }
+  };
+
+  const handleTouchEnd = () => {
+    cancelLongPress();
+  };
+
   const handleCheckboxToggle = (newBody: string) => {
     void onUpdate({ id: note.id, body: newBody });
   };
@@ -39,10 +79,20 @@ export function NoteCard({ note, onSelect, onDelete, onTogglePin, onToggleArchiv
       role="button"
       tabIndex={0}
       onClick={(e) => {
+        // Don't fire click after a long press
+        if (longPressFired.current) return;
         // Don't open modal when clicking a link in preview mode
         const target = e.target as HTMLElement;
         if (target.tagName === 'A' || target.closest('a') !== null) return;
         onSelect(note, e);
+      }}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
+      onContextMenu={(e) => {
+        // Prevent browser context menu on long-press (mobile)
+        if (longPressFired.current) e.preventDefault();
       }}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {

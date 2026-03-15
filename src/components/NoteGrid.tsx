@@ -182,10 +182,42 @@ export function NoteGrid({
       return;
     }
 
+    // If already in selection mode, plain tap toggles selection
+    if (selectedNoteIds.size > 0) {
+      const newSet = new Set(selectedNoteIds);
+      if (newSet.has(note.id)) {
+        newSet.delete(note.id);
+      } else {
+        newSet.add(note.id);
+      }
+      lastClickedRef.current = note.id;
+      if (newSet.size === 0) {
+        onClearSelection();
+      } else {
+        onBulkSelect(newSet);
+      }
+      return;
+    }
+
     // Plain click: clear selection, open modal
     lastClickedRef.current = note.id;
     onClearSelection();
     onSelect(note);
+  };
+
+  const handleLongPress = (note: NoteWithTags) => {
+    const newSet = new Set(selectedNoteIds);
+    if (newSet.has(note.id)) {
+      newSet.delete(note.id);
+    } else {
+      newSet.add(note.id);
+    }
+    lastClickedRef.current = note.id;
+    if (newSet.size === 0) {
+      onClearSelection();
+    } else {
+      onBulkSelect(newSet);
+    }
   };
 
   const renderGroup = (group: NoteWithTags[]) => (
@@ -195,6 +227,7 @@ export function NoteGrid({
           key={note.id}
           note={note}
           onSelect={handleNoteClick}
+          onLongPress={handleLongPress}
           onDelete={onDelete}
           onTogglePin={onTogglePin}
           onToggleArchive={onToggleArchive}

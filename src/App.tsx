@@ -10,9 +10,10 @@ import { Sidebar, type FilterType } from './components/Sidebar.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
 import { ChatView } from './components/ChatView.tsx';
 import { Icon } from './components/Icon.tsx';
+import { TagApplier } from './components/TagApplier.tsx';
 import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
-import type { NoteWithTags } from './db/types.ts';
+import type { NoteWithTags, Tag } from './db/types.ts';
 
 function useIsMobile() {
   const query = useMemo(() => window.matchMedia('(max-width: 768px)'), []);
@@ -301,6 +302,8 @@ function App() {
   const [displayedNoteIds, setDisplayedNoteIds] = useState<string[]>([]);
   const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>([]);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
+  const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -374,6 +377,38 @@ function App() {
     setSelectedNoteIds(new Set());
   }, [selectedNoteIds, archiveNotes]);
 
+  // Compute applied (all selected have) and indeterminate (some selected have) tags for bulk tagging
+  const { bulkAppliedTags, bulkIndeterminateTags } = useMemo(() => {
+    if (selectedNoteIds.size === 0) return { bulkAppliedTags: [] as Tag[], bulkIndeterminateTags: [] as Tag[] };
+    const selectedNotes = displayedNotes.filter((n) => selectedNoteIds.has(n.id));
+    if (selectedNotes.length === 0) return { bulkAppliedTags: [] as Tag[], bulkIndeterminateTags: [] as Tag[] };
+
+    // Count how many selected notes have each tag
+    const tagCounts = new Map<string, { tag: Tag; count: number }>();
+    for (const note of selectedNotes) {
+      for (const tag of note.tags) {
+        const key = tag.name.toLowerCase();
+        const entry = tagCounts.get(key);
+        if (entry !== undefined) {
+          entry.count++;
+        } else {
+          tagCounts.set(key, { tag, count: 1 });
+        }
+      }
+    }
+
+    const applied: Tag[] = [];
+    const indeterminate: Tag[] = [];
+    for (const { tag, count } of tagCounts.values()) {
+      if (count === selectedNotes.length) {
+        applied.push(tag);
+      } else {
+        indeterminate.push(tag);
+      }
+    }
+    return { bulkAppliedTags: applied, bulkIndeterminateTags: indeterminate };
+  }, [selectedNoteIds, displayedNotes]);
+
   return (
     <div className="app">
       <header className="app-header">
@@ -416,6 +451,30 @@ function App() {
                 >
                   {isMobile ? <Icon name="restore_from_trash" size={20} /> : 'Restore'}
                 </button>
+              )}
+              {!isTrashView && (
+                <div style={{ position: 'relative', display: 'inline-block' }}>
+                  <button
+                    ref={bulkTagBtnRef}
+                    className="bulk-action-btn"
+                    onClick={() => { setShowBulkTagApplier((v) => !v); }}
+                    title="Label"
+                  >
+                    {isMobile ? <Icon name="label" size={20} /> : 'Label'}
+                  </button>
+                  {showBulkTagApplier && (
+                    <TagApplier
+                      noteIds={Array.from(selectedNoteIds)}
+                      appliedTags={bulkAppliedTags}
+                      indeterminateTags={bulkIndeterminateTags}
+                      allTags={db.allTags}
+                      onAddTag={db.addTag}
+                      onRemoveTag={db.removeTag}
+                      onClose={() => { setShowBulkTagApplier(false); }}
+                      anchorRef={bulkTagBtnRef}
+                    />
+                  )}
+                </div>
               )}
               {!isArchiveView && !isTrashView && (
                 <button

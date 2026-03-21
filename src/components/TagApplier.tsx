@@ -8,6 +8,8 @@ interface TagApplierProps {
   noteIds: string[];
   /** Tags currently applied to the target note(s) */
   appliedTags: Tag[];
+  /** Tags applied to some but not all target notes (indeterminate state) */
+  indeterminateTags?: Tag[];
   /** All tags that exist in the system */
   allTags: Tag[];
   onAddTag: (noteId: string, tagName: string) => Promise<void>;
@@ -20,6 +22,7 @@ interface TagApplierProps {
 export function TagApplier({
   noteIds,
   appliedTags,
+  indeterminateTags,
   allTags,
   onAddTag,
   onRemoveTag,
@@ -69,13 +72,16 @@ export function TagApplier({
   }, [onClose]);
 
   const appliedSet = useMemo(() => new Set(appliedTags.map((t) => t.name.toLowerCase())), [appliedTags]);
+  const indeterminateSet = useMemo(() => new Set((indeterminateTags ?? []).map((t) => t.name.toLowerCase())), [indeterminateTags]);
 
   const isApplied = useCallback((tagName: string) => appliedSet.has(tagName.toLowerCase()), [appliedSet]);
+  const isIndeterminate = useCallback((tagName: string) => indeterminateSet.has(tagName.toLowerCase()), [indeterminateSet]);
 
   const handleToggleTag = async (tagName: string) => {
-    const applied = isApplied(tagName);
+    // Indeterminate or unchecked → apply to all; fully applied → remove from all
+    const shouldRemove = isApplied(tagName) && !isIndeterminate(tagName);
     for (const noteId of noteIds) {
-      if (applied) {
+      if (shouldRemove) {
         await onRemoveTag(noteId, tagName);
       } else {
         await onAddTag(noteId, tagName);
@@ -106,7 +112,7 @@ export function TagApplier({
       onClick={(e) => { e.stopPropagation(); }}
       onPointerDown={(e) => { e.stopPropagation(); }}
     >
-      <div className="tag-applier-header">Label note</div>
+      <div className="tag-applier-header">{noteIds.length > 1 ? `Label ${String(noteIds.length)} notes` : 'Label note'}</div>
       <div className="tag-applier-input-row">
         <input
           ref={inputRef}
@@ -124,9 +130,9 @@ export function TagApplier({
             key={tag.id}
             className="tag-applier-item"
           >
-            <input
-              type="checkbox"
-              checked={isApplied(tag.name)}
+            <IndeterminateCheckbox
+              checked={isApplied(tag.name) || isIndeterminate(tag.name)}
+              indeterminate={isIndeterminate(tag.name)}
               onChange={() => { void handleToggleTag(tag.name); }}
             />
             <Icon name={tagDisplayIcon(tag)} size={18} />
@@ -145,4 +151,18 @@ export function TagApplier({
   return anchorRef !== undefined
     ? createPortal(popover, document.body)
     : popover;
+}
+
+function IndeterminateCheckbox({ checked, indeterminate, onChange }: {
+  checked: boolean;
+  indeterminate: boolean;
+  onChange: () => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (ref.current !== null) {
+      ref.current.indeterminate = indeterminate;
+    }
+  }, [indeterminate]);
+  return <input ref={ref} type="checkbox" checked={checked} onChange={onChange} />;
 }

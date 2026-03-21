@@ -1,14 +1,17 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import type { NoteWithTags, UpdateNoteInput } from '../db/types.ts';
+import type { NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 
 interface NoteGridProps {
   notes: NoteWithTags[];
+  allTags: Tag[];
   onSelect: (note: NoteWithTags) => void;
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
   onToggleArchive: (id: string) => Promise<void>;
   onUpdateNote: (input: UpdateNoteInput) => Promise<void>;
+  onAddTag: (noteId: string, tagName: string) => Promise<void>;
+  onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
   selectedNoteIds: Set<string>;
   onBulkSelect: (ids: Set<string>) => void;
   onClearSelection: () => void;
@@ -26,8 +29,8 @@ interface DragState {
 const DRAG_THRESHOLD = 5;
 
 export function NoteGrid({
-  notes, onSelect, onDelete, onTogglePin, onToggleArchive,
-  onUpdateNote, selectedNoteIds, onBulkSelect, onClearSelection,
+  notes, allTags, onSelect, onDelete, onTogglePin, onToggleArchive,
+  onUpdateNote, onAddTag, onRemoveTag, selectedNoteIds, onBulkSelect, onClearSelection,
   isTrashView, onRestore,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -226,12 +229,15 @@ export function NoteGrid({
         <NoteCard
           key={note.id}
           note={note}
+          allTags={allTags}
           onSelect={handleNoteClick}
           onLongPress={handleLongPress}
           onDelete={onDelete}
           onTogglePin={onTogglePin}
           onToggleArchive={onToggleArchive}
           onUpdate={onUpdateNote}
+          onAddTag={onAddTag}
+          onRemoveTag={onRemoveTag}
           isSelected={selectedNoteIds.has(note.id)}
           {...(isTrashView !== undefined ? { isTrashView } : {})}
           {...(onRestore !== undefined ? { onRestore } : {})}

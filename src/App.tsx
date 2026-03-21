@@ -247,6 +247,7 @@ function AppContent({
             )}
             <NoteGrid
               notes={displayedNotes}
+              allTags={allTags}
               onSelect={setSelectedNote}
               onDelete={activeFilter.type === 'trash'
                 ? async (id: string) => {
@@ -257,6 +258,8 @@ function AppContent({
               onTogglePin={togglePinNote}
               onToggleArchive={toggleArchiveNote}
               onUpdateNote={updateNote}
+              onAddTag={addTag}
+              onRemoveTag={removeTag}
               selectedNoteIds={selectedNoteIds}
               onBulkSelect={handleBulkSelect}
               onClearSelection={clearSelection}

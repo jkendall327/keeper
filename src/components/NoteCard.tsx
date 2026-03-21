@@ -1,7 +1,8 @@
 import { useRef, useState, useEffect } from 'react';
-import { tagDisplayIcon, type NoteWithTags, type UpdateNoteInput } from '../db/types.ts';
+import { tagDisplayIcon, type NoteWithTags, type Tag, type UpdateNoteInput } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
+import { TagApplier } from './TagApplier.tsx';
 import { getImageUrl } from '../utils/image-url.ts';
 
 const LONG_PRESS_MS = 500;
@@ -9,20 +10,24 @@ const LONG_PRESS_MOVE_TOLERANCE = 10;
 
 interface NoteCardProps {
   note: NoteWithTags;
+  allTags: Tag[];
   onSelect: (note: NoteWithTags, e?: React.MouseEvent) => void;
   onLongPress: (note: NoteWithTags) => void;
   onDelete: (id: string) => Promise<void>;
   onTogglePin: (id: string) => Promise<void>;
   onToggleArchive: (id: string) => Promise<void>;
   onUpdate: (input: UpdateNoteInput) => Promise<void>;
+  onAddTag: (noteId: string, tagName: string) => Promise<void>;
+  onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
   isSelected?: boolean;
   isTrashView?: boolean;
   onRestore?: (id: string) => Promise<void>;
 }
 
-export function NoteCard({ note, onSelect, onLongPress, onDelete, onTogglePin, onToggleArchive, onUpdate, isSelected, isTrashView, onRestore }: NoteCardProps) {
+export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTogglePin, onToggleArchive, onUpdate, onAddTag, onRemoveTag, isSelected, isTrashView, onRestore }: NoteCardProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
+  const [showTagApplier, setShowTagApplier] = useState(false);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -160,6 +165,29 @@ export function NoteCard({ note, onSelect, onLongPress, onDelete, onTogglePin, o
           {new Date(note.updated_at + 'Z').toLocaleDateString()}
         </time>
         <div className="note-card-actions-bottom">
+          <div className="note-card-tag-btn-wrapper">
+            <button
+              className="note-card-tag-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTagApplier((v) => !v);
+              }}
+              aria-label="Label note"
+              title="Label note"
+            >
+              <Icon name="label" />
+            </button>
+            {showTagApplier && (
+              <TagApplier
+                noteIds={[note.id]}
+                appliedTags={note.tags}
+                allTags={allTags}
+                onAddTag={onAddTag}
+                onRemoveTag={onRemoveTag}
+                onClose={() => { setShowTagApplier(false); }}
+              />
+            )}
+          </div>
           {isTrashView === true ? (
             <button
               className="note-card-archive"

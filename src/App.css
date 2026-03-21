@@ -504,7 +504,8 @@
 
 .note-card-pin,
 .note-card-archive,
-.note-card-delete {
+.note-card-delete,
+.note-card-tag-btn {
   background: none;
   border: none;
   color: inherit;
@@ -519,7 +520,8 @@
 
 .note-card-pin .material-symbols-outlined,
 .note-card-archive .material-symbols-outlined,
-.note-card-delete .material-symbols-outlined {
+.note-card-delete .material-symbols-outlined,
+.note-card-tag-btn .material-symbols-outlined {
   font-size: 20px;
 }
 
@@ -529,7 +531,8 @@
 
 .note-card-pin:hover,
 .note-card-archive:hover,
-.note-card-delete:hover {
+.note-card-delete:hover,
+.note-card-tag-btn:hover {
   opacity: 1;
 }
 
@@ -596,6 +599,100 @@
   border-radius: 10px;
   background: rgba(100, 108, 255, 0.15);
   color: #646cff;
+}
+
+.note-card-tag-btn-wrapper {
+  position: relative;
+}
+
+/* ── Tag Applier popover ─────────────────────────────── */
+
+.tag-applier {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+  width: 220px;
+  max-height: 300px;
+  background: #1a1a2e;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  z-index: 200;
+  overflow: hidden;
+}
+
+.tag-applier-header {
+  padding: 10px 12px 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.tag-applier-input-row {
+  padding: 8px 12px;
+}
+
+.tag-applier-input {
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 0.8rem;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 4px;
+  color: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.tag-applier-input:focus {
+  border-color: #646cff;
+}
+
+.tag-applier-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+.tag-applier-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0 4px 8px;
+}
+
+.tag-applier-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.tag-applier-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.tag-applier-item input[type="checkbox"] {
+  margin: 0;
+  cursor: pointer;
+  accent-color: #646cff;
+}
+
+.tag-applier-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.tag-applier-empty {
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.5);
 }
 
 /* ── Modal ────────────────────────────────────────────── */

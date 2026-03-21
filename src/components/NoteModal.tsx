@@ -204,9 +204,16 @@ export function NoteModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.id]);
 
-  // Focus the modal panel on mount so keyboard events (Escape) are captured
+  // Focus the body textarea on mount and place the cursor at the end
   useEffect(() => {
-    panelRef.current?.focus();
+    const textarea = bodyTextareaRef.current;
+    if (textarea !== null) {
+      textarea.focus();
+      const len = textarea.value.length;
+      textarea.setSelectionRange(len, len);
+    } else {
+      panelRef.current?.focus();
+    }
   }, []);
 
   // Push a history entry so that back-swipe / back-button closes the modal

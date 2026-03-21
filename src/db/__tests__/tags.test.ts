@@ -284,6 +284,137 @@ describe('Tags', () => {
     });
   });
 
+  describe('addTagToNotes', () => {
+    it('adds a tag to multiple notes in one call', async () => {
+      const note1 = await api.createNote({ body: 'first' });
+      const note2 = await api.createNote({ body: 'second' });
+      const note3 = await api.createNote({ body: 'third' });
+
+      await api.addTagToNotes([note1.id, note2.id], 'bulk');
+
+      const n1 = await api.getNote(note1.id);
+      const n2 = await api.getNote(note2.id);
+      const n3 = await api.getNote(note3.id);
+      expect(n1?.tags.map((t) => t.name)).toContain('bulk');
+      expect(n2?.tags.map((t) => t.name)).toContain('bulk');
+      // note3 was not in the id list — it should remain untagged
+      expect(n3?.body).toBe('third');
+      expect(n3?.tags.map((t) => t.name)).not.toContain('bulk');
+    });
+
+    it('creates the tag row if it does not exist', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTagToNotes([note.id], 'brand-new');
+
+      const tags = await api.getAllTags();
+      expect(tags.map((t) => t.name)).toContain('brand-new');
+    });
+
+    it('reuses existing tag row rather than creating a duplicate', async () => {
+      const note1 = await api.createNote({ body: 'first' });
+      const note2 = await api.createNote({ body: 'second' });
+      await api.addTag(note1.id, 'shared');
+      await api.addTagToNotes([note2.id], 'shared');
+
+      const tags = await api.getAllTags();
+      expect(tags.filter((t) => t.name === 'shared')).toHaveLength(1);
+    });
+
+    it('is idempotent when a note already has the tag', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'existing');
+      await api.addTagToNotes([note.id], 'existing');
+
+      const fetched = await api.getNote(note.id);
+      // Exactly one tag entry with the expected name — no duplicate introduced
+      expect(fetched?.tags[0]?.name).toBe('existing');
+      expect(fetched?.tags.filter((t) => t.name === 'existing').map((t) => t.name)).toEqual(['existing']);
+    });
+
+    it('is a no-op for an empty id list', async () => {
+      // Verify the function works with a real id (positive case)
+      const note = await api.createNote({ body: 'test' });
+      await api.addTagToNotes([note.id], 'real');
+      let fetched = await api.getNote(note.id);
+      expect(fetched?.tags[0]?.name).toBe('real');
+
+      // Empty list call should not affect existing data
+      await api.addTagToNotes([], 'anytag');
+      fetched = await api.getNote(note.id);
+      expect(fetched?.tags[0]?.name).toBe('real');
+      expect(fetched?.tags).toHaveLength(1);
+    });
+  });
+
+  describe('removeTagFromNotes', () => {
+    it('removes a tag from multiple notes in one call', async () => {
+      const note1 = await api.createNote({ body: 'first' });
+      const note2 = await api.createNote({ body: 'second' });
+      await api.addTagToNotes([note1.id, note2.id], 'label');
+
+      // Confirm present before removal, then verify removal
+      let n1 = await api.getNote(note1.id);
+      let n2 = await api.getNote(note2.id);
+      expect(n1?.tags[0]?.name).toBe('label');
+      expect(n2?.tags[0]?.name).toBe('label');
+
+      await api.removeTagFromNotes([note1.id, note2.id], 'label');
+
+      n1 = await api.getNote(note1.id);
+      n2 = await api.getNote(note2.id);
+      expect(n1?.tags).toHaveLength(0);
+      expect(n2?.tags).toHaveLength(0);
+    });
+
+    it('only removes the tag from the specified notes', async () => {
+      const note1 = await api.createNote({ body: 'first' });
+      const note2 = await api.createNote({ body: 'second' });
+      await api.addTagToNotes([note1.id, note2.id], 'label');
+
+      // Confirm both have the tag before partial removal
+      let n1 = await api.getNote(note1.id);
+      expect(n1?.tags[0]?.name).toBe('label');
+
+      await api.removeTagFromNotes([note1.id], 'label');
+
+      n1 = await api.getNote(note1.id);
+      const n2 = await api.getNote(note2.id);
+      expect(n1?.tags).toHaveLength(0);
+      expect(n2?.tags.map((t) => t.name)).toContain('label');
+    });
+
+    it('does not delete the tag row itself', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTagToNotes([note.id], 'keepme');
+
+      await api.removeTagFromNotes([note.id], 'keepme');
+
+      const tags = await api.getAllTags();
+      expect(tags.map((t) => t.name)).toContain('keepme');
+    });
+
+    it('is a no-op for an empty id list', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTagToNotes([note.id], 'label');
+
+      await api.removeTagFromNotes([], 'label');
+
+      const fetched = await api.getNote(note.id);
+      expect(fetched?.tags[0]?.name).toBe('label');
+    });
+
+    it('is a no-op when the note does not have the tag', async () => {
+      const note = await api.createNote({ body: 'test' });
+      await api.addTag(note.id, 'other');
+
+      await api.removeTagFromNotes([note.id], 'nonexistent');
+
+      const fetched = await api.getNote(note.id);
+      expect(fetched?.tags).toHaveLength(1);
+      expect(fetched?.tags[0]?.name).toBe('other');
+    });
+  });
+
   describe('getAllTags', () => {
     it('returns empty array when no tags exist', async () => {
       const tags = await api.getAllTags();

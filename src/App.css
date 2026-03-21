@@ -498,7 +498,8 @@
   transition: opacity 0.15s;
 }
 
-.note-card:hover .note-card-actions-bottom {
+.note-card:hover .note-card-actions-bottom,
+.note-card-tag-open .note-card-actions-bottom {
   opacity: 1;
 }
 
@@ -601,17 +602,10 @@
   color: #646cff;
 }
 
-.note-card-tag-btn-wrapper {
-  position: relative;
-}
-
 /* ── Tag Applier popover ─────────────────────────────── */
 
 .tag-applier {
-  position: absolute;
-  bottom: 100%;
-  left: 0;
-  margin-bottom: 4px;
+  margin-top: -4px;
   width: 220px;
   max-height: 300px;
   background: #1a1a2e;

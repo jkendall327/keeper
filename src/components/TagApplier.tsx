@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { tagDisplayIcon, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 
@@ -12,6 +13,8 @@ interface TagApplierProps {
   onAddTag: (noteId: string, tagName: string) => Promise<void>;
   onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
   onClose: () => void;
+  /** Element to anchor the popover to */
+  anchorRef?: React.RefObject<HTMLElement | null>;
 }
 
 export function TagApplier({
@@ -21,10 +24,21 @@ export function TagApplier({
   onAddTag,
   onRemoveTag,
   onClose,
+  anchorRef,
 }: TagApplierProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Position the popover above the anchor button on mount
+  useLayoutEffect(() => {
+    const anchor = anchorRef?.current;
+    const panel = panelRef.current;
+    if (anchor === null || anchor === undefined || panel === null) return;
+    const rect = anchor.getBoundingClientRect();
+    panel.style.top = `${String(rect.top + window.scrollY)}px`;
+    panel.style.left = `${String(rect.left + window.scrollX)}px`;
+  }, [anchorRef]);
 
   // Focus input on mount
   useEffect(() => {
@@ -34,13 +48,16 @@ export function TagApplier({
   // Close on outside click
   useEffect(() => {
     const handlePointerDown = (e: PointerEvent) => {
-      if (panelRef.current !== null && !panelRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (panelRef.current !== null && !panelRef.current.contains(target)) {
+        // Don't close if clicking the anchor button itself (it toggles)
+        if (anchorRef?.current?.contains(target) === true) return;
         onClose();
       }
     };
     document.addEventListener('pointerdown', handlePointerDown, true);
     return () => { document.removeEventListener('pointerdown', handlePointerDown, true); };
-  }, [onClose]);
+  }, [onClose, anchorRef]);
 
   // Close on Escape
   useEffect(() => {
@@ -67,6 +84,7 @@ export function TagApplier({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    e.stopPropagation();
     if (e.key === 'Enter') {
       e.preventDefault();
       const name = inputValue.trim();
@@ -80,10 +98,11 @@ export function TagApplier({
     ? allTags
     : allTags.filter((t) => t.name.toLowerCase().includes(inputValue.trim().toLowerCase()));
 
-  return (
+  const popover = (
     <div
       ref={panelRef}
       className="tag-applier"
+      style={anchorRef !== undefined ? { position: 'absolute', transform: 'translateY(-100%)' } : undefined}
       onClick={(e) => { e.stopPropagation(); }}
       onPointerDown={(e) => { e.stopPropagation(); }}
     >
@@ -104,7 +123,6 @@ export function TagApplier({
           <label
             key={tag.id}
             className="tag-applier-item"
-            onClick={(e) => { e.stopPropagation(); }}
           >
             <input
               type="checkbox"
@@ -123,4 +141,8 @@ export function TagApplier({
       </div>
     </div>
   );
+
+  return anchorRef !== undefined
+    ? createPortal(popover, document.body)
+    : popover;
 }

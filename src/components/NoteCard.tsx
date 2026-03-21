@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import { tagDisplayIcon, type NoteWithTags, type Tag, type UpdateNoteInput } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
@@ -28,6 +28,8 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showTagApplier, setShowTagApplier] = useState(false);
+  const tagBtnRef = useRef<HTMLButtonElement>(null);
+  const closeTagApplier = useCallback(() => { setShowTagApplier(false); }, []);
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -80,7 +82,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
   };
   return (
     <div
-      className={`note-card${note.pinned ? ' note-card-pinned' : ''}${isSelected === true ? ' note-card-selected' : ''}`}
+      className={`note-card${note.pinned ? ' note-card-pinned' : ''}${isSelected === true ? ' note-card-selected' : ''}${showTagApplier ? ' note-card-tag-open' : ''}`}
       data-note-id={note.id}
       role="button"
       tabIndex={0}
@@ -165,29 +167,29 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
           {new Date(note.updated_at + 'Z').toLocaleDateString()}
         </time>
         <div className="note-card-actions-bottom">
-          <div className="note-card-tag-btn-wrapper">
-            <button
-              className="note-card-tag-btn"
-              onClick={(e) => {
-                e.stopPropagation();
-                setShowTagApplier((v) => !v);
-              }}
-              aria-label="Label note"
-              title="Label note"
-            >
-              <Icon name="label" />
-            </button>
-            {showTagApplier && (
-              <TagApplier
-                noteIds={[note.id]}
-                appliedTags={note.tags}
-                allTags={allTags}
-                onAddTag={onAddTag}
-                onRemoveTag={onRemoveTag}
-                onClose={() => { setShowTagApplier(false); }}
-              />
-            )}
-          </div>
+          <button
+            ref={tagBtnRef}
+            className="note-card-tag-btn"
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowTagApplier((v) => !v);
+            }}
+            aria-label="Label note"
+            title="Label note"
+          >
+            <Icon name="label" />
+          </button>
+          {showTagApplier && (
+            <TagApplier
+              noteIds={[note.id]}
+              appliedTags={note.tags}
+              allTags={allTags}
+              onAddTag={onAddTag}
+              onRemoveTag={onRemoveTag}
+              onClose={closeTagApplier}
+              anchorRef={tagBtnRef}
+            />
+          )}
           {isTrashView === true ? (
             <button
               className="note-card-archive"

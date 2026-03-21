@@ -29,173 +29,36 @@ export function useDB() {
     return () => { es.close(); };
   }, [refresh]);
 
-  const createNote = useCallback(
-    async (input: CreateNoteInput) => {
-      await getDB().createNote(input);
-      await refresh();
-    },
+  const mutate = useCallback(
+    async (fn: () => Promise<unknown>) => { await fn(); await refresh(); },
     [refresh],
   );
 
-  const updateNote = useCallback(
-    async (input: UpdateNoteInput) => {
-      await getDB().updateNote(input);
-      await refresh();
-    },
-    [refresh],
-  );
+  const createNote = useCallback((input: CreateNoteInput) => mutate(() => getDB().createNote(input)), [mutate]);
+  const updateNote = useCallback((input: UpdateNoteInput) => mutate(() => getDB().updateNote(input)), [mutate]);
+  const deleteNote = useCallback((id: string) => mutate(() => getDB().deleteNote(id)), [mutate]);
+  const deleteNotes = useCallback((ids: string[]) => mutate(() => getDB().deleteNotes(ids)), [mutate]);
+  const archiveNotes = useCallback((ids: string[]) => mutate(() => getDB().archiveNotes(ids)), [mutate]);
+  const togglePinNote = useCallback((id: string) => mutate(() => getDB().togglePinNote(id)), [mutate]);
+  const addTag = useCallback((noteId: string, tagName: string) => mutate(() => getDB().addTag(noteId, tagName)), [mutate]);
+  const removeTag = useCallback((noteId: string, tagName: string) => mutate(() => getDB().removeTag(noteId, tagName)), [mutate]);
+  const renameTag = useCallback((oldName: string, newName: string) => mutate(() => getDB().renameTag(oldName, newName)), [mutate]);
+  const updateTagIcon = useCallback((tagId: number, icon: string | null) => mutate(() => getDB().updateTagIcon(tagId, icon)), [mutate]);
+  const deleteTag = useCallback((tagId: number) => mutate(() => getDB().deleteTag(tagId)), [mutate]);
+  const trashNote = useCallback((id: string) => mutate(() => getDB().trashNote(id)), [mutate]);
+  const trashNotes = useCallback((ids: string[]) => mutate(() => getDB().trashNotes(ids)), [mutate]);
+  const restoreNote = useCallback((id: string) => mutate(() => getDB().restoreNote(id)), [mutate]);
+  const restoreNotes = useCallback((ids: string[]) => mutate(() => getDB().restoreNotes(ids)), [mutate]);
+  const addTagToNotes = useCallback((noteIds: string[], tagName: string) => mutate(() => getDB().addTagToNotes(noteIds, tagName)), [mutate]);
+  const removeTagFromNotes = useCallback((noteIds: string[], tagName: string) => mutate(() => getDB().removeTagFromNotes(noteIds, tagName)), [mutate]);
+  const toggleArchiveNote = useCallback((id: string) => mutate(() => getDB().toggleArchiveNote(id)), [mutate]);
 
-  const deleteNote = useCallback(
-    async (id: string) => {
-      await getDB().deleteNote(id);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const deleteNotes = useCallback(
-    async (ids: string[]) => {
-      await getDB().deleteNotes(ids);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const archiveNotes = useCallback(
-    async (ids: string[]) => {
-      await getDB().archiveNotes(ids);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const togglePinNote = useCallback(
-    async (id: string) => {
-      await getDB().togglePinNote(id);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const addTag = useCallback(
-    async (noteId: string, tagName: string) => {
-      await getDB().addTag(noteId, tagName);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const removeTag = useCallback(
-    async (noteId: string, tagName: string) => {
-      await getDB().removeTag(noteId, tagName);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const renameTag = useCallback(
-    async (oldName: string, newName: string) => {
-      await getDB().renameTag(oldName, newName);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const updateTagIcon = useCallback(
-    async (tagId: number, icon: string | null) => {
-      await getDB().updateTagIcon(tagId, icon);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const deleteTag = useCallback(
-    async (tagId: number) => {
-      await getDB().deleteTag(tagId);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const search = useCallback(async (query: string) => {
-    return await getDB().search(query);
-  }, []);
-
-  const trashNote = useCallback(
-    async (id: string) => {
-      await getDB().trashNote(id);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const trashNotes = useCallback(
-    async (ids: string[]) => {
-      await getDB().trashNotes(ids);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const restoreNote = useCallback(
-    async (id: string) => {
-      await getDB().restoreNote(id);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const restoreNotes = useCallback(
-    async (ids: string[]) => {
-      await getDB().restoreNotes(ids);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const addTagToNotes = useCallback(
-    async (noteIds: string[], tagName: string) => {
-      await getDB().addTagToNotes(noteIds, tagName);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const removeTagFromNotes = useCallback(
-    async (noteIds: string[], tagName: string) => {
-      await getDB().removeTagFromNotes(noteIds, tagName);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const getTrashedNotes = useCallback(async () => {
-    return await getDB().getTrashedNotes();
-  }, []);
-
-  const toggleArchiveNote = useCallback(
-    async (id: string) => {
-      await getDB().toggleArchiveNote(id);
-      await refresh();
-    },
-    [refresh],
-  );
-
-  const getArchivedNotes = useCallback(async () => {
-    return await getDB().getArchivedNotes();
-  }, []);
-
-  const getUntaggedNotes = useCallback(async () => {
-    return await getDB().getUntaggedNotes();
-  }, []);
-
-  const getNotesForTag = useCallback(async (tagId: number) => {
-    return await getDB().getNotesForTag(tagId);
-  }, []);
-
-  const getLinkedNotes = useCallback(async () => {
-    return await getDB().getLinkedNotes();
-  }, []);
+  const search = useCallback((query: string) => getDB().search(query), []);
+  const getTrashedNotes = useCallback(() => getDB().getTrashedNotes(), []);
+  const getArchivedNotes = useCallback(() => getDB().getArchivedNotes(), []);
+  const getUntaggedNotes = useCallback(() => getDB().getUntaggedNotes(), []);
+  const getNotesForTag = useCallback((tagId: number) => getDB().getNotesForTag(tagId), []);
+  const getLinkedNotes = useCallback(() => getDB().getLinkedNotes(), []);
 
   return {
     notes,

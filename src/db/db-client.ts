@@ -72,6 +72,9 @@ const db: KeeperDB = {
   restoreNote: (id: string) =>
     fetchVoid(`/api/notes/${id}/restore`, { method: "POST" }),
 
+  restoreNotes: (ids: string[]) =>
+    fetchVoid("/api/notes/restore", jsonOpts("POST", { ids })),
+
   togglePinNote: (id: string) =>
     fetchJson<NoteWithTags>(`/api/notes/${id}/pin`, { method: "POST" }),
 
@@ -92,6 +95,12 @@ const db: KeeperDB = {
       `/api/notes/${noteId}/tags/${encodeURIComponent(tagName)}`,
       { method: "DELETE" },
     ),
+
+  addTagToNotes: (noteIds: string[], tagName: string) =>
+    fetchVoid("/api/notes/tags/add", jsonOpts("POST", { noteIds, tagName })),
+
+  removeTagFromNotes: (noteIds: string[], tagName: string) =>
+    fetchVoid("/api/notes/tags/remove", jsonOpts("POST", { noteIds, tagName })),
 
   renameTag: (oldName: string, newName: string) =>
     fetchVoid("/api/tags/rename", jsonOpts("PUT", { oldName, newName })),

@@ -1,4 +1,12 @@
 const DEFAULT_SERVER_URL = "http://localhost:3001";
+const MAX_ERRORS = 3;
+
+async function storeError(message) {
+  const { recentErrors = [] } = await chrome.storage.local.get("recentErrors");
+  recentErrors.unshift({ message, time: Date.now() });
+  if (recentErrors.length > MAX_ERRORS) recentErrors.length = MAX_ERRORS;
+  await chrome.storage.local.set({ recentErrors });
+}
 
 async function getServerUrl() {
   const result = await chrome.storage.sync.get({ serverUrl: DEFAULT_SERVER_URL });
@@ -62,7 +70,10 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     const url = msg.url.replace(/\/+$/, "");
     fetch(`${url}/api/notes`, { method: "GET" })
       .then((res) => sendResponse({ ok: res.ok }))
-      .catch(() => sendResponse({ ok: false, error: "unreachable" }));
+      .catch(() => {
+        storeError(`Could not reach ${url}`);
+        sendResponse({ ok: false, error: "unreachable" });
+      });
     return true; // keep channel open for async sendResponse
   }
 });
@@ -78,6 +89,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     console.error("Keeper: failed to save note", err);
     chrome.action.setBadgeText({ text: "!", tabId: tab.id });
     chrome.action.setBadgeBackgroundColor({ color: "#dc2626", tabId: tab.id });
+    await storeError(err.message || String(err));
   }
 });
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=Keeper - note-taking app
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/jackkendall/source/keeper
+ExecStartPre=/bin/bash -lc 'cd /home/jackkendall/source/keeper && npm run build'
+ExecStart=/bin/bash -lc 'cd /home/jackkendall/source/keeper && exec npx tsx server/index.ts'
+Restart=on-failure
+RestartSec=5
+Environment=PORT=3001
+Environment=DATA_DIR=/home/jackkendall/source/keeper/data
+
+[Install]
+WantedBy=default.target

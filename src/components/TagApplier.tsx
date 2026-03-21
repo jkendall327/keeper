@@ -17,6 +17,8 @@ interface TagApplierProps {
   onClose: () => void;
   /** Element to anchor the popover to */
   anchorRef?: React.RefObject<HTMLElement | null>;
+  /** Which direction the popover expands from the anchor (default: "up") */
+  direction?: 'up' | 'down';
 }
 
 export function TagApplier({
@@ -28,20 +30,22 @@ export function TagApplier({
   onRemoveTag,
   onClose,
   anchorRef,
+  direction = 'up',
 }: TagApplierProps) {
   const [inputValue, setInputValue] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Position the popover above the anchor button on mount
+  // Position the popover relative to the anchor button on mount
   useLayoutEffect(() => {
     const anchor = anchorRef?.current;
     const panel = panelRef.current;
     if (anchor === null || anchor === undefined || panel === null) return;
     const rect = anchor.getBoundingClientRect();
-    panel.style.top = `${String(rect.top + window.scrollY)}px`;
+    const top = direction === 'down' ? rect.bottom + window.scrollY : rect.top + window.scrollY;
+    panel.style.top = `${String(top)}px`;
     panel.style.left = `${String(rect.left + window.scrollX)}px`;
-  }, [anchorRef]);
+  }, [anchorRef, direction]);
 
   // Focus input on mount
   useEffect(() => {
@@ -108,7 +112,7 @@ export function TagApplier({
     <div
       ref={panelRef}
       className="tag-applier"
-      style={anchorRef !== undefined ? { position: 'absolute', transform: 'translateY(-100%)' } : undefined}
+      style={anchorRef !== undefined ? { position: 'absolute', ...(direction === 'up' ? { transform: 'translateY(-100%)' } : {}) } : undefined}
       onClick={(e) => { e.stopPropagation(); }}
       onPointerDown={(e) => { e.stopPropagation(); }}
     >

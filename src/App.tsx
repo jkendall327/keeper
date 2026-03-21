@@ -472,6 +472,7 @@ function App() {
                       onRemoveTag={db.removeTag}
                       onClose={() => { setShowBulkTagApplier(false); }}
                       anchorRef={bulkTagBtnRef}
+                      direction="down"
                     />
                   )}
                 </div>

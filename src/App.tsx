@@ -341,6 +341,20 @@ function App() {
     setSelectedNoteIds(new Set());
   }, [selectedNoteIds, isTrashView, deleteNotes, trashNotes]);
 
+  // Delete key deletes selected notes
+  useEffect(() => {
+    const handleDeleteKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Delete') return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
+      if (selectedNoteIds.size === 0) return;
+      e.preventDefault();
+      void handleBulkDelete();
+    };
+    document.addEventListener('keydown', handleDeleteKey);
+    return () => { document.removeEventListener('keydown', handleDeleteKey); };
+  }, [selectedNoteIds.size, handleBulkDelete]);
+
   const handleBulkRestore = useCallback(async () => {
     const ids = Array.from(selectedNoteIds);
     if (ids.length === 0) return;

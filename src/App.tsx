@@ -27,7 +27,6 @@ function useIsMobile() {
 }
 
 interface AppContentProps {
-  notes: NoteWithTags[];
   allTags: ReturnType<typeof useDB>['allTags'];
   refresh: ReturnType<typeof useDB>['refresh'];
   createNote: ReturnType<typeof useDB>['createNote'];
@@ -39,27 +38,22 @@ interface AppContentProps {
   renameTag: ReturnType<typeof useDB>['renameTag'];
   updateTagIcon: ReturnType<typeof useDB>['updateTagIcon'];
   deleteTag: ReturnType<typeof useDB>['deleteTag'];
-  search: ReturnType<typeof useDB>['search'];
   toggleArchiveNote: ReturnType<typeof useDB>['toggleArchiveNote'];
-  getArchivedNotes: ReturnType<typeof useDB>['getArchivedNotes'];
-  getUntaggedNotes: ReturnType<typeof useDB>['getUntaggedNotes'];
-  getNotesForTag: ReturnType<typeof useDB>['getNotesForTag'];
-  getLinkedNotes: ReturnType<typeof useDB>['getLinkedNotes'];
   trashNote: ReturnType<typeof useDB>['trashNote'];
   restoreNote: ReturnType<typeof useDB>['restoreNote'];
-  getTrashedNotes: ReturnType<typeof useDB>['getTrashedNotes'];
+  activeFilter: FilterType;
+  setActiveFilter: React.Dispatch<React.SetStateAction<FilterType>>;
+  searchQuery: string;
+  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  displayedNotes: NoteWithTags[];
   selectedNoteIds: Set<string>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
-  onFilterChange: (filter: { isArchive: boolean; isTrash: boolean }) => void;
-  onDisplayedNoteIdsChange: (ids: string[]) => void;
-  onDisplayedNotesChange: (notes: NoteWithTags[]) => void;
   sidebarOpen: boolean;
   onSidebarClose: () => void;
   isMobile: boolean;
 }
 
 function AppContent({
-  notes,
   allTags,
   refresh,
   createNote,
@@ -71,20 +65,16 @@ function AppContent({
   renameTag,
   updateTagIcon,
   deleteTag,
-  search,
   toggleArchiveNote,
-  getArchivedNotes,
-  getUntaggedNotes,
-  getNotesForTag,
-  getLinkedNotes,
   trashNote,
   restoreNote,
-  getTrashedNotes,
+  activeFilter,
+  setActiveFilter,
+  searchQuery,
+  setSearchQuery,
+  displayedNotes,
   selectedNoteIds,
   setSelectedNoteIds,
-  onFilterChange,
-  onDisplayedNoteIdsChange,
-  onDisplayedNotesChange,
   sidebarOpen,
   onSidebarClose,
   isMobile,
@@ -104,55 +94,7 @@ function AppContent({
   }, []);
 
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
   const [showSettings, setShowSettings] = useState(false);
-  useEffect(() => {
-    onFilterChange({ isArchive: activeFilter.type === 'archive', isTrash: activeFilter.type === 'trash' });
-    setSelectedNoteIds(new Set());
-  }, [activeFilter, onFilterChange, setSelectedNoteIds]);
-  const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(notes);
-
-  // Update displayed notes based on search query and active filter
-  useEffect(() => {
-    const loadNotes = async () => {
-      let notes_: NoteWithTags[];
-      if (searchQuery.trim() !== '') {
-        // Use FTS5 search
-        notes_ = await search(searchQuery);
-      } else {
-        // Apply filter
-        switch (activeFilter.type) {
-          case 'all':
-            notes_ = notes;
-            break;
-          case 'untagged':
-            notes_ = await getUntaggedNotes();
-            break;
-          case 'archive':
-            notes_ = await getArchivedNotes();
-            break;
-          case 'trash':
-            notes_ = await getTrashedNotes();
-            break;
-          case 'links':
-            notes_ = await getLinkedNotes();
-            break;
-          case 'tag':
-            notes_ = await getNotesForTag(activeFilter.tagId);
-            break;
-          case 'chat':
-            // Chat view replaces the NoteGrid — no notes to display
-            notes_ = [];
-            break;
-        }
-      }
-      setDisplayedNotes(notes_);
-      onDisplayedNotesChange(notes_);
-      onDisplayedNoteIdsChange(notes_.map((n) => n.id));
-    };
-    void loadNotes();
-  }, [searchQuery, activeFilter, notes, search, getArchivedNotes, getTrashedNotes, getUntaggedNotes, getNotesForTag, getLinkedNotes, onDisplayedNotesChange, onDisplayedNoteIdsChange]);
 
   // Keep selectedNote in sync with latest data from displayed notes
   // (using displayedNotes so archived notes are findable in archive view)
@@ -297,15 +239,59 @@ function App() {
   const db = useDB();
   const { deleteNotes, archiveNotes, trashNotes, restoreNotes } = db;
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
-  const [isArchiveView, setIsArchiveView] = useState(false);
-  const [isTrashView, setIsTrashView] = useState(false);
-  const [displayedNoteIds, setDisplayedNoteIds] = useState<string[]>([]);
-  const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>([]);
+  const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(db.notes);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
   const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isArchiveView = activeFilter.type === 'archive';
+  const isTrashView = activeFilter.type === 'trash';
+  const displayedNoteIds = useMemo(() => displayedNotes.map((n) => n.id), [displayedNotes]);
+
+  // Clear selection when the filter changes
+  useEffect(() => {
+    setSelectedNoteIds(new Set());
+  }, [activeFilter]);
+
+  // Update displayed notes based on search query and active filter
+  useEffect(() => {
+    const loadNotes = async () => {
+      let notes_: NoteWithTags[];
+      if (searchQuery.trim() !== '') {
+        notes_ = await db.search(searchQuery);
+      } else {
+        switch (activeFilter.type) {
+          case 'all':
+            notes_ = db.notes;
+            break;
+          case 'untagged':
+            notes_ = await db.getUntaggedNotes();
+            break;
+          case 'archive':
+            notes_ = await db.getArchivedNotes();
+            break;
+          case 'trash':
+            notes_ = await db.getTrashedNotes();
+            break;
+          case 'links':
+            notes_ = await db.getLinkedNotes();
+            break;
+          case 'tag':
+            notes_ = await db.getNotesForTag(activeFilter.tagId);
+            break;
+          case 'chat':
+            notes_ = [];
+            break;
+        }
+      }
+      setDisplayedNotes(notes_);
+    };
+    void loadNotes();
+  }, [searchQuery, activeFilter, db.notes, db.search, db.getArchivedNotes, db.getTrashedNotes, db.getUntaggedNotes, db.getNotesForTag, db.getLinkedNotes]);
 
   // Handle Web Share Target: when opened via /share?title=...&text=...&url=...
   useEffect(() => {
@@ -333,7 +319,7 @@ function App() {
     } else {
       setSelectedNoteIds(new Set(displayedNoteIds));
     }
-  }, [selectedNoteIds.size, displayedNoteIds, setSelectedNoteIds]);
+  }, [selectedNoteIds.size, displayedNoteIds]);
 
   const handleBulkDelete = useCallback(async () => {
     const ids = Array.from(selectedNoteIds);
@@ -406,6 +392,8 @@ function App() {
     }
     return { bulkAppliedTags: applied, bulkIndeterminateTags: indeterminate };
   }, [selectedNoteIds, displayedNotes]);
+
+  const handleSidebarClose = useCallback(() => { setSidebarOpen(false); }, []);
 
   return (
     <div className="app">
@@ -506,7 +494,6 @@ function App() {
       <main className="app-main">
         <Suspense fallback={<p className="loading">Loading...</p>}>
           <AppContent
-            notes={db.notes}
             allTags={db.allTags}
             refresh={db.refresh}
             createNote={db.createNote}
@@ -518,25 +505,18 @@ function App() {
             renameTag={db.renameTag}
             updateTagIcon={db.updateTagIcon}
             deleteTag={db.deleteTag}
-            search={db.search}
             toggleArchiveNote={db.toggleArchiveNote}
-            getArchivedNotes={db.getArchivedNotes}
-            getUntaggedNotes={db.getUntaggedNotes}
-            getNotesForTag={db.getNotesForTag}
-            getLinkedNotes={db.getLinkedNotes}
             trashNote={db.trashNote}
             restoreNote={db.restoreNote}
-            getTrashedNotes={db.getTrashedNotes}
+            activeFilter={activeFilter}
+            setActiveFilter={setActiveFilter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            displayedNotes={displayedNotes}
             selectedNoteIds={selectedNoteIds}
             setSelectedNoteIds={setSelectedNoteIds}
-            onFilterChange={useCallback((f: { isArchive: boolean; isTrash: boolean }) => {
-              setIsArchiveView(f.isArchive);
-              setIsTrashView(f.isTrash);
-            }, [])}
-            onDisplayedNoteIdsChange={setDisplayedNoteIds}
-            onDisplayedNotesChange={setDisplayedNotes}
             sidebarOpen={sidebarOpen}
-            onSidebarClose={useCallback(() => { setSidebarOpen(false); }, [])}
+            onSidebarClose={handleSidebarClose}
             isMobile={isMobile}
           />
         </Suspense>

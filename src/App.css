@@ -477,7 +477,7 @@
   background: #2a2a32;
 }
 
-.note-card-actions {
+.note-card-actions-top {
   position: absolute;
   top: 4px;
   right: 4px;
@@ -487,7 +487,18 @@
   transition: opacity 0.15s;
 }
 
-.note-card:hover .note-card-actions {
+.note-card:hover .note-card-actions-top {
+  opacity: 1;
+}
+
+.note-card-actions-bottom {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.note-card:hover .note-card-actions-bottom {
   opacity: 1;
 }
 
@@ -527,7 +538,7 @@
   margin: 0 0 4px;
   font-size: 1rem;
   font-weight: 600;
-  padding-right: 64px;
+  padding-right: 32px;
 }
 
 .note-card-body {
@@ -539,7 +550,7 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 10;
   overflow: hidden;
-  padding-right: 64px;
+  padding-right: 32px;
 }
 
 .note-card-body-text {
@@ -555,9 +566,14 @@
   margin-top: 4px;
 }
 
-.note-card-time {
-  display: block;
+.note-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-top: 8px;
+}
+
+.note-card-time {
   font-size: 0.75rem;
   opacity: 0.5;
 }

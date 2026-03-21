@@ -110,7 +110,7 @@ export function NoteCard({ note, onSelect, onLongPress, onDelete, onTogglePin, o
           </svg>
         </span>
       )}
-      <div className="note-card-actions">
+      <div className="note-card-actions-top">
         <button
           className="note-card-pin"
           onClick={(e) => {
@@ -121,41 +121,6 @@ export function NoteCard({ note, onSelect, onLongPress, onDelete, onTogglePin, o
           title={note.pinned ? 'Unpin note' : 'Pin note'}
         >
           <Icon name="push_pin" className={note.pinned ? 'icon-filled' : ''} />
-        </button>
-        {isTrashView === true ? (
-          <button
-            className="note-card-archive"
-            onClick={(e) => {
-              e.stopPropagation();
-              void onRestore?.(note.id);
-            }}
-            aria-label="Restore note"
-            title="Restore note"
-          >
-            <Icon name="restore_from_trash" />
-          </button>
-        ) : (
-          <button
-            className="note-card-archive"
-            onClick={(e) => {
-              e.stopPropagation();
-              void onToggleArchive(note.id);
-            }}
-            aria-label={note.archived ? 'Unarchive note' : 'Archive note'}
-            title={note.archived ? 'Unarchive note' : 'Archive note'}
-          >
-            <Icon name={note.archived ? 'unarchive' : 'archive'} />
-          </button>
-        )}
-        <button
-          className="note-card-delete"
-          onClick={(e) => {
-            e.stopPropagation();
-            void onDelete(note.id);
-          }}
-          aria-label="Delete note"
-        >
-          <Icon name="delete" />
         </button>
       </div>
       {note.title !== '' && <h3 className="note-card-title">{note.title}</h3>}
@@ -190,9 +155,48 @@ export function NoteCard({ note, onSelect, onLongPress, onDelete, onTogglePin, o
           ))}
         </div>
       )}
-      <time className="note-card-time">
-        {new Date(note.updated_at + 'Z').toLocaleDateString()}
-      </time>
+      <div className="note-card-footer">
+        <time className="note-card-time">
+          {new Date(note.updated_at + 'Z').toLocaleDateString()}
+        </time>
+        <div className="note-card-actions-bottom">
+          {isTrashView === true ? (
+            <button
+              className="note-card-archive"
+              onClick={(e) => {
+                e.stopPropagation();
+                void onRestore?.(note.id);
+              }}
+              aria-label="Restore note"
+              title="Restore note"
+            >
+              <Icon name="restore_from_trash" />
+            </button>
+          ) : (
+            <button
+              className="note-card-archive"
+              onClick={(e) => {
+                e.stopPropagation();
+                void onToggleArchive(note.id);
+              }}
+              aria-label={note.archived ? 'Unarchive note' : 'Archive note'}
+              title={note.archived ? 'Unarchive note' : 'Archive note'}
+            >
+              <Icon name={note.archived ? 'unarchive' : 'archive'} />
+            </button>
+          )}
+          <button
+            className="note-card-delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              void onDelete(note.id);
+            }}
+            aria-label="Delete note"
+          >
+            <Icon name="delete" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -28,22 +28,9 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
   const [editValue, setEditValue] = useState('');
   const [iconPickerTagId, setIconPickerTagId] = useState<number | null>(null);
 
-  const isActive = (filter: FilterType) => {
-    if (activeFilter.type === 'all' && filter.type === 'all') return true;
-    if (activeFilter.type === 'untagged' && filter.type === 'untagged') return true;
-    if (activeFilter.type === 'archive' && filter.type === 'archive') return true;
-    if (activeFilter.type === 'trash' && filter.type === 'trash') return true;
-    if (activeFilter.type === 'links' && filter.type === 'links') return true;
-    if (activeFilter.type === 'chat' && filter.type === 'chat') return true;
-    if (
-      activeFilter.type === 'tag' &&
-      filter.type === 'tag' &&
-      activeFilter.tagId === filter.tagId
-    ) {
-      return true;
-    }
-    return false;
-  };
+  const isActive = (filter: FilterType) =>
+    activeFilter.type === filter.type &&
+    (filter.type !== 'tag' || (activeFilter.type === 'tag' && activeFilter.tagId === filter.tagId));
 
   const handleStartEdit = (tag: Tag) => {
     setEditingTagId(tag.id);

@@ -184,8 +184,8 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
               noteIds={[note.id]}
               appliedTags={note.tags}
               allTags={allTags}
-              onAddTag={([id = note.id], name) => onAddTag(id, name)}
-              onRemoveTag={([id = note.id], name) => onRemoveTag(id, name)}
+              onAddTag={(_, name) => onAddTag(note.id, name)}
+              onRemoveTag={(_, name) => onRemoveTag(note.id, name)}
               onClose={closeTagApplier}
               anchorRef={tagBtnRef}
             />

@@ -30,6 +30,21 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
+  // out.text is mutated as tokens arrive, so callers can read partial text even if the stream aborts.
+  const streamOnce = useCallback(async (llmMessages: Message[], signal: AbortSignal, out: { text: string }): Promise<void> => {
+    let lastFlush = 0;
+    const THROTTLE_MS = 50;
+    for await (const token of client.stream(llmMessages, { signal })) {
+      out.text += token;
+      const now = performance.now();
+      if (now - lastFlush >= THROTTLE_MS) {
+        lastFlush = now;
+        setStreaming(out.text);
+      }
+    }
+    setStreaming('');
+  }, [client]);
+
   const buildLLMMessages = useCallback((chatMessages: ChatMessage[], recentNotes: NoteWithTags[], tags: Tag[]): Message[] => {
     const systemPrompt = buildSystemPrompt(recentNotes, tags);
     const llmMessages: Message[] = [{ role: 'system', content: systemPrompt }];
@@ -55,7 +70,8 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
 
     let iterMessages = currentMessages;
     let iterations = 0;
-    let accumulated = '';
+    // acc is mutated by streamOnce so partial text survives an AbortError throw
+    const acc = { text: '' };
 
     try {
       // Fetch context for the system prompt once per send
@@ -68,20 +84,9 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
         abortRef.current = controller;
 
         // Stream the response token-by-token
-        accumulated = '';
-        let lastFlush = 0;
-        const THROTTLE_MS = 50;
-        for await (const token of client.stream(llmMessages, { signal: controller.signal })) {
-          accumulated += token;
-          const now = performance.now();
-          if (now - lastFlush >= THROTTLE_MS) {
-            lastFlush = now;
-            setStreaming(accumulated);
-          }
-        }
-        // Final flush
-        setStreaming('');
-        const { toolCalls, text } = parseMCPResponse(accumulated);
+        acc.text = '';
+        await streamOnce(llmMessages, controller.signal, acc);
+        const { toolCalls, text } = parseMCPResponse(acc.text);
 
         if (toolCalls.length === 0) {
           // No tool calls — stream the final response for display
@@ -148,8 +153,8 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       setStreaming('');
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Preserve any partially streamed text as an assistant message
-        if (accumulated !== '') {
-          const partialMsg: ChatMessage = { role: 'assistant', content: accumulated };
+        if (acc.text !== '') {
+          const partialMsg: ChatMessage = { role: 'assistant', content: acc.text };
           setMessages([...iterMessages, partialMsg]);
         }
       } else {
@@ -162,7 +167,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       setLoading(false);
       abortRef.current = null;
     }
-  }, [messages, loading, client, db, buildLLMMessages, onMutation]);
+  }, [messages, loading, streamOnce, db, buildLLMMessages, onMutation]);
 
   const confirmDelete = useCallback(async (confirmed: boolean) => {
     if (pendingConfirmation === null) return;
@@ -197,21 +202,11 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      let accumulated = '';
-      let lastFlush = 0;
-      const THROTTLE_MS = 50;
-      for await (const token of client.stream(llmMessages, { signal: controller.signal })) {
-        accumulated += token;
-        const now = performance.now();
-        if (now - lastFlush >= THROTTLE_MS) {
-          lastFlush = now;
-          setStreaming(accumulated);
-        }
-      }
-      setStreaming('');
+      const acc = { text: '' };
+      await streamOnce(llmMessages, controller.signal, acc);
 
-      if (accumulated !== '') {
-        const { text } = parseMCPResponse(accumulated);
+      if (acc.text !== '') {
+        const { text } = parseMCPResponse(acc.text);
         if (text !== '') {
           const assistantMsg: ChatMessage = { role: 'assistant', content: text };
           setMessages([...updatedMessages, assistantMsg]);
@@ -230,7 +225,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       setLoading(false);
       abortRef.current = null;
     }
-  }, [pendingConfirmation, db, onMutation, messages, client, buildLLMMessages]);
+  }, [pendingConfirmation, db, onMutation, messages, streamOnce, buildLLMMessages]);
 
   const clear = useCallback(() => {
     setMessages([]);

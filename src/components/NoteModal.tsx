@@ -3,6 +3,7 @@ import { tagDisplayIcon, type NoteWithTags, type Tag, type UpdateNoteInput } fro
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { getDB } from '../db/db-client.ts';
+import { getImageUrl } from '../utils/image-url.ts';
 
 interface NoteModalProps {
   note: NoteWithTags;
@@ -292,6 +293,17 @@ export function NoteModal({
               <MarkdownPreview content={body} onCheckboxToggle={handleCheckboxToggle} />
             </div>
           )}
+          {(() => {
+            const imageUrl = getImageUrl(body);
+            if (imageUrl !== null) {
+              return (
+                <div className="modal-body-live-preview">
+                  <img src={imageUrl} alt={title !== '' ? title : 'Image note'} />
+                </div>
+              );
+            }
+            return null;
+          })()}
           {body.trim() === '' && (
             <p className="modal-empty-warning">This note will be deleted when closed.</p>
           )}

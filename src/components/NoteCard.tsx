@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { tagDisplayIcon, type NoteWithTags, type UpdateNoteInput } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
+import { getImageUrl } from '../utils/image-url.ts';
 
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
@@ -158,13 +159,27 @@ export function NoteCard({ note, onSelect, onLongPress, onDelete, onTogglePin, o
         </button>
       </div>
       {note.title !== '' && <h3 className="note-card-title">{note.title}</h3>}
-      <div ref={bodyRef} className="note-card-body">
-        <MarkdownPreview
-          content={note.body}
-          onCheckboxToggle={handleCheckboxToggle}
-        />
-      </div>
-      {isTruncated && <span className="note-card-truncation">[...]</span>}
+      {(() => {
+        const imageUrl = getImageUrl(note.body);
+        if (imageUrl !== null) {
+          return (
+            <div className="note-card-body">
+              <img src={imageUrl} alt={note.title !== '' ? note.title : 'Image note'} loading="lazy" />
+            </div>
+          );
+        }
+        return (
+          <>
+            <div ref={bodyRef} className="note-card-body">
+              <MarkdownPreview
+                content={note.body}
+                onCheckboxToggle={handleCheckboxToggle}
+              />
+            </div>
+            {isTruncated && <span className="note-card-truncation">[...]</span>}
+          </>
+        );
+      })()}
       {note.tags.length > 0 && (
         <div className="note-card-tags">
           {note.tags.map((tag) => (

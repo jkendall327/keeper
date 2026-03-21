@@ -196,11 +196,11 @@ export function NoteModal({
   };
 
   const saveAndClose = useCallback(async () => {
-    const trimmedBody = body.trim();
-    if (trimmedBody === '') {
+    const trimmedBody = body.trimEnd();
+    if (trimmedBody.trim() === '') {
       await onDelete(note.id);
-    } else if (title !== note.title || body !== note.body) {
-      await onUpdate({ id: note.id, title, body });
+    } else if (title !== note.title || trimmedBody !== note.body) {
+      await onUpdate({ id: note.id, title, body: trimmedBody });
     }
     onClose();
   }, [body, title, note, onDelete, onUpdate, onClose]);

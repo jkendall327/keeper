@@ -144,6 +144,43 @@ export function NoteModal({
       return;
     }
 
+    if (e.key === 'Enter' && !ctrl && !e.shiftKey) {
+      const textarea = e.currentTarget;
+      const { selectionStart } = textarea;
+      const textBefore = textarea.value.slice(0, selectionStart);
+      const currentLineStart = textBefore.lastIndexOf('\n') + 1;
+      const currentLine = textBefore.slice(currentLineStart);
+
+      if (/^- \S/.test(currentLine) || (currentLine.startsWith('- ') && currentLine.length > 2)) {
+        e.preventDefault();
+        bodyNextCheckpointRef.current = true;
+        const textAfter = textarea.value.slice(selectionStart);
+        const newValue = textBefore + '\n- ' + textAfter;
+        setBody(newValue);
+        pushBodyCheckpoint(newValue);
+        requestAnimationFrame(() => {
+          const newPos = selectionStart + 3; // '\n- '.length
+          textarea.selectionStart = newPos;
+          textarea.selectionEnd = newPos;
+        });
+        return;
+      }
+
+      if (currentLine === '- ') {
+        e.preventDefault();
+        bodyNextCheckpointRef.current = true;
+        const textAfter = textarea.value.slice(selectionStart);
+        const newValue = textBefore.slice(0, currentLineStart) + textAfter;
+        setBody(newValue);
+        pushBodyCheckpoint(newValue);
+        requestAnimationFrame(() => {
+          textarea.selectionStart = currentLineStart;
+          textarea.selectionEnd = currentLineStart;
+        });
+        return;
+      }
+    }
+
     if (new Set([' ', 'Enter', '.', ',', '!', '?', ';', ':']).has(e.key)) {
       bodyNextCheckpointRef.current = true;
     }

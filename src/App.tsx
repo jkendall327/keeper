@@ -295,7 +295,7 @@ function AppContent({
 
 function App() {
   const db = useDB();
-  const { deleteNotes, archiveNotes, trashNotes, restoreNote: restoreNoteFromDB } = db;
+  const { deleteNotes, archiveNotes, trashNotes, restoreNotes } = db;
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [isArchiveView, setIsArchiveView] = useState(false);
   const [isTrashView, setIsTrashView] = useState(false);
@@ -364,11 +364,9 @@ function App() {
   const handleBulkRestore = useCallback(async () => {
     const ids = Array.from(selectedNoteIds);
     if (ids.length === 0) return;
-    for (const id of ids) {
-      await restoreNoteFromDB(id);
-    }
+    await restoreNotes(ids);
     setSelectedNoteIds(new Set());
-  }, [selectedNoteIds, restoreNoteFromDB]);
+  }, [selectedNoteIds, restoreNotes]);
 
   const handleBulkArchive = useCallback(async () => {
     const ids = Array.from(selectedNoteIds);
@@ -468,8 +466,8 @@ function App() {
                       appliedTags={bulkAppliedTags}
                       indeterminateTags={bulkIndeterminateTags}
                       allTags={db.allTags}
-                      onAddTag={db.addTag}
-                      onRemoveTag={db.removeTag}
+                      onAddTag={db.addTagToNotes}
+                      onRemoveTag={db.removeTagFromNotes}
                       onClose={() => { setShowBulkTagApplier(false); }}
                       anchorRef={bulkTagBtnRef}
                       direction="down"

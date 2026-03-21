@@ -12,8 +12,8 @@ interface TagApplierProps {
   indeterminateTags?: Tag[];
   /** All tags that exist in the system */
   allTags: Tag[];
-  onAddTag: (noteId: string, tagName: string) => Promise<void>;
-  onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
+  onAddTag: (noteIds: string[], tagName: string) => Promise<void>;
+  onRemoveTag: (noteIds: string[], tagName: string) => Promise<void>;
   onClose: () => void;
   /** Element to anchor the popover to */
   anchorRef?: React.RefObject<HTMLElement | null>;
@@ -84,12 +84,10 @@ export function TagApplier({
   const handleToggleTag = async (tagName: string) => {
     // Indeterminate or unchecked → apply to all; fully applied → remove from all
     const shouldRemove = isApplied(tagName) && !isIndeterminate(tagName);
-    for (const noteId of noteIds) {
-      if (shouldRemove) {
-        await onRemoveTag(noteId, tagName);
-      } else {
-        await onAddTag(noteId, tagName);
-      }
+    if (shouldRemove) {
+      await onRemoveTag(noteIds, tagName);
+    } else {
+      await onAddTag(noteIds, tagName);
     }
   };
 

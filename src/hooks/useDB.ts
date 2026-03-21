@@ -145,6 +145,30 @@ export function useDB() {
     [refresh],
   );
 
+  const restoreNotes = useCallback(
+    async (ids: string[]) => {
+      await getDB().restoreNotes(ids);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const addTagToNotes = useCallback(
+    async (noteIds: string[], tagName: string) => {
+      await getDB().addTagToNotes(noteIds, tagName);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const removeTagFromNotes = useCallback(
+    async (noteIds: string[], tagName: string) => {
+      await getDB().removeTagFromNotes(noteIds, tagName);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const getTrashedNotes = useCallback(async () => {
     return await getDB().getTrashedNotes();
   }, []);
@@ -185,6 +209,8 @@ export function useDB() {
     togglePinNote,
     addTag,
     removeTag,
+    addTagToNotes,
+    removeTagFromNotes,
     renameTag,
     updateTagIcon,
     deleteTag,
@@ -192,6 +218,7 @@ export function useDB() {
     trashNote,
     trashNotes,
     restoreNote,
+    restoreNotes,
     getTrashedNotes,
     toggleArchiveNote,
     getArchivedNotes,

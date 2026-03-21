@@ -187,6 +187,39 @@ export function createMockDB(): MockDB {
       return Promise.resolve(note);
     },
 
+    async addTagToNotes(noteIds: string[], tagName: string): Promise<void> {
+      const existing = Array.from(tags.values()).find(t => t.name === tagName);
+      const tag: Tag = existing ?? { id: generateTagId(), name: tagName, icon: null };
+      if (existing === undefined) tags.set(tag.id, tag);
+      for (const noteId of noteIds) {
+        const note = notes.get(noteId);
+        if (note !== undefined && !note.tags.some(t => t.name === tagName)) {
+          note.tags = [...note.tags, tag];
+        }
+      }
+      return Promise.resolve();
+    },
+
+    async removeTagFromNotes(noteIds: string[], tagName: string): Promise<void> {
+      for (const noteId of noteIds) {
+        const note = notes.get(noteId);
+        if (note !== undefined) {
+          note.tags = note.tags.filter(t => t.name !== tagName);
+        }
+      }
+      return Promise.resolve();
+    },
+
+    async restoreNotes(ids: string[]): Promise<void> {
+      for (const id of ids) {
+        const note = notes.get(id);
+        if (note !== undefined) {
+          notes.set(id, { ...note, trashed: false });
+        }
+      }
+      return Promise.resolve();
+    },
+
     async renameTag(oldName: string, newName: string): Promise<void> {
       for (const note of notes.values()) {
         for (const tag of note.tags) {

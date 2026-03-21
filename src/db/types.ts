@@ -80,6 +80,8 @@ export interface KeeperDB {
   // Tags
   addTag(noteId: string, tagName: string): Promise<NoteWithTags>;
   removeTag(noteId: string, tagName: string): Promise<NoteWithTags>;
+  addTagToNotes(noteIds: string[], tagName: string): Promise<void>;
+  removeTagFromNotes(noteIds: string[], tagName: string): Promise<void>;
   renameTag(oldName: string, newName: string): Promise<void>;
   updateTagIcon(tagId: number, icon: string | null): Promise<void>;
   deleteTag(tagId: number): Promise<void>;
@@ -92,6 +94,7 @@ export interface KeeperDB {
   trashNote(id: string): Promise<void>;
   trashNotes(ids: string[]): Promise<void>;
   restoreNote(id: string): Promise<void>;
+  restoreNotes(ids: string[]): Promise<void>;
   getTrashedNotes(): Promise<NoteWithTags[]>;
 
   // Smart views

@@ -234,9 +234,10 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     },
 
     async deleteNotes(ids: string[]): Promise<void> {
-      for (const id of ids) {
-        await api.deleteNote(id);
-      }
+      if (ids.length === 0) return Promise.resolve();
+      const placeholders = ids.map(() => "?").join(",");
+      db.run(`DELETE FROM notes WHERE id IN (${placeholders})`, ids);
+      return Promise.resolve();
     },
 
     async archiveNotes(ids: string[]): Promise<void> {
@@ -266,6 +267,16 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     async restoreNote(id: string): Promise<void> {
       db.run("UPDATE notes SET trashed = 0 WHERE id = ?", [id]);
+      return Promise.resolve();
+    },
+
+    async restoreNotes(ids: string[]): Promise<void> {
+      if (ids.length === 0) return Promise.resolve();
+      const placeholders = ids.map(() => "?").join(",");
+      db.run(
+        `UPDATE notes SET trashed = 0 WHERE id IN (${placeholders})`,
+        ids,
+      );
       return Promise.resolve();
     },
 
@@ -333,6 +344,34 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
       // Re-read tags since they changed; note itself still exists
       return { ...existing, tags: getTagsForNote(noteId) };
+    },
+
+    async addTagToNotes(noteIds: string[], tagName: string): Promise<void> {
+      if (noteIds.length === 0) return Promise.resolve();
+
+      db.run("INSERT OR IGNORE INTO tags (name) VALUES (?)", [tagName]);
+      const tagRow = db.query("SELECT id FROM tags WHERE name = ?", [tagName])[0];
+      if (tagRow === undefined)
+        throw new Error("Unreachable: tag must exist after INSERT OR IGNORE");
+      const tagId = tagRow["id"] as number;
+
+      for (const noteId of noteIds) {
+        db.run(
+          "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
+          [noteId, tagId],
+        );
+      }
+      return Promise.resolve();
+    },
+
+    async removeTagFromNotes(noteIds: string[], tagName: string): Promise<void> {
+      if (noteIds.length === 0) return Promise.resolve();
+      const placeholders = noteIds.map(() => "?").join(",");
+      db.run(
+        `DELETE FROM note_tags WHERE tag_id = (SELECT id FROM tags WHERE name = ?) AND note_id IN (${placeholders})`,
+        [tagName, ...noteIds],
+      );
+      return Promise.resolve();
     },
 
     async renameTag(oldName: string, newName: string): Promise<void> {

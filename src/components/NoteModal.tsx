@@ -298,7 +298,9 @@ export function NoteModal({
             if (imageUrl !== null) {
               return (
                 <div className="modal-body-live-preview">
-                  <img src={imageUrl} alt={title !== '' ? title : 'Image note'} />
+                  <a href={imageUrl} target="_blank" rel="noopener noreferrer">
+                    <img src={imageUrl} alt={title !== '' ? title : 'Image note'} />
+                  </a>
                 </div>
               );
             }

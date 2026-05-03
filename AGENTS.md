@@ -6,7 +6,7 @@ Read SPEC.md if you need to understand the project and its goals.
 
 `npm run dev` — starts dev server (requires COOP/COEP headers, configured in vite.config.ts)
 
-Run `npm test` and `npm run lint` to verify your work.
+Run `npm run build`, `npm test` and `npm run lint` to verify your work.
 
 ## Testing
 

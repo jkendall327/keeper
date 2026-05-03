@@ -1,12 +1,14 @@
 import type { SqliteDb, SqlRow } from "./sqlite-db.ts";
 import { SCHEMA_SQL } from "./schema.ts";
-import { containsUrl, extractUrls } from "./url-detect.ts";
+import { containsUrl, extractSingleUrl, extractUrls } from "./url-detect.ts";
 import type {
   AutoTagRule,
   AutoTagRuleInput,
   AutoTagRunResult,
   AppSettings,
   KeeperDB,
+  LinkPreview,
+  LinkPreviewStatus,
   Note,
   NoteWithTags,
   Tag,
@@ -141,6 +143,21 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     return rows.map(rowToTag);
   }
 
+  function rowToLinkPreview(row: SqlRow): LinkPreview {
+    return {
+      url: row["url"] as string,
+      image_url: row["image_url"] as string | null,
+      status: row["status"] as LinkPreviewStatus,
+      fetched_at: row["fetched_at"] as string,
+      updated_at: row["updated_at"] as string,
+    };
+  }
+
+  function getLinkPreviewSync(url: string): LinkPreview | null {
+    const row = db.query("SELECT * FROM link_previews WHERE url = ?", [url])[0];
+    return row === undefined ? null : rowToLinkPreview(row);
+  }
+
   function normalizeRuleInput(input: AutoTagRuleInput): AutoTagRuleInput {
     const pattern = input.pattern.trim();
     if (pattern === "") throw new Error("Pattern is required");
@@ -222,7 +239,12 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
   }
 
   function withTags(note: Note): NoteWithTags {
-    return { ...note, tags: getTagsForNote(note.id) };
+    const url = extractSingleUrl(note.body);
+    return {
+      ...note,
+      tags: getTagsForNote(note.id),
+      link_preview: url === null ? null : getLinkPreviewSync(url),
+    };
   }
 
   function withTagsBatch(notes: Note[]): NoteWithTags[] {
@@ -243,7 +265,34 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       if (list !== undefined) list.push(tag);
       else tagMap.set(noteId, [tag]);
     }
-    return notes.map((n) => ({ ...n, tags: tagMap.get(n.id) ?? [] }));
+    const urls = Array.from(
+      new Set(
+        notes
+          .map((note) => extractSingleUrl(note.body))
+          .filter((url): url is string => url !== null),
+      ),
+    );
+    const previewMap = new Map<string, LinkPreview>();
+    if (urls.length > 0) {
+      const previewPlaceholders = urls.map(() => "?").join(",");
+      const previewRows = db.query(
+        `SELECT * FROM link_previews WHERE url IN (${previewPlaceholders})`,
+        urls,
+      );
+      for (const row of previewRows) {
+        const preview = rowToLinkPreview(row);
+        previewMap.set(preview.url, preview);
+      }
+    }
+
+    return notes.map((n) => {
+      const url = extractSingleUrl(n.body);
+      return {
+        ...n,
+        tags: tagMap.get(n.id) ?? [],
+        link_preview: url === null ? null : previewMap.get(url) ?? null,
+      };
+    });
   }
 
   // ── KeeperDB implementation ──────────────────────────────────
@@ -733,6 +782,27 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         filename: r["filename"] as string,
         created_at: r["created_at"] as string,
       })));
+    },
+
+    getLinkPreview(url: string): Promise<LinkPreview | null> {
+      return Promise.resolve(getLinkPreviewSync(url));
+    },
+
+    upsertLinkPreview(input): Promise<LinkPreview> {
+      const timestamp = now();
+      db.run(
+        `INSERT INTO link_previews (url, image_url, status, fetched_at, updated_at)
+         VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT(url) DO UPDATE SET
+           image_url = excluded.image_url,
+           status = excluded.status,
+           fetched_at = excluded.fetched_at,
+           updated_at = excluded.updated_at`,
+        [input.url, input.image_url, input.status, timestamp, timestamp],
+      );
+      const preview = getLinkPreviewSync(input.url);
+      if (preview === null) throw new Error("Failed to store link preview");
+      return Promise.resolve(preview);
     },
   };
 

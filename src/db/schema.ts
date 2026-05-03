@@ -67,6 +67,15 @@ CREATE TABLE IF NOT EXISTS media (
 
 CREATE INDEX IF NOT EXISTS idx_media_note_id ON media(note_id);
 
+-- Link previews
+CREATE TABLE IF NOT EXISTS link_previews (
+  url        TEXT PRIMARY KEY,
+  image_url  TEXT,
+  status     TEXT NOT NULL CHECK (status IN ('found', 'missing', 'error')),
+  fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- URL autotag rules
 CREATE TABLE IF NOT EXISTS auto_tag_rules (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,

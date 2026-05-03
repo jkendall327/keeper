@@ -8,6 +8,8 @@ import type {
 } from "../src/db/types.ts";
 import { bufferToArrayBuffer, type MediaHandler } from "./media-handler.ts";
 import { truncateExtensionTitle } from "../src/utils/extension-title.ts";
+import { extractSingleUrl } from "../src/db/url-detect.ts";
+import { fetchOgImage } from "./link-preview.ts";
 
 export function registerRoutes(
   app: FastifyInstance,
@@ -22,6 +24,27 @@ export function registerRoutes(
     for (const client of sseClients) {
       client.raw.write(`event: ${event}\ndata: {}\n\n`);
     }
+  }
+
+  function queueLinkPreview(body: string) {
+    const url = extractSingleUrl(body);
+    if (url === null) return;
+
+    void (async () => {
+      try {
+        const existing = await db.getLinkPreview(url);
+        if (existing !== null) return;
+        const result = await fetchOgImage(url);
+        await db.upsertLinkPreview({
+          url,
+          image_url: result.imageUrl,
+          status: result.status,
+        });
+        if (result.status === "found") broadcast("refresh");
+      } catch (error) {
+        app.log.warn({ error, url }, "Failed to fetch link preview");
+      }
+    })();
   }
 
   app.get("/api/events", (_req, reply) => {
@@ -48,6 +71,7 @@ export function registerRoutes(
     }
     const note = await db.createNote(input);
     broadcast("refresh");
+    queueLinkPreview(note.body);
     return note;
   });
 
@@ -69,7 +93,9 @@ export function registerRoutes(
   app.put<{ Params: { id: string }; Body: Omit<UpdateNoteInput, "id"> }>(
     "/api/notes/:id",
     async (req) => {
-      return db.updateNote({ ...req.body, id: req.params.id });
+      const note = await db.updateNote({ ...req.body, id: req.params.id });
+      queueLinkPreview(note.body);
+      return note;
     },
   );
 
@@ -297,6 +323,31 @@ export function registerRoutes(
         const message = error instanceof Error ? error.message : "Invalid settings";
         return reply.code(400).send({ error: message });
       }
+    },
+  );
+
+  // ── Link previews ─────────────────────────
+
+  app.get<{ Querystring: { url?: string } }>(
+    "/api/link-preview",
+    async (req, reply) => {
+      if (req.query.url === undefined) {
+        return reply.code(400).send({ error: "url is required" });
+      }
+      const preview = await db.getLinkPreview(req.query.url);
+      if (preview === null) {
+        return reply.code(404).send({ error: "Not found" });
+      }
+      return preview;
+    },
+  );
+
+  app.put<{
+    Body: { url: string; image_url: string | null; status: "found" | "missing" | "error" };
+  }>(
+    "/api/link-previews",
+    async (req) => {
+      return db.upsertLinkPreview(req.body);
     },
   );
 

@@ -6,6 +6,7 @@ import type {
   AutoTagRunResult,
   AppSettings,
   KeeperDB,
+  LinkPreview,
   NoteWithTags,
   Tag,
   CreateNoteInput,
@@ -31,6 +32,7 @@ export function createMockDB(): MockDB {
   const notes = new Map<string, NoteWithTags>();
   const tags = new Map<number, Tag>();
   const rules = new Map<number, AutoTagRule>();
+  const linkPreviews = new Map<string, LinkPreview>();
   let appSettings: AppSettings = {
     extensionTitleMaxLength: DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
   };
@@ -47,6 +49,7 @@ export function createMockDB(): MockDB {
     notes.clear();
     tags.clear();
     rules.clear();
+    linkPreviews.clear();
     appSettings = {
       extensionTitleMaxLength: DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
     };
@@ -85,6 +88,7 @@ export function createMockDB(): MockDB {
         created_at: now(),
         updated_at: now(),
         tags: [],
+        link_preview: null,
       };
       notes.set(id, note);
       return Promise.resolve(note);
@@ -445,6 +449,23 @@ export function createMockDB(): MockDB {
 
     getMediaForNote(): Promise<never> {
       return Promise.reject(new Error('getMediaForNote not implemented in mock'));
+    },
+
+    async getLinkPreview(url: string): Promise<LinkPreview | null> {
+      return Promise.resolve(linkPreviews.get(url) ?? null);
+    },
+
+    async upsertLinkPreview(input): Promise<LinkPreview> {
+      const timestamp = now();
+      const preview: LinkPreview = {
+        url: input.url,
+        image_url: input.image_url,
+        status: input.status,
+        fetched_at: timestamp,
+        updated_at: timestamp,
+      };
+      linkPreviews.set(input.url, preview);
+      return Promise.resolve(preview);
     },
   };
 }

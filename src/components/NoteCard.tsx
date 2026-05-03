@@ -132,7 +132,9 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
       </div>
       {note.title !== '' && <h3 className="note-card-title">{note.title}</h3>}
       {(() => {
-        const imageUrl = getImageUrl(note.body);
+        const imageUrl =
+          getImageUrl(note.body) ??
+          (note.link_preview?.status === 'found' ? note.link_preview.image_url : null);
         if (imageUrl !== null) {
           return (
             <div className="note-card-body">

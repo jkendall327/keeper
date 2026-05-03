@@ -12,6 +12,7 @@ import type {
   AutoTagRunResult,
   AppSettings,
   UpdateAppSettingsInput,
+  LinkPreview,
 } from "./types.ts";
 
 // ── HTTP helpers ─────────────────────────────────────────────
@@ -176,6 +177,12 @@ const db: KeeperDB = {
 
   getMediaForNote: (noteId: string) =>
     fetchJson<Media[]>(`/api/notes/${noteId}/media`),
+
+  getLinkPreview: (url: string) =>
+    fetchNullable<LinkPreview>(`/api/link-preview?url=${encodeURIComponent(url)}`),
+
+  upsertLinkPreview: (input) =>
+    fetchJson<LinkPreview>("/api/link-previews", jsonOpts("PUT", input)),
 };
 
 export function getDB(): KeeperDB {

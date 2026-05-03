@@ -31,8 +31,19 @@ export interface Media {
   created_at: string;
 }
 
+export type LinkPreviewStatus = "found" | "missing" | "error";
+
+export interface LinkPreview {
+  url: string;
+  image_url: string | null;
+  status: LinkPreviewStatus;
+  fetched_at: string;
+  updated_at: string;
+}
+
 export interface NoteWithTags extends Note {
   tags: Tag[];
+  link_preview: LinkPreview | null;
 }
 
 /** Default icon for tags without a custom icon */
@@ -154,4 +165,8 @@ export interface KeeperDB {
   getMedia(id: string): Promise<ArrayBuffer | null>;
   deleteMedia(id: string): Promise<void>;
   getMediaForNote(noteId: string): Promise<Media[]>;
+
+  // Link previews
+  getLinkPreview(url: string): Promise<LinkPreview | null>;
+  upsertLinkPreview(input: Pick<LinkPreview, "url" | "image_url" | "status">): Promise<LinkPreview>;
 }

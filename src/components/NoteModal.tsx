@@ -338,7 +338,11 @@ export function NoteModal({
             </div>
           )}
           {(() => {
-            const imageUrl = getImageUrl(body);
+            const imageUrl =
+              getImageUrl(body) ??
+              (note.link_preview?.status === 'found' && note.link_preview.url === body.trim()
+                ? note.link_preview.image_url
+                : null);
             if (imageUrl !== null) {
               return (
                 <div className="modal-body-live-preview">

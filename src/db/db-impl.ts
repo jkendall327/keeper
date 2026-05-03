@@ -120,6 +120,14 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     };
   }
 
+  function rowToTag(row: SqlRow): Tag {
+    return {
+      id: row["id"] as number,
+      name: row["name"] as string,
+      icon: row["icon"] as string | null,
+    };
+  }
+
   function getTagsForNote(noteId: string): Tag[] {
     const rows = db.query(
       `SELECT t.id, t.name, t.icon FROM tags t
@@ -127,11 +135,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
        WHERE nt.note_id = ?`,
       [noteId],
     );
-    return rows.map((r) => ({
-      id: r["id"] as number,
-      name: r["name"] as string,
-      icon: r["icon"] as string | null,
-    }));
+    return rows.map(rowToTag);
   }
 
   function normalizeRuleInput(input: AutoTagRuleInput): AutoTagRuleInput {
@@ -165,6 +169,41 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     };
   }
 
+  function rowsToAutoTagRules(rows: SqlRow[]): AutoTagRule[] {
+    if (rows.length === 0) return [];
+
+    const ruleIds = rows.map((row) => row["id"] as number);
+    const placeholders = ruleIds.map(() => "?").join(",");
+    const tagRows = db.query(
+      `SELECT rule_id, tag_name
+       FROM auto_tag_rule_tags
+       WHERE rule_id IN (${placeholders})
+       ORDER BY tag_name`,
+      ruleIds,
+    );
+    const tagNamesByRuleId = new Map<number, string[]>();
+    for (const tagRow of tagRows) {
+      const ruleId = tagRow["rule_id"] as number;
+      const tagNames = tagNamesByRuleId.get(ruleId);
+      if (tagNames !== undefined) {
+        tagNames.push(tagRow["tag_name"] as string);
+      } else {
+        tagNamesByRuleId.set(ruleId, [tagRow["tag_name"] as string]);
+      }
+    }
+
+    return rows.map((row) => {
+      const ruleId = row["id"] as number;
+      return {
+        id: ruleId,
+        pattern: row["pattern"] as string,
+        tagNames: tagNamesByRuleId.get(ruleId) ?? [],
+        created_at: row["created_at"] as string,
+        updated_at: row["updated_at"] as string,
+      };
+    });
+  }
+
   function getAutoTagRuleById(ruleId: number): AutoTagRule | null {
     const row = db.query("SELECT * FROM auto_tag_rules WHERE id = ?", [ruleId])[0];
     if (row === undefined) return null;
@@ -196,11 +235,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     const tagMap = new Map<string, Tag[]>();
     for (const r of rows) {
       const noteId = r["note_id"] as string;
-      const tag: Tag = {
-        id: r["id"] as number,
-        name: r["name"] as string,
-        icon: r["icon"] as string | null,
-      };
+      const tag = rowToTag(r);
       const list = tagMap.get(noteId);
       if (list !== undefined) list.push(tag);
       else tagMap.set(noteId, [tag]);
@@ -464,11 +499,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     getAllTags(): Promise<Tag[]> {
       const rows = db.query("SELECT id, name, icon FROM tags ORDER BY name");
-      return Promise.resolve(rows.map((r) => ({
-        id: r["id"] as number,
-        name: r["name"] as string,
-        icon: r["icon"] as string | null,
-      })));
+      return Promise.resolve(rows.map(rowToTag));
     },
 
     search(query: string): Promise<SearchResult[]> {
@@ -531,7 +562,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const rows = db.query(
         "SELECT * FROM auto_tag_rules ORDER BY created_at DESC, id DESC",
       );
-      return Promise.resolve(rows.map(rowToAutoTagRule));
+      return Promise.resolve(rowsToAutoTagRules(rows));
     },
 
     createAutoTagRule(input: AutoTagRuleInput): Promise<AutoTagRule> {

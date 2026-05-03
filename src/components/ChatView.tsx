@@ -129,10 +129,15 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
 
   // Fetch available models
   useEffect(() => {
+    let cancelled = false;
     void fetchModels(apiKey).then((result) => {
+      if (cancelled) return;
       setModels(result.models);
       setModelError(result.error);
     });
+    return () => {
+      cancelled = true;
+    };
   }, [apiKey]);
 
   // Auto-scroll to bottom

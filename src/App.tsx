@@ -291,6 +291,7 @@ function App() {
 
   // Update displayed notes based on search query and active filter
   useEffect(() => {
+    let cancelled = false;
     const loadNotes = async () => {
       let notes_: NoteWithTags[];
       if (searchQuery.trim() !== '') {
@@ -320,9 +321,13 @@ function App() {
             break;
         }
       }
+      if (cancelled) return;
       setDisplayedNotes(notes_);
     };
     void loadNotes();
+    return () => {
+      cancelled = true;
+    };
   }, [
     searchQuery,
     activeFilter,

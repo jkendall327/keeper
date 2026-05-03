@@ -2,7 +2,13 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { Icon } from './Icon.tsx';
 import { getApiKey, setApiKey, clearApiKey, isLLMConfigured } from '../llm/client.ts';
 import { getDB } from '../db/db-client.ts';
-import type { AutoTagRule } from '../db/types.ts';
+import {
+  DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
+  MAX_EXTENSION_TITLE_MAX_LENGTH,
+  MIN_EXTENSION_TITLE_MAX_LENGTH,
+  type AutoTagRule,
+} from '../db/types.ts';
+import { normalizeExtensionTitleMaxLength } from '../utils/extension-title.ts';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -22,6 +28,9 @@ export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTa
   const [tagNames, setTagNames] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [ruleError, setRuleError] = useState('');
+  const [extensionTitleMaxLength, setExtensionTitleMaxLength] = useState(String(DEFAULT_EXTENSION_TITLE_MAX_LENGTH));
+  const [extensionTitleSaved, setExtensionTitleSaved] = useState(false);
+  const [extensionTitleError, setExtensionTitleError] = useState('');
 
   const normalizedPattern = pattern.trim();
   const patternValid = useMemo(() => {
@@ -47,6 +56,20 @@ export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTa
   useEffect(() => {
     void loadRules();
   }, [loadRules]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadSettings = async () => {
+      const settings = await getDB().getAppSettings();
+      if (!cancelled) {
+        setExtensionTitleMaxLength(String(settings.extensionTitleMaxLength));
+      }
+    };
+    void loadSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleSave = useCallback(() => {
     if (key.trim() === '') return;
@@ -109,6 +132,19 @@ export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTa
     if (editingId === rule.id) resetRuleForm();
     await loadRules();
   }, [editingId, loadRules, resetRuleForm]);
+
+  const saveExtensionTitleMaxLength = useCallback(async () => {
+    setExtensionTitleError('');
+    try {
+      const normalized = normalizeExtensionTitleMaxLength(Number(extensionTitleMaxLength));
+      const settings = await getDB().updateAppSettings({ extensionTitleMaxLength: normalized });
+      setExtensionTitleMaxLength(String(settings.extensionTitleMaxLength));
+      setExtensionTitleSaved(true);
+      setTimeout(() => { setExtensionTitleSaved(false); }, 1500);
+    } catch (error) {
+      setExtensionTitleError(error instanceof Error ? error.message : 'Unable to save setting');
+    }
+  }, [extensionTitleMaxLength]);
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -207,6 +243,41 @@ export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTa
                 <span className="settings-hint">New notes created from a tag view inherit that tag.</span>
               </span>
             </label>
+            <label className="settings-label" htmlFor="extension-title-max-length">
+              Extension title length
+            </label>
+            <p className="settings-hint">
+              Page titles longer than this are shortened when notes are created by the extension.
+            </p>
+            <div className="settings-key-row">
+              <input
+                id="extension-title-max-length"
+                type="number"
+                min={MIN_EXTENSION_TITLE_MAX_LENGTH}
+                max={MAX_EXTENSION_TITLE_MAX_LENGTH}
+                className="settings-key-input"
+                value={extensionTitleMaxLength}
+                onChange={(e) => {
+                  setExtensionTitleMaxLength(e.target.value);
+                  setExtensionTitleSaved(false);
+                  setExtensionTitleError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    void saveExtensionTitleMaxLength();
+                  }
+                }}
+              />
+            </div>
+            {extensionTitleError !== '' && <p className="settings-error">{extensionTitleError}</p>}
+            <div className="settings-key-actions">
+              <button
+                className="settings-save-btn"
+                onClick={() => { void saveExtensionTitleMaxLength(); }}
+              >
+                {extensionTitleSaved ? 'Saved!' : 'Save'}
+              </button>
+            </div>
           </div>
         )}
 

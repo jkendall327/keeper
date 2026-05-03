@@ -67,6 +67,18 @@ export interface AutoTagRunResult {
   appliedTagCount: number;
 }
 
+export const DEFAULT_EXTENSION_TITLE_MAX_LENGTH = 120;
+export const MIN_EXTENSION_TITLE_MAX_LENGTH = 4;
+export const MAX_EXTENSION_TITLE_MAX_LENGTH = 500;
+
+export interface AppSettings {
+  extensionTitleMaxLength: number;
+}
+
+export interface UpdateAppSettingsInput {
+  extensionTitleMaxLength?: number;
+}
+
 // ── Input types ─────────────────────────────────────────────
 
 export interface CreateNoteInput {
@@ -132,6 +144,10 @@ export interface KeeperDB {
   updateAutoTagRule(input: UpdateAutoTagRuleInput): Promise<AutoTagRule>;
   deleteAutoTagRule(id: number): Promise<void>;
   runAutoTagRules(): Promise<AutoTagRunResult>;
+
+  // App settings
+  getAppSettings(): Promise<AppSettings>;
+  updateAppSettings(input: UpdateAppSettingsInput): Promise<AppSettings>;
 
   // Media
   storeMedia(input: StoreMediaInput): Promise<Media>;

@@ -75,6 +75,59 @@ describe("Fastify API routes", () => {
     expect(parseJson(list) as NoteDto[]).toEqual([]);
   });
 
+  it("truncates long extension note titles using the configured setting", async () => {
+    const { app } = await setup();
+
+    const settings = await app.inject({
+      method: "PUT",
+      url: "/api/settings",
+      payload: { extensionTitleMaxLength: 12 },
+    });
+    expect(settings.statusCode).toBe(200);
+    expect(parseJson(settings)).toMatchObject({ extensionTitleMaxLength: 12 });
+
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/notes",
+      headers: { "X-Keeper-Source": "extension" },
+      payload: { body: "https://example.com", title: "An extremely long page title" },
+    });
+    expect(created.statusCode).toBe(200);
+    expect(parseJson(created) as NoteDto).toMatchObject({
+      title: "An extrem...",
+    });
+  });
+
+  it("does not truncate long non-extension note titles", async () => {
+    const { app } = await setup();
+    await app.inject({
+      method: "PUT",
+      url: "/api/settings",
+      payload: { extensionTitleMaxLength: 12 },
+    });
+
+    const title = "An extremely long page title";
+    const created = await app.inject({
+      method: "POST",
+      url: "/api/notes",
+      payload: { body: "https://example.com", title },
+    });
+    expect(created.statusCode).toBe(200);
+    expect(parseJson(created) as NoteDto).toMatchObject({ title });
+  });
+
+  it("rejects invalid extension title length settings", async () => {
+    const { app } = await setup();
+
+    const response = await app.inject({
+      method: "PUT",
+      url: "/api/settings",
+      payload: { extensionTitleMaxLength: 3 },
+    });
+    expect(response.statusCode).toBe(400);
+    expect((parseJson(response) as ErrorDto).error).toContain("between");
+  });
+
   it("supports bulk archive, trash, and restore routes used by the client", async () => {
     const { app } = await setup();
     await app.inject({ method: "POST", url: "/api/notes", payload: { body: "one" } });

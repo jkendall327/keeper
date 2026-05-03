@@ -10,6 +10,8 @@ import type {
   AutoTagRuleInput,
   UpdateAutoTagRuleInput,
   AutoTagRunResult,
+  AppSettings,
+  UpdateAppSettingsInput,
 } from "./types.ts";
 
 // ── HTTP helpers ─────────────────────────────────────────────
@@ -146,6 +148,12 @@ const db: KeeperDB = {
 
   runAutoTagRules: () =>
     fetchJson<AutoTagRunResult>("/api/auto-tag-rules/run", { method: "POST" }),
+
+  // App settings
+  getAppSettings: () => fetchJson<AppSettings>("/api/settings"),
+
+  updateAppSettings: (input: UpdateAppSettingsInput) =>
+    fetchJson<AppSettings>("/api/settings", jsonOpts("PUT", input)),
 
   // Media
   async storeMedia(input) {

@@ -5,6 +5,7 @@ import type {
   AutoTagRule,
   AutoTagRuleInput,
   AutoTagRunResult,
+  AppSettings,
   KeeperDB,
   Note,
   NoteWithTags,
@@ -14,8 +15,10 @@ import type {
   CreateNoteInput,
   UpdateNoteInput,
   UpdateAutoTagRuleInput,
+  UpdateAppSettingsInput,
   StoreMediaInput,
 } from "./types.ts";
+import { normalizeExtensionTitleMaxLength, parseExtensionTitleMaxLength } from "../utils/extension-title.ts";
 
 /** Dependencies injected into the DB implementation */
 export interface KeeperDBDeps {
@@ -617,6 +620,29 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     deleteAutoTagRule(id: number): Promise<void> {
       db.run("DELETE FROM auto_tag_rules WHERE id = ?", [id]);
       return Promise.resolve();
+    },
+
+    getAppSettings(): Promise<AppSettings> {
+      const row = db.query(
+        "SELECT value FROM app_settings WHERE key = ?",
+        ["extensionTitleMaxLength"],
+      )[0];
+      const extensionTitleMaxLength = parseExtensionTitleMaxLength(row?.["value"] as string | undefined);
+      return Promise.resolve({ extensionTitleMaxLength });
+    },
+
+    async updateAppSettings(input: UpdateAppSettingsInput): Promise<AppSettings> {
+      const current = await api.getAppSettings();
+      const extensionTitleMaxLength = input.extensionTitleMaxLength === undefined
+        ? current.extensionTitleMaxLength
+        : normalizeExtensionTitleMaxLength(input.extensionTitleMaxLength);
+      db.run(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        ["extensionTitleMaxLength", String(extensionTitleMaxLength), now()],
+      );
+      return { extensionTitleMaxLength };
     },
 
     async runAutoTagRules(): Promise<AutoTagRunResult> {

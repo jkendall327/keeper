@@ -82,4 +82,11 @@ CREATE TABLE IF NOT EXISTS auto_tag_rule_tags (
 );
 
 CREATE INDEX IF NOT EXISTS idx_auto_tag_rule_tags_rule_id ON auto_tag_rule_tags(rule_id);
+
+-- App settings
+CREATE TABLE IF NOT EXISTS app_settings (
+  key        TEXT PRIMARY KEY,
+  value      TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `;

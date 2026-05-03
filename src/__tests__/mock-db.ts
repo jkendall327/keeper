@@ -1,8 +1,10 @@
 import { extractUrls } from '../db/url-detect';
+import { DEFAULT_EXTENSION_TITLE_MAX_LENGTH } from '../db/types';
 import type {
   AutoTagRule,
   AutoTagRuleInput,
   AutoTagRunResult,
+  AppSettings,
   KeeperDB,
   NoteWithTags,
   Tag,
@@ -10,7 +12,9 @@ import type {
   UpdateNoteInput,
   SearchResult,
   UpdateAutoTagRuleInput,
+  UpdateAppSettingsInput,
 } from '../db/types';
+import { normalizeExtensionTitleMaxLength } from '../utils/extension-title';
 
 export interface MockDB extends KeeperDB {
   reset(): void;
@@ -27,6 +31,9 @@ export function createMockDB(): MockDB {
   const notes = new Map<string, NoteWithTags>();
   const tags = new Map<number, Tag>();
   const rules = new Map<number, AutoTagRule>();
+  let appSettings: AppSettings = {
+    extensionTitleMaxLength: DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
+  };
 
   const generateId = () => `n${String(noteId++)}`;
   const generateTagId = () => tagId++;
@@ -40,6 +47,9 @@ export function createMockDB(): MockDB {
     notes.clear();
     tags.clear();
     rules.clear();
+    appSettings = {
+      extensionTitleMaxLength: DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
+    };
   };
 
   const normalizeRuleInput = (input: AutoTagRuleInput): AutoTagRuleInput => {
@@ -406,6 +416,19 @@ export function createMockDB(): MockDB {
       }
 
       return Promise.resolve({ matchedNoteCount, archivedNoteCount, appliedTagCount });
+    },
+
+    async getAppSettings(): Promise<AppSettings> {
+      return Promise.resolve(appSettings);
+    },
+
+    async updateAppSettings(input: UpdateAppSettingsInput): Promise<AppSettings> {
+      appSettings = {
+        extensionTitleMaxLength: input.extensionTitleMaxLength === undefined
+          ? appSettings.extensionTitleMaxLength
+          : normalizeExtensionTitleMaxLength(input.extensionTitleMaxLength),
+      };
+      return Promise.resolve(appSettings);
     },
 
     storeMedia(): Promise<never> {

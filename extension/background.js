@@ -19,7 +19,10 @@ async function saveNote({ title, body }) {
   if (title) payload.title = title;
   const response = await fetch(`${serverUrl}/api/notes`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Keeper-Source": "extension",
+    },
     body: JSON.stringify(payload),
   });
   if (!response.ok) {
@@ -92,4 +95,3 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     await storeError(err.message || String(err));
   }
 });
-

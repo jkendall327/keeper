@@ -3,9 +3,11 @@ import type {
   KeeperDB,
   AutoTagRuleInput,
   CreateNoteInput,
+  UpdateAppSettingsInput,
   UpdateNoteInput,
 } from "../src/db/types.ts";
 import { bufferToArrayBuffer, type MediaHandler } from "./media-handler.ts";
+import { truncateExtensionTitle } from "../src/utils/extension-title.ts";
 
 export function registerRoutes(
   app: FastifyInstance,
@@ -39,7 +41,12 @@ export function registerRoutes(
   // ── Notes ──────────────────────────────────
 
   app.post<{ Body: CreateNoteInput }>("/api/notes", async (req) => {
-    const note = await db.createNote(req.body);
+    const input = { ...req.body };
+    if (req.headers["x-keeper-source"] === "extension" && input.title !== undefined) {
+      const settings = await db.getAppSettings();
+      input.title = truncateExtensionTitle(input.title, settings.extensionTitleMaxLength);
+    }
+    const note = await db.createNote(input);
     broadcast("refresh");
     return note;
   });
@@ -274,6 +281,24 @@ export function registerRoutes(
     broadcast("refresh");
     return result;
   });
+
+  // ── App settings ─────────────────────────
+
+  app.get("/api/settings", async () => {
+    return db.getAppSettings();
+  });
+
+  app.put<{ Body: UpdateAppSettingsInput }>(
+    "/api/settings",
+    async (req, reply) => {
+      try {
+        return await db.updateAppSettings(req.body);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Invalid settings";
+        return reply.code(400).send({ error: message });
+      }
+    },
+  );
 
   // ── Media ──────────────────────────────────
 

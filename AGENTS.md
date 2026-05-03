@@ -8,6 +8,8 @@ Read SPEC.md if you need to understand the project and its goals.
 
 Run `npm run build`, `npm test` and `npm run lint` to verify your work.
 
+You can assume I'm running the app in the background, so you don't need to start it for me.
+
 ## Testing
 
 This project prioritizes **high-value integration and property-based tests** over fastidious unit tests with mocks.

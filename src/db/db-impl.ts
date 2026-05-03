@@ -1,7 +1,10 @@
 import type { SqliteDb, SqlRow } from "./sqlite-db.ts";
 import { SCHEMA_SQL } from "./schema.ts";
-import { containsUrl } from "./url-detect.ts";
+import { containsUrl, extractUrls } from "./url-detect.ts";
 import type {
+  AutoTagRule,
+  AutoTagRuleInput,
+  AutoTagRunResult,
   KeeperDB,
   Note,
   NoteWithTags,
@@ -10,6 +13,7 @@ import type {
   SearchResult,
   CreateNoteInput,
   UpdateNoteInput,
+  UpdateAutoTagRuleInput,
   StoreMediaInput,
 } from "./types.ts";
 
@@ -128,6 +132,51 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       name: r["name"] as string,
       icon: r["icon"] as string | null,
     }));
+  }
+
+  function normalizeRuleInput(input: AutoTagRuleInput): AutoTagRuleInput {
+    const pattern = input.pattern.trim();
+    if (pattern === "") throw new Error("Pattern is required");
+    try {
+      new RegExp(pattern, "i");
+    } catch {
+      throw new Error("Pattern must be a valid regular expression");
+    }
+
+    const tagNames = Array.from(
+      new Set(input.tagNames.map((name) => name.trim()).filter((name) => name !== "")),
+    );
+    if (tagNames.length === 0) throw new Error("At least one tag is required");
+    return { pattern, tagNames };
+  }
+
+  function rowToAutoTagRule(row: SqlRow): AutoTagRule {
+    const ruleId = row["id"] as number;
+    const tagRows = db.query(
+      "SELECT tag_name FROM auto_tag_rule_tags WHERE rule_id = ? ORDER BY tag_name",
+      [ruleId],
+    );
+    return {
+      id: ruleId,
+      pattern: row["pattern"] as string,
+      tagNames: tagRows.map((tagRow) => tagRow["tag_name"] as string),
+      created_at: row["created_at"] as string,
+      updated_at: row["updated_at"] as string,
+    };
+  }
+
+  function getAutoTagRuleById(ruleId: number): AutoTagRule | null {
+    const row = db.query("SELECT * FROM auto_tag_rules WHERE id = ?", [ruleId])[0];
+    if (row === undefined) return null;
+    return rowToAutoTagRule(row);
+  }
+
+  function ensureTag(tagName: string): number {
+    db.run("INSERT OR IGNORE INTO tags (name) VALUES (?)", [tagName]);
+    const tagRow = db.query("SELECT id FROM tags WHERE name = ?", [tagName])[0];
+    if (tagRow === undefined)
+      throw new Error("Unreachable: tag must exist after INSERT OR IGNORE");
+    return tagRow["id"] as number;
   }
 
   function withTags(note: Note): NoteWithTags {
@@ -347,11 +396,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     addTagToNotes(noteIds: string[], tagName: string): Promise<void> {
       if (noteIds.length === 0) return Promise.resolve();
 
-      db.run("INSERT OR IGNORE INTO tags (name) VALUES (?)", [tagName]);
-      const tagRow = db.query("SELECT id FROM tags WHERE name = ?", [tagName])[0];
-      if (tagRow === undefined)
-        throw new Error("Unreachable: tag must exist after INSERT OR IGNORE");
-      const tagId = tagRow["id"] as number;
+      const tagId = ensureTag(tagName);
 
       for (const noteId of noteIds) {
         db.run(
@@ -480,6 +525,123 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
         "SELECT * FROM notes WHERE archived = 1 AND trashed = 0 ORDER BY pinned DESC, updated_at DESC",
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
+    },
+
+    getAutoTagRules(): Promise<AutoTagRule[]> {
+      const rows = db.query(
+        "SELECT * FROM auto_tag_rules ORDER BY created_at DESC, id DESC",
+      );
+      return Promise.resolve(rows.map(rowToAutoTagRule));
+    },
+
+    createAutoTagRule(input: AutoTagRuleInput): Promise<AutoTagRule> {
+      try {
+        const normalized = normalizeRuleInput(input);
+        const timestamp = now();
+        db.run(
+          "INSERT INTO auto_tag_rules (pattern, created_at, updated_at) VALUES (?, ?, ?)",
+          [normalized.pattern, timestamp, timestamp],
+        );
+        const row = db.query("SELECT last_insert_rowid() AS id")[0];
+        if (row === undefined) throw new Error("Unable to create autotag rule");
+        const ruleId = row["id"] as number;
+        for (const tagName of normalized.tagNames) {
+          db.run(
+            "INSERT INTO auto_tag_rule_tags (rule_id, tag_name) VALUES (?, ?)",
+            [ruleId, tagName],
+          );
+        }
+        const created = getAutoTagRuleById(ruleId);
+        if (created === null) throw new Error("Unable to read created autotag rule");
+        return Promise.resolve(created);
+      } catch (error) {
+        return Promise.reject(error instanceof Error ? error : new Error("Unable to create autotag rule"));
+      }
+    },
+
+    updateAutoTagRule(input: UpdateAutoTagRuleInput): Promise<AutoTagRule> {
+      try {
+        const existing = getAutoTagRuleById(input.id);
+        if (existing === null) throw new Error(`Autotag rule not found: ${String(input.id)}`);
+        const normalized = normalizeRuleInput(input);
+        db.run(
+          "UPDATE auto_tag_rules SET pattern = ?, updated_at = ? WHERE id = ?",
+          [normalized.pattern, now(), input.id],
+        );
+        db.run("DELETE FROM auto_tag_rule_tags WHERE rule_id = ?", [input.id]);
+        for (const tagName of normalized.tagNames) {
+          db.run(
+            "INSERT INTO auto_tag_rule_tags (rule_id, tag_name) VALUES (?, ?)",
+            [input.id, tagName],
+          );
+        }
+        const updated = getAutoTagRuleById(input.id);
+        if (updated === null) throw new Error(`Autotag rule not found: ${String(input.id)}`);
+        return Promise.resolve(updated);
+      } catch (error) {
+        return Promise.reject(error instanceof Error ? error : new Error("Unable to update autotag rule"));
+      }
+    },
+
+    deleteAutoTagRule(id: number): Promise<void> {
+      db.run("DELETE FROM auto_tag_rules WHERE id = ?", [id]);
+      return Promise.resolve();
+    },
+
+    async runAutoTagRules(): Promise<AutoTagRunResult> {
+      const rules = await api.getAutoTagRules();
+      if (rules.length === 0) {
+        return { matchedNoteCount: 0, archivedNoteCount: 0, appliedTagCount: 0 };
+      }
+
+      const compiledRules = rules.map((rule) => ({
+        tagNames: rule.tagNames,
+        regex: new RegExp(rule.pattern, "i"),
+      }));
+      const noteRows = db.query(
+        "SELECT * FROM notes WHERE archived = 0 AND trashed = 0 ORDER BY updated_at DESC",
+      );
+
+      let matchedNoteCount = 0;
+      let archivedNoteCount = 0;
+      let appliedTagCount = 0;
+
+      for (const row of noteRows) {
+        const note = rowToNote(row);
+        const urls = extractUrls(note.body);
+        if (urls.length === 0) continue;
+
+        const matchedTagNames = new Set<string>();
+        for (const rule of compiledRules) {
+          if (urls.some((url) => rule.regex.test(url))) {
+            for (const tagName of rule.tagNames) {
+              matchedTagNames.add(tagName);
+            }
+          }
+        }
+        if (matchedTagNames.size === 0) continue;
+
+        matchedNoteCount++;
+        for (const tagName of matchedTagNames) {
+          const tagId = ensureTag(tagName);
+          const before = db.query(
+            "SELECT 1 FROM note_tags WHERE note_id = ? AND tag_id = ?",
+            [note.id, tagId],
+          );
+          db.run(
+            "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
+            [note.id, tagId],
+          );
+          if (before.length === 0) appliedTagCount++;
+        }
+        db.run("UPDATE notes SET archived = 1, updated_at = ? WHERE id = ?", [
+          now(),
+          note.id,
+        ]);
+        archivedNoteCount++;
+      }
+
+      return { matchedNoteCount, archivedNoteCount, appliedTagCount };
     },
 
     async storeMedia(_input: StoreMediaInput): Promise<Media> {

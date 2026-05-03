@@ -120,6 +120,7 @@ function AppContent({
         activeFilter={activeFilter}
         onFilterChange={(filter) => {
           setActiveFilter(filter);
+          setSelectedNoteIds(new Set());
           if (isMobile) onSidebarClose();
         }}
         onRenameTag={(old, new_) => {
@@ -237,13 +238,27 @@ function AppContent({
 
 function App() {
   const db = useDB();
-  const { deleteNotes, archiveNotes, trashNotes, restoreNotes } = db;
+  const {
+    createNote: createSharedNote,
+    deleteNotes,
+    archiveNotes,
+    trashNotes,
+    restoreNotes,
+    notes: dbNotes,
+    search,
+    getArchivedNotes,
+    getTrashedNotes,
+    getUntaggedNotes,
+    getNotesForTag,
+    getLinkedNotes,
+  } = db;
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
   const [searchQuery, setSearchQuery] = useState('');
-  const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(db.notes);
+  const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(dbNotes);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
+  const [autoTagStatus, setAutoTagStatus] = useState('');
   const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -252,36 +267,31 @@ function App() {
   const isTrashView = activeFilter.type === 'trash';
   const displayedNoteIds = useMemo(() => displayedNotes.map((n) => n.id), [displayedNotes]);
 
-  // Clear selection when the filter changes
-  useEffect(() => {
-    setSelectedNoteIds(new Set());
-  }, [activeFilter]);
-
   // Update displayed notes based on search query and active filter
   useEffect(() => {
     const loadNotes = async () => {
       let notes_: NoteWithTags[];
       if (searchQuery.trim() !== '') {
-        notes_ = await db.search(searchQuery);
+        notes_ = await search(searchQuery);
       } else {
         switch (activeFilter.type) {
           case 'all':
-            notes_ = db.notes;
+            notes_ = dbNotes;
             break;
           case 'untagged':
-            notes_ = await db.getUntaggedNotes();
+            notes_ = await getUntaggedNotes();
             break;
           case 'archive':
-            notes_ = await db.getArchivedNotes();
+            notes_ = await getArchivedNotes();
             break;
           case 'trash':
-            notes_ = await db.getTrashedNotes();
+            notes_ = await getTrashedNotes();
             break;
           case 'links':
-            notes_ = await db.getLinkedNotes();
+            notes_ = await getLinkedNotes();
             break;
           case 'tag':
-            notes_ = await db.getNotesForTag(activeFilter.tagId);
+            notes_ = await getNotesForTag(activeFilter.tagId);
             break;
           case 'chat':
             notes_ = [];
@@ -291,7 +301,17 @@ function App() {
       setDisplayedNotes(notes_);
     };
     void loadNotes();
-  }, [searchQuery, activeFilter, db.notes, db.search, db.getArchivedNotes, db.getTrashedNotes, db.getUntaggedNotes, db.getNotesForTag, db.getLinkedNotes]);
+  }, [
+    searchQuery,
+    activeFilter,
+    dbNotes,
+    search,
+    getArchivedNotes,
+    getTrashedNotes,
+    getUntaggedNotes,
+    getNotesForTag,
+    getLinkedNotes,
+  ]);
 
   // Handle Web Share Target: when opened via /share?title=...&text=...&url=...
   useEffect(() => {
@@ -308,10 +328,10 @@ function App() {
     const body = parts.join('\n');
 
     if (body !== '') {
-      void db.createNote({ body });
+      void createSharedNote({ body });
     }
     window.history.replaceState(null, '', '/');
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [createSharedNote]);
 
   const handleSelectAll = useCallback(() => {
     if (selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0) {
@@ -360,6 +380,15 @@ function App() {
     await archiveNotes(ids);
     setSelectedNoteIds(new Set());
   }, [selectedNoteIds, archiveNotes]);
+
+  const handleRunAutoTagRules = useCallback(async () => {
+    const result = await db.runAutoTagRules();
+    setSelectedNoteIds(new Set());
+    setAutoTagStatus(
+      `${String(result.matchedNoteCount)} matched, ${String(result.archivedNoteCount)} archived`,
+    );
+    window.setTimeout(() => { setAutoTagStatus(''); }, 3500);
+  }, [db]);
 
   // Compute applied (all selected have) and indeterminate (some selected have) tags for bulk tagging
   const { bulkAppliedTags, bulkIndeterminateTags } = useMemo(() => {
@@ -411,6 +440,17 @@ function App() {
           {!isMobile && <h1>Keeper</h1>}
         </div>
         <div className="app-header-actions">
+          {autoTagStatus !== '' && (
+            <span className="autotag-run-status" role="status">{autoTagStatus}</span>
+          )}
+          <button
+            className="bulk-action-btn autotag-run-btn"
+            onClick={() => { void handleRunAutoTagRules(); }}
+            title="Run autotag rules"
+            aria-label="Run autotag rules"
+          >
+            <Icon name="auto_mode" size={20} />
+          </button>
           {displayedNoteIds.length > 0 && (
             <button
               className="bulk-action-btn select-all-btn"

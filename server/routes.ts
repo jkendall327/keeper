@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyReply } from "fastify";
 import type {
   KeeperDB,
+  AutoTagRuleInput,
   CreateNoteInput,
   UpdateNoteInput,
 } from "../src/db/types.ts";
@@ -199,6 +200,56 @@ export function registerRoutes(
       return db.getNotesForTag(Number(req.params.tagId));
     },
   );
+
+  // ── Autotag rules ─────────────────────────
+
+  function sendRuleError(reply: FastifyReply, error: unknown) {
+    const message = error instanceof Error ? error.message : "Invalid autotag rule";
+    return reply.code(400).send({ error: message });
+  }
+
+  app.get("/api/auto-tag-rules", async () => {
+    return db.getAutoTagRules();
+  });
+
+  app.post<{ Body: AutoTagRuleInput }>(
+    "/api/auto-tag-rules",
+    async (req, reply) => {
+      try {
+        return await db.createAutoTagRule(req.body);
+      } catch (error) {
+        return sendRuleError(reply, error);
+      }
+    },
+  );
+
+  app.put<{ Params: { id: string }; Body: AutoTagRuleInput }>(
+    "/api/auto-tag-rules/:id",
+    async (req, reply) => {
+      try {
+        return await db.updateAutoTagRule({
+          ...req.body,
+          id: Number(req.params.id),
+        });
+      } catch (error) {
+        return sendRuleError(reply, error);
+      }
+    },
+  );
+
+  app.delete<{ Params: { id: string } }>(
+    "/api/auto-tag-rules/:id",
+    async (req) => {
+      await db.deleteAutoTagRule(Number(req.params.id));
+      return {};
+    },
+  );
+
+  app.post("/api/auto-tag-rules/run", async () => {
+    const result = await db.runAutoTagRules();
+    broadcast("refresh");
+    return result;
+  });
 
   // ── Media ──────────────────────────────────
 

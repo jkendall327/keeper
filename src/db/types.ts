@@ -44,6 +44,29 @@ export interface SearchResult extends NoteWithTags {
   rank: number;
 }
 
+export interface AutoTagRule {
+  id: number;
+  pattern: string;
+  tagNames: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AutoTagRuleInput {
+  pattern: string;
+  tagNames: string[];
+}
+
+export interface UpdateAutoTagRuleInput extends AutoTagRuleInput {
+  id: number;
+}
+
+export interface AutoTagRunResult {
+  matchedNoteCount: number;
+  archivedNoteCount: number;
+  appliedTagCount: number;
+}
+
 // ── Input types ─────────────────────────────────────────────
 
 export interface CreateNoteInput {
@@ -102,6 +125,13 @@ export interface KeeperDB {
   getLinkedNotes(): Promise<NoteWithTags[]>;
   getNotesForTag(tagId: number): Promise<NoteWithTags[]>;
   getArchivedNotes(): Promise<NoteWithTags[]>;
+
+  // Autotag rules
+  getAutoTagRules(): Promise<AutoTagRule[]>;
+  createAutoTagRule(input: AutoTagRuleInput): Promise<AutoTagRule>;
+  updateAutoTagRule(input: UpdateAutoTagRuleInput): Promise<AutoTagRule>;
+  deleteAutoTagRule(id: number): Promise<void>;
+  runAutoTagRules(): Promise<AutoTagRunResult>;
 
   // Media
   storeMedia(input: StoreMediaInput): Promise<Media>;

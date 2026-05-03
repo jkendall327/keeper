@@ -928,6 +928,81 @@ describe('App Integration Tests', () => {
       const clearedKey = localStorage.getItem('keeper-openrouter-key');
       expect(clearedKey).toBeNull();
     });
+
+    it('creates, edits, and deletes autotag rules', async () => {
+      const user = userEvent.setup();
+      const originalConfirm = window.confirm;
+      window.confirm = vi.fn(() => true);
+      await renderApp();
+
+      await user.click(screen.getByLabelText('Open settings'));
+      await user.click(screen.getByRole('tab', { name: 'Autotag Rules' }));
+
+      const patternInput = screen.getByLabelText('URL regex');
+      const tagInput = screen.getByLabelText('Tags');
+      await user.type(patternInput, 'example\\.com');
+      await user.type(tagInput, 'web');
+      await user.keyboard('{Enter}');
+      await user.click(screen.getByText('Create Rule'));
+
+      await screen.findByText('/example\\.com/i');
+      expect(screen.getByText('web')).toBeInTheDocument();
+
+      await user.click(screen.getByLabelText('Edit autotag rule example\\.com'));
+      await user.clear(patternInput);
+      await user.type(patternInput, 'docs\\.example');
+      await user.click(screen.getByLabelText('Remove rule tag web'));
+      await user.type(tagInput, 'docs');
+      await user.keyboard('{Enter}');
+      await user.click(screen.getByText('Save Rule'));
+
+      await screen.findByText('/docs\\.example/i');
+      expect(screen.getByText('docs')).toBeInTheDocument();
+      expect(screen.queryByText('/example\\.com/i')).not.toBeInTheDocument();
+
+      await user.click(screen.getByLabelText('Delete autotag rule docs\\.example'));
+      await waitFor(() => {
+        expect(screen.queryByText('/docs\\.example/i')).not.toBeInTheDocument();
+      });
+      expect(screen.getByText('No autotag rules configured.')).toBeInTheDocument();
+
+      window.confirm = originalConfirm;
+    });
+  });
+
+  it('runs autotag rules from the toolbar and archives matching notes', async () => {
+    const user = userEvent.setup();
+    await mockDB.createAutoTagRule({ pattern: 'example\\.com', tagNames: ['web'] });
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Read https://example.com later');
+    await user.keyboard('{Enter}');
+    await screen.findByText('https://example.com');
+    await user.type(input, 'Keep this visible');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Keep this visible');
+
+    const linkCard = screen.getByText('https://example.com').closest('.note-card');
+    if (linkCard === null) throw new Error('Link note card not found');
+    await user.keyboard('{Control>}');
+    await user.click(linkCard);
+    await user.keyboard('{/Control}');
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Run autotag rules'));
+
+    await waitFor(() => {
+      expect(screen.queryByText('https://example.com')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Keep this visible')).toBeInTheDocument();
+    expect(screen.getByText('1 matched, 1 archived')).toBeInTheDocument();
+    expect(screen.queryByText('1 selected')).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('Archive'));
+    await screen.findByText('https://example.com');
+    const webLabels = screen.getAllByText('web');
+    expect(webLabels[0]).toBeInTheDocument();
   });
 
   describe('markdown list auto-continuation', () => {

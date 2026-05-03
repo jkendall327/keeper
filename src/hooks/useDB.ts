@@ -52,8 +52,13 @@ export function useDB() {
   const addTagToNotes = useCallback((noteIds: string[], tagName: string) => mutate(() => getDB().addTagToNotes(noteIds, tagName)), [mutate]);
   const removeTagFromNotes = useCallback((noteIds: string[], tagName: string) => mutate(() => getDB().removeTagFromNotes(noteIds, tagName)), [mutate]);
   const toggleArchiveNote = useCallback((id: string) => mutate(() => getDB().toggleArchiveNote(id)), [mutate]);
+  const createAutoTagRule = useCallback((input: Parameters<ReturnType<typeof getDB>['createAutoTagRule']>[0]) => mutate(() => getDB().createAutoTagRule(input)), [mutate]);
+  const updateAutoTagRule = useCallback((input: Parameters<ReturnType<typeof getDB>['updateAutoTagRule']>[0]) => mutate(() => getDB().updateAutoTagRule(input)), [mutate]);
+  const deleteAutoTagRule = useCallback((id: number) => mutate(() => getDB().deleteAutoTagRule(id)), [mutate]);
+  const runAutoTagRules = useCallback(() => getDB().runAutoTagRules().then(async (result) => { await refresh(); return result; }), [refresh]);
 
   const search = useCallback((query: string) => getDB().search(query), []);
+  const getAutoTagRules = useCallback(() => getDB().getAutoTagRules(), []);
   const getTrashedNotes = useCallback(() => getDB().getTrashedNotes(), []);
   const getArchivedNotes = useCallback(() => getDB().getArchivedNotes(), []);
   const getUntaggedNotes = useCallback(() => getDB().getUntaggedNotes(), []);
@@ -88,5 +93,10 @@ export function useDB() {
     getUntaggedNotes,
     getNotesForTag,
     getLinkedNotes,
+    getAutoTagRules,
+    createAutoTagRule,
+    updateAutoTagRule,
+    deleteAutoTagRule,
+    runAutoTagRules,
   };
 }

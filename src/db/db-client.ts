@@ -6,6 +6,10 @@ import type {
   Media,
   CreateNoteInput,
   UpdateNoteInput,
+  AutoTagRule,
+  AutoTagRuleInput,
+  UpdateAutoTagRuleInput,
+  AutoTagRunResult,
 } from "./types.ts";
 
 // ── HTTP helpers ─────────────────────────────────────────────
@@ -124,6 +128,24 @@ const db: KeeperDB = {
   getTrashedNotes: () => fetchJson<NoteWithTags[]>("/api/views/trash"),
   getNotesForTag: (tagId: number) =>
     fetchJson<NoteWithTags[]>(`/api/views/tag/${String(tagId)}`),
+
+  // Autotag rules
+  getAutoTagRules: () => fetchJson<AutoTagRule[]>("/api/auto-tag-rules"),
+
+  createAutoTagRule: (input: AutoTagRuleInput) =>
+    fetchJson<AutoTagRule>("/api/auto-tag-rules", jsonOpts("POST", input)),
+
+  updateAutoTagRule: (input: UpdateAutoTagRuleInput) =>
+    fetchJson<AutoTagRule>(
+      `/api/auto-tag-rules/${String(input.id)}`,
+      jsonOpts("PUT", input),
+    ),
+
+  deleteAutoTagRule: (id: number) =>
+    fetchVoid(`/api/auto-tag-rules/${String(id)}`, { method: "DELETE" }),
+
+  runAutoTagRules: () =>
+    fetchJson<AutoTagRunResult>("/api/auto-tag-rules/run", { method: "POST" }),
 
   // Media
   async storeMedia(input) {

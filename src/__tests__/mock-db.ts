@@ -1,4 +1,16 @@
-import type { KeeperDB, NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput, SearchResult } from '../db/types';
+import { extractUrls } from '../db/url-detect';
+import type {
+  AutoTagRule,
+  AutoTagRuleInput,
+  AutoTagRunResult,
+  KeeperDB,
+  NoteWithTags,
+  Tag,
+  CreateNoteInput,
+  UpdateNoteInput,
+  SearchResult,
+  UpdateAutoTagRuleInput,
+} from '../db/types';
 
 export interface MockDB extends KeeperDB {
   reset(): void;
@@ -11,8 +23,10 @@ export interface MockDB extends KeeperDB {
 export function createMockDB(): MockDB {
   let noteId = 1;
   let tagId = 1;
+  let ruleId = 1;
   const notes = new Map<string, NoteWithTags>();
   const tags = new Map<number, Tag>();
+  const rules = new Map<number, AutoTagRule>();
 
   const generateId = () => `n${String(noteId++)}`;
   const generateTagId = () => tagId++;
@@ -22,8 +36,27 @@ export function createMockDB(): MockDB {
   const reset = () => {
     noteId = 1;
     tagId = 1;
+    ruleId = 1;
     notes.clear();
     tags.clear();
+    rules.clear();
+  };
+
+  const normalizeRuleInput = (input: AutoTagRuleInput): AutoTagRuleInput => {
+    const pattern = input.pattern.trim();
+    if (pattern === '') throw new Error('Pattern is required');
+    new RegExp(pattern, 'i');
+    const tagNames = Array.from(new Set(input.tagNames.map((name) => name.trim()).filter((name) => name !== '')));
+    if (tagNames.length === 0) throw new Error('At least one tag is required');
+    return { pattern, tagNames };
+  };
+
+  const getOrCreateTag = (tagName: string): Tag => {
+    const existing = Array.from(tags.values()).find(t => t.name === tagName);
+    if (existing !== undefined) return existing;
+    const tag = { id: generateTagId(), name: tagName, icon: null };
+    tags.set(tag.id, tag);
+    return tag;
   };
 
   return {
@@ -164,12 +197,7 @@ export function createMockDB(): MockDB {
       const note = notes.get(noteId);
       if (note === undefined) throw new Error(`Note ${noteId} not found`);
 
-      // Get or create tag
-      let tag = Array.from(tags.values()).find(t => t.name === tagName);
-      if (tag === undefined) {
-        tag = { id: generateTagId(), name: tagName, icon: null };
-        tags.set(tag.id, tag);
-      }
+      const tag = getOrCreateTag(tagName);
 
       // Add to note if not already present
       if (!note.tags.some(t => t.name === tagName)) {
@@ -188,9 +216,7 @@ export function createMockDB(): MockDB {
     },
 
     async addTagToNotes(noteIds: string[], tagName: string): Promise<void> {
-      const existing = Array.from(tags.values()).find(t => t.name === tagName);
-      const tag: Tag = existing ?? { id: generateTagId(), name: tagName, icon: null };
-      if (existing === undefined) tags.set(tag.id, tag);
+      const tag = getOrCreateTag(tagName);
       for (const noteId of noteIds) {
         const note = notes.get(noteId);
         if (note !== undefined && !note.tags.some(t => t.name === tagName)) {
@@ -302,6 +328,83 @@ export function createMockDB(): MockDB {
 
     async getArchivedNotes(): Promise<NoteWithTags[]> {
       return Promise.resolve(Array.from(notes.values()).filter(n => n.archived && !n.trashed));
+    },
+
+    async getAutoTagRules(): Promise<AutoTagRule[]> {
+      return Promise.resolve(Array.from(rules.values()));
+    },
+
+    async createAutoTagRule(input: AutoTagRuleInput): Promise<AutoTagRule> {
+      const normalized = normalizeRuleInput(input);
+      const timestamp = now();
+      const rule: AutoTagRule = {
+        id: ruleId++,
+        pattern: normalized.pattern,
+        tagNames: normalized.tagNames,
+        created_at: timestamp,
+        updated_at: timestamp,
+      };
+      rules.set(rule.id, rule);
+      return Promise.resolve(rule);
+    },
+
+    async updateAutoTagRule(input: UpdateAutoTagRuleInput): Promise<AutoTagRule> {
+      if (!rules.has(input.id)) throw new Error(`Autotag rule not found: ${String(input.id)}`);
+      const normalized = normalizeRuleInput(input);
+      const existing = rules.get(input.id);
+      if (existing === undefined) throw new Error(`Autotag rule not found: ${String(input.id)}`);
+      const updated = {
+        ...existing,
+        pattern: normalized.pattern,
+        tagNames: normalized.tagNames,
+        updated_at: now(),
+      };
+      rules.set(input.id, updated);
+      return Promise.resolve(updated);
+    },
+
+    async deleteAutoTagRule(id: number): Promise<void> {
+      rules.delete(id);
+      return Promise.resolve();
+    },
+
+    async runAutoTagRules(): Promise<AutoTagRunResult> {
+      let matchedNoteCount = 0;
+      let archivedNoteCount = 0;
+      let appliedTagCount = 0;
+      const compiledRules = Array.from(rules.values()).map((rule) => ({
+        regex: new RegExp(rule.pattern, 'i'),
+        tagNames: rule.tagNames,
+      }));
+
+      for (const note of notes.values()) {
+        if (note.archived || note.trashed) continue;
+        const urls = extractUrls(note.body);
+        const matchedTagNames = new Set<string>();
+        for (const rule of compiledRules) {
+          if (urls.some((url) => rule.regex.test(url))) {
+            for (const tagName of rule.tagNames) {
+              matchedTagNames.add(tagName);
+            }
+          }
+        }
+        if (matchedTagNames.size === 0) continue;
+
+        matchedNoteCount++;
+        let updated = note;
+        for (const tagName of matchedTagNames) {
+          const tag = getOrCreateTag(tagName);
+          if (!updated.tags.some((existingTag) => existingTag.name === tag.name)) {
+            updated = { ...updated, tags: [...updated.tags, tag] };
+            appliedTagCount++;
+          }
+        }
+        updated = { ...updated, archived: true, updated_at: now() };
+        notes.set(note.id, updated);
+        archivedNoteCount++;
+      }
+
+      return Promise.resolve({ matchedNoteCount, archivedNoteCount, appliedTagCount });
     },
 
     storeMedia(): Promise<never> {

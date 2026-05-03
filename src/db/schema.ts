@@ -66,4 +66,20 @@ CREATE TABLE IF NOT EXISTS media (
 );
 
 CREATE INDEX IF NOT EXISTS idx_media_note_id ON media(note_id);
+
+-- URL autotag rules
+CREATE TABLE IF NOT EXISTS auto_tag_rules (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  pattern    TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS auto_tag_rule_tags (
+  rule_id  INTEGER NOT NULL REFERENCES auto_tag_rules(id) ON DELETE CASCADE,
+  tag_name TEXT NOT NULL,
+  PRIMARY KEY (rule_id, tag_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_auto_tag_rule_tags_rule_id ON auto_tag_rule_tags(rule_id);
 `;

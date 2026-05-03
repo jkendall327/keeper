@@ -318,8 +318,9 @@ export function createMockDB(): MockDB {
     async getNotesForTag(tagId: number): Promise<NoteWithTags[]> {
       return Promise.resolve(
         Array.from(notes.values())
-          .filter(n => n.tags.some(t => t.id === tagId) && !n.archived && !n.trashed)
+          .filter(n => n.tags.some(t => t.id === tagId) && !n.trashed)
           .sort((a, b) => {
+            if (a.archived !== b.archived) return a.archived ? 1 : -1;
             if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
             return b.updated_at.localeCompare(a.updated_at);
           }),

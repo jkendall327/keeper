@@ -513,8 +513,8 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const rows = db.query(
         `SELECT n.* FROM notes n
          JOIN note_tags nt ON nt.note_id = n.id
-         WHERE nt.tag_id = ? AND n.archived = 0 AND n.trashed = 0
-         ORDER BY n.pinned DESC, n.updated_at DESC`,
+         WHERE nt.tag_id = ? AND n.trashed = 0
+         ORDER BY n.archived ASC, n.pinned DESC, n.updated_at DESC`,
         [tagId],
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));

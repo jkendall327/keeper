@@ -549,6 +549,44 @@ describe('App Integration Tests', () => {
     });
   });
 
+  it('tag sidebar filter shows notes with the selected tag', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+
+    await user.type(input, 'Tagged work note');
+    await user.keyboard('{Enter}');
+    const taggedNote = await screen.findByText('Tagged work note');
+
+    await user.type(input, 'Plain untagged note');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Plain untagged note');
+
+    await user.click(taggedNote);
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'work');
+    await user.keyboard('{Enter}');
+    await user.keyboard('{Escape}');
+
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    const workTag = await waitFor(() => {
+      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
+        (button) => button.textContent === 'work',
+      );
+      if (tagButton === undefined) throw new Error('work tag not found');
+      return tagButton;
+    });
+
+    await user.click(workTag);
+
+    await waitFor(() => {
+      expect(screen.getByText('Tagged work note')).toBeInTheDocument();
+      expect(screen.queryByText('Plain untagged note')).not.toBeInTheDocument();
+    });
+  });
+
   it('burn button appears only after export and deletes notes on click', async () => {
     const user = userEvent.setup();
     await renderApp();

@@ -64,7 +64,7 @@ describe('Note archiving', () => {
     expect(linked.every((n) => n.id !== note1.id)).toBe(true);
   });
 
-  it('should exclude archived notes from getNotesForTag', async () => {
+  it('should include archived notes in getNotesForTag after active notes', async () => {
     const note1 = await api.createNote({ body: 'Note 1' });
     await api.addTag(note1.id, 'work');
 
@@ -78,8 +78,11 @@ describe('Note archiving', () => {
     if (workTag === undefined) throw new Error('work tag not found');
 
     const notesForTag = await api.getNotesForTag(workTag.id);
-    expect(notesForTag.length).toBe(1);
+    expect(notesForTag.length).toBe(2);
     expect(notesForTag[0]?.id).toBe(note2.id);
+    expect(notesForTag[0]?.archived).toBe(false);
+    expect(notesForTag[1]?.id).toBe(note1.id);
+    expect(notesForTag[1]?.archived).toBe(true);
   });
 
   it('should include archived notes in search results', async () => {

@@ -4,6 +4,9 @@
   max-width: none;
   margin: 0;
   padding: 0 0 0 220px;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 .app-header {
@@ -20,16 +23,24 @@
 
 .app-main {
   padding: 0 24px 48px;
+  flex: 1;
+  display: flex;
+  min-height: 0;
 }
 
 .app-layout {
   display: flex;
   gap: 0;
+  flex: 1;
+  min-height: 0;
 }
 
 .app-content {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .loading {
@@ -1213,6 +1224,8 @@ body.is-drag-selecting {
 
 .note-grid-wrapper {
   position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 .selection-rectangle {

@@ -34,7 +34,16 @@ export function useDB() {
     [refresh],
   );
 
-  const createNote = useCallback((input: CreateNoteInput) => mutate(() => getDB().createNote(input)), [mutate]);
+  const mutateWithResult = useCallback(
+    async <T,>(fn: () => Promise<T>) => {
+      const result = await fn();
+      await refresh();
+      return result;
+    },
+    [refresh],
+  );
+
+  const createNote = useCallback((input: CreateNoteInput) => mutateWithResult(() => getDB().createNote(input)), [mutateWithResult]);
   const updateNote = useCallback((input: UpdateNoteInput) => mutate(() => getDB().updateNote(input)), [mutate]);
   const deleteNote = useCallback((id: string) => mutate(() => getDB().deleteNote(id)), [mutate]);
   const deleteNotes = useCallback((ids: string[]) => mutate(() => getDB().deleteNotes(ids)), [mutate]);

@@ -6,10 +6,12 @@ import type { AutoTagRule } from '../db/types.ts';
 
 interface SettingsModalProps {
   onClose: () => void;
+  autoApplyActiveTag: boolean;
+  onAutoApplyActiveTagChange: (enabled: boolean) => void;
 }
 
-export function SettingsModal({ onClose }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'api' | 'autotag'>('api');
+export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTagChange }: SettingsModalProps) {
+  const [activeTab, setActiveTab] = useState<'api' | 'notes' | 'autotag'>('api');
   const [key, setKey] = useState(() => getApiKey() ?? '');
   const [configured, setConfigured] = useState(isLLMConfigured);
   const [saved, setSaved] = useState(false);
@@ -135,6 +137,14 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
           >
             Autotag Rules
           </button>
+          <button
+            className={`settings-tab${activeTab === 'notes' ? ' settings-tab-active' : ''}`}
+            onClick={() => { setActiveTab('notes'); }}
+            role="tab"
+            aria-selected={activeTab === 'notes'}
+          >
+            Notes
+          </button>
         </div>
 
         {activeTab === 'api' && (
@@ -180,6 +190,23 @@ export function SettingsModal({ onClose }: SettingsModalProps) {
                 </span>
               )}
             </p>
+          </div>
+        )}
+
+        {activeTab === 'notes' && (
+          <div className="settings-section">
+            <label className="settings-toggle-row" htmlFor="auto-apply-active-tag">
+              <input
+                id="auto-apply-active-tag"
+                type="checkbox"
+                checked={autoApplyActiveTag}
+                onChange={(e) => { onAutoApplyActiveTagChange(e.target.checked); }}
+              />
+              <span>
+                <span className="settings-label">Apply current tag to new notes</span>
+                <span className="settings-hint">New notes created from a tag view inherit that tag.</span>
+              </span>
+            </label>
           </div>
         )}
 

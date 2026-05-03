@@ -30,6 +30,7 @@ async function renderApp() {
 describe('App Integration Tests', () => {
   beforeEach(() => {
     mockDB.reset();
+    localStorage.clear();
   });
 
   it('creates and displays a note', async () => {
@@ -585,6 +586,79 @@ describe('App Integration Tests', () => {
       expect(screen.getByText('Tagged work note')).toBeInTheDocument();
       expect(screen.queryByText('Plain untagged note')).not.toBeInTheDocument();
     });
+  });
+
+  it('applies the active tag to notes created from a tag view when enabled', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Existing cats note');
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByText('Existing cats note'));
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'cats');
+    await user.keyboard('{Enter}');
+    await user.keyboard('{Escape}');
+
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    const catsTag = await waitFor(() => {
+      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
+        (button) => button.textContent === 'cats',
+      );
+      if (tagButton === undefined) throw new Error('cats tag not found');
+      return tagButton;
+    });
+
+    await user.click(catsTag);
+    await user.type(input, 'New kitten thought');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('New kitten thought')).toBeInTheDocument();
+    const allNotes = await mockDB.getAllNotes();
+    const created = allNotes.find((note) => note.body === 'New kitten thought');
+    expect(created?.tags.map((tag) => tag.name)).toEqual(['cats']);
+  });
+
+  it('does not apply the active tag to new tag-view notes when disabled', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Existing cats note');
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByText('Existing cats note'));
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'cats');
+    await user.keyboard('{Enter}');
+    await user.keyboard('{Escape}');
+
+    await user.click(screen.getByLabelText('Open settings'));
+    await user.click(screen.getByRole('tab', { name: 'Notes' }));
+    await user.click(screen.getByRole('checkbox', { name: /Apply current tag to new notes/ }));
+    await user.click(screen.getByLabelText('Close settings'));
+
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    const catsTag = await waitFor(() => {
+      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
+        (button) => button.textContent === 'cats',
+      );
+      if (tagButton === undefined) throw new Error('cats tag not found');
+      return tagButton;
+    });
+
+    await user.click(catsTag);
+    await user.type(input, 'Loose kitten thought');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.queryByText('Loose kitten thought')).not.toBeInTheDocument();
+    });
+    const allNotes = await mockDB.getAllNotes();
+    const created = allNotes.find((note) => note.body === 'Loose kitten thought');
+    expect(created?.tags).toEqual([]);
   });
 
   it('burn button appears only after export and deletes notes on click', async () => {

@@ -13,7 +13,8 @@ import { Icon } from './components/Icon.tsx';
 import { TagApplier } from './components/TagApplier.tsx';
 import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
-import type { NoteWithTags, Tag } from './db/types.ts';
+import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
+import type { CreateNoteInput, NoteWithTags, Tag } from './db/types.ts';
 
 function useIsMobile() {
   const query = useMemo(() => window.matchMedia('(max-width: 768px)'), []);
@@ -95,6 +96,7 @@ function AppContent({
 
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [autoApplyActiveTag, setAutoApplyActiveTagState] = useState(getAutoApplyActiveTag);
 
   // Keep selectedNote in sync with latest data from displayed notes
   // (using displayedNotes so archived notes are findable in archive view)
@@ -109,6 +111,22 @@ function AppContent({
   const handleBulkSelect = useCallback((ids: Set<string>) => {
     setSelectedNoteIds(ids);
   }, [setSelectedNoteIds]);
+
+  const activeTag = activeFilter.type === 'tag'
+    ? allTags.find((tag) => tag.id === activeFilter.tagId)
+    : undefined;
+
+  const handleCreateNote = useCallback(async (input: CreateNoteInput) => {
+    const note = await createNote(input);
+    if (autoApplyActiveTag && activeTag !== undefined) {
+      await addTag(note.id, activeTag.name);
+    }
+  }, [activeTag, addTag, autoApplyActiveTag, createNote]);
+
+  const handleAutoApplyActiveTagChange = useCallback((enabled: boolean) => {
+    setAutoApplyActiveTag(enabled);
+    setAutoApplyActiveTagState(enabled);
+  }, []);
 
   return (
     <div className="app-layout">
@@ -181,7 +199,7 @@ function AppContent({
                   : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
               </p>
             )}
-            <QuickAdd onCreate={createNote} />
+            <QuickAdd onCreate={handleCreateNote} />
             {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
               <div className="empty-state">
                 <Icon name="sticky_note_2" size={48} />
@@ -230,7 +248,11 @@ function AppContent({
         />
       )}
       {showSettings && (
-        <SettingsModal onClose={() => { setShowSettings(false); }} />
+        <SettingsModal
+          onClose={() => { setShowSettings(false); }}
+          autoApplyActiveTag={autoApplyActiveTag}
+          onAutoApplyActiveTagChange={handleAutoApplyActiveTagChange}
+        />
       )}
     </div>
   );

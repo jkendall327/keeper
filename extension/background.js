@@ -31,6 +31,39 @@ async function saveNote({ title, body }) {
   return response.json();
 }
 
+async function saveRightwardTabs({ includeCurrent }) {
+  const tabs = await chrome.tabs.query({ currentWindow: true });
+  const activeTab = tabs.find((tab) => tab.active);
+  if (!activeTab) {
+    throw new Error("No active tab found");
+  }
+
+  const startIndex = activeTab.index + (includeCurrent ? 0 : 1);
+  const tabsToSave = tabs
+    .filter((tab) => tab.index >= startIndex)
+    .sort((a, b) => a.index - b.index)
+    .filter((tab) => typeof tab.url === "string" && tab.url.length > 0);
+
+  let saved = 0;
+  let failed = 0;
+
+  for (const tab of tabsToSave) {
+    try {
+      await saveNote({ title: tab.title || undefined, body: tab.url });
+      saved += 1;
+    } catch (err) {
+      failed += 1;
+      console.error("Keeper: failed to save tab", tab.url, err);
+    }
+  }
+
+  if (failed > 0) {
+    throw new Error(`Saved ${saved} tab${saved === 1 ? "" : "s"}, failed ${failed}`);
+  }
+
+  return { saved, failed };
+}
+
 function buildNote(info, tab) {
   if (info.selectionText) {
     return { body: info.selectionText };
@@ -78,6 +111,17 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         sendResponse({ ok: false, error: "unreachable" });
       });
     return true; // keep channel open for async sendResponse
+  }
+
+  if (msg.type === "save-rightward-tabs") {
+    saveRightwardTabs({ includeCurrent: msg.includeCurrent === true })
+      .then((result) => sendResponse({ ok: true, ...result }))
+      .catch(async (err) => {
+        const message = err.message || String(err);
+        await storeError(message);
+        sendResponse({ ok: false, error: message });
+      });
+    return true;
   }
 });
 

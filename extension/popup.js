@@ -2,6 +2,8 @@ const DEFAULT_SERVER_URL = "http://localhost:3001";
 
 const serverUrlInput = document.getElementById("serverUrl");
 const saveBtn = document.getElementById("save");
+const saveRightInclusiveBtn = document.getElementById("saveRightInclusive");
+const saveRightExclusiveBtn = document.getElementById("saveRightExclusive");
 const statusEl = document.getElementById("status");
 const errorsEl = document.getElementById("errors");
 
@@ -16,6 +18,19 @@ function testConnection(url) {
       resolve(response?.ok ?? false);
     });
   });
+}
+
+function saveRightwardTabs(includeCurrent) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: "save-rightward-tabs", includeCurrent }, (response) => {
+      resolve(response ?? { ok: false, error: chrome.runtime.lastError?.message || "No response" });
+    });
+  });
+}
+
+function setTabActionBusy(busy) {
+  saveRightInclusiveBtn.disabled = busy;
+  saveRightExclusiveBtn.disabled = busy;
 }
 
 function formatTime(ts) {
@@ -81,4 +96,32 @@ saveBtn.addEventListener("click", async () => {
   } else {
     showStatus("Could not reach server", false);
   }
+});
+
+async function handleSaveRightwardTabs(includeCurrent) {
+  setTabActionBusy(true);
+  showStatus("Sending tabs to Keeper...", true);
+
+  try {
+    const result = await saveRightwardTabs(includeCurrent);
+    if (result.ok) {
+      const count = result.saved ?? 0;
+      showStatus(`Sent ${count} tab${count === 1 ? "" : "s"} to Keeper`, true);
+    } else {
+      showStatus(result.error || "Could not send tabs", false);
+      chrome.storage.local.get("recentErrors", (stored) => {
+        renderErrors(stored.recentErrors);
+      });
+    }
+  } finally {
+    setTabActionBusy(false);
+  }
+}
+
+saveRightInclusiveBtn.addEventListener("click", () => {
+  handleSaveRightwardTabs(true);
+});
+
+saveRightExclusiveBtn.addEventListener("click", () => {
+  handleSaveRightwardTabs(false);
 });

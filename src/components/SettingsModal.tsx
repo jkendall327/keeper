@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { Icon } from './Icon.tsx';
 import { getApiKey, setApiKey, clearApiKey, isLLMConfigured } from '../llm/client.ts';
 import { getDB } from '../db/db-client.ts';
@@ -7,16 +7,18 @@ import {
   MAX_EXTENSION_TITLE_MAX_LENGTH,
   MIN_EXTENSION_TITLE_MAX_LENGTH,
   type AutoTagRule,
+  type Tag,
 } from '../db/types.ts';
 import { normalizeExtensionTitleMaxLength } from '../utils/extension-title.ts';
 
 interface SettingsModalProps {
+  allTags: Tag[];
   onClose: () => void;
   autoApplyActiveTag: boolean;
   onAutoApplyActiveTagChange: (enabled: boolean) => void;
 }
 
-export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTagChange }: SettingsModalProps) {
+export function SettingsModal({ allTags, onClose, autoApplyActiveTag, onAutoApplyActiveTagChange }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<'api' | 'notes' | 'autotag'>('api');
   const [key, setKey] = useState(() => getApiKey() ?? '');
   const [configured, setConfigured] = useState(isLLMConfigured);
@@ -25,6 +27,8 @@ export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTa
   const [rulesLoading, setRulesLoading] = useState(false);
   const [pattern, setPattern] = useState('');
   const [tagDraft, setTagDraft] = useState('');
+  const tagDraftRef = useRef(tagDraft);
+  const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [tagNames, setTagNames] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [ruleError, setRuleError] = useState('');
@@ -43,6 +47,17 @@ export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTa
     }
   }, [normalizedPattern]);
   const canSaveRule = patternValid && tagNames.length > 0;
+  const selectedTagNames = useMemo(() => new Set(tagNames), [tagNames]);
+  const tagSuggestions =
+    tagDraft.trim() === ''
+      ? []
+      : allTags
+          .filter(
+            (tag) =>
+              tag.name.toLowerCase().includes(tagDraft.trim().toLowerCase()) &&
+              !selectedTagNames.has(tag.name),
+          )
+          .slice(0, 8);
 
   const loadRules = useCallback(async () => {
     setRulesLoading(true);
@@ -86,12 +101,18 @@ export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTa
     setSaved(false);
   }, []);
 
-  const addDraftTag = useCallback(() => {
-    const trimmed = tagDraft.trim();
+  const addTagName = useCallback((name: string) => {
+    const trimmed = name.trim();
     if (trimmed === '') return;
     setTagNames((current) => current.includes(trimmed) ? current : [...current, trimmed]);
     setTagDraft('');
-  }, [tagDraft]);
+    tagDraftRef.current = '';
+    setShowTagSuggestions(false);
+  }, []);
+
+  const addDraftTag = useCallback(() => {
+    addTagName(tagDraft);
+  }, [addTagName, tagDraft]);
 
   const resetRuleForm = useCallback(() => {
     setPattern('');
@@ -296,31 +317,56 @@ export function SettingsModal({ onClose, autoApplyActiveTag, onAutoApplyActiveTa
             <label className="settings-label" htmlFor="autotag-tag-input">
               Tags
             </label>
-            <div className="autotag-chip-input">
-              {tagNames.map((name) => (
-                <span className="autotag-chip" key={name}>
-                  {name}
-                  <button
-                    onClick={() => { setTagNames((current) => current.filter((tag) => tag !== name)); }}
-                    aria-label={`Remove rule tag ${name}`}
-                  >
-                    <Icon name="close" size={14} />
-                  </button>
-                </span>
-              ))}
-              <input
-                id="autotag-tag-input"
-                placeholder="Add tag..."
-                value={tagDraft}
-                onBlur={addDraftTag}
-                onChange={(e) => { setTagDraft(e.target.value); }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ',') {
-                    e.preventDefault();
-                    addDraftTag();
-                  }
-                }}
-              />
+            <div className="autotag-tag-input-wrapper">
+              <div className="autotag-chip-input">
+                {tagNames.map((name) => (
+                  <span className="autotag-chip" key={name}>
+                    {name}
+                    <button
+                      onClick={() => { setTagNames((current) => current.filter((tag) => tag !== name)); }}
+                      aria-label={`Remove rule tag ${name}`}
+                    >
+                      <Icon name="close" size={14} />
+                    </button>
+                  </span>
+                ))}
+                <input
+                  id="autotag-tag-input"
+                  placeholder="Add tag..."
+                  value={tagDraft}
+                  onBlur={() => {
+                    setTimeout(() => {
+                      addTagName(tagDraftRef.current);
+                    }, 150);
+                  }}
+                  onChange={(e) => {
+                    setTagDraft(e.target.value);
+                    tagDraftRef.current = e.target.value;
+                    setShowTagSuggestions(true);
+                  }}
+                  onFocus={() => { setShowTagSuggestions(true); }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      addDraftTag();
+                    }
+                  }}
+                />
+              </div>
+              {showTagSuggestions && tagSuggestions.length > 0 && (
+                <ul className="modal-tag-suggestions">
+                  {tagSuggestions.map((tag) => (
+                    <li
+                      key={tag.id}
+                      className="modal-tag-suggestion"
+                      onMouseDown={(e) => { e.preventDefault(); }}
+                      onClick={() => { addTagName(tag.name); }}
+                    >
+                      {tag.name}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
             {ruleError !== '' && <p className="settings-error">{ruleError}</p>}
             <div className="settings-key-actions">

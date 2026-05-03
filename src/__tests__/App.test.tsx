@@ -1080,6 +1080,36 @@ describe('App Integration Tests', () => {
 
       window.confirm = originalConfirm;
     });
+
+    it('suggests existing tags when editing autotag rules', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      const noteInput = await screen.findByPlaceholderText('Take a note...');
+      await user.type(noteInput, 'Tagged source note');
+      await user.keyboard('{Enter}');
+      await user.click(await screen.findByText('Tagged source note'));
+      const noteTagInput = await screen.findByPlaceholderText('Add tag...');
+      await user.type(noteTagInput, 'work');
+      await user.keyboard('{Enter}');
+      await user.keyboard('{Escape}');
+
+      await user.click(screen.getByLabelText('Open settings'));
+      await user.click(screen.getByRole('tab', { name: 'Autotag Rules' }));
+
+      const tagInput = screen.getByLabelText('Tags');
+      await user.type(tagInput, 'wo');
+
+      await screen.findAllByText('work');
+      const suggestion = screen
+        .getAllByText('work')
+        .find((element) => element.classList.contains('modal-tag-suggestion'));
+      if (suggestion === undefined) throw new Error('Autotag tag suggestion not found');
+      await user.click(suggestion);
+
+      expect(screen.getByLabelText('Remove rule tag work')).toBeInTheDocument();
+      expect(tagInput).toHaveValue('');
+    });
   });
 
   it('runs autotag rules from the toolbar and archives matching notes', async () => {

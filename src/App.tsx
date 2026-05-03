@@ -249,6 +249,7 @@ function AppContent({
       )}
       {showSettings && (
         <SettingsModal
+          allTags={allTags}
           onClose={() => { setShowSettings(false); }}
           autoApplyActiveTag={autoApplyActiveTag}
           onAutoApplyActiveTagChange={handleAutoApplyActiveTagChange}

@@ -389,6 +389,10 @@
   display: block;
 }
 
+.autotag-tag-input-wrapper {
+  position: relative;
+}
+
 .autotag-chip-input {
   display: flex;
   align-items: center;

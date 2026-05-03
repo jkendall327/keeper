@@ -35,6 +35,7 @@ export function createMockDB(): MockDB {
   const linkPreviews = new Map<string, LinkPreview>();
   let appSettings: AppSettings = {
     extensionTitleMaxLength: DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
+    extensionBadgeEnabled: true,
     linkPreviewFetchEnabled: true,
     linkPreviewDisplayEnabled: true,
   };
@@ -54,6 +55,7 @@ export function createMockDB(): MockDB {
     linkPreviews.clear();
     appSettings = {
       extensionTitleMaxLength: DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
+      extensionBadgeEnabled: true,
       linkPreviewFetchEnabled: true,
       linkPreviewDisplayEnabled: true,
     };
@@ -435,6 +437,7 @@ export function createMockDB(): MockDB {
         extensionTitleMaxLength: input.extensionTitleMaxLength === undefined
           ? appSettings.extensionTitleMaxLength
           : normalizeExtensionTitleMaxLength(input.extensionTitleMaxLength),
+        extensionBadgeEnabled: input.extensionBadgeEnabled ?? appSettings.extensionBadgeEnabled,
         linkPreviewFetchEnabled: input.linkPreviewFetchEnabled ?? appSettings.linkPreviewFetchEnabled,
         linkPreviewDisplayEnabled: input.linkPreviewDisplayEnabled ?? appSettings.linkPreviewDisplayEnabled,
       };

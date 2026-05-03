@@ -6,6 +6,29 @@ import type { MockDB } from './mock-db';
 
 // Mock the db-client module before importing App
 const mockDB: MockDB = createMockDB();
+let testVisibilityState: DocumentVisibilityState = 'visible';
+let testDocumentHasFocus = true;
+
+class TestEventSource {
+  static instances: TestEventSource[] = [];
+  private readonly listeners = new Map<string, EventListener[]>();
+
+  constructor(_url: string) {
+    TestEventSource.instances.push(this);
+  }
+
+  addEventListener(type: string, listener: EventListener) {
+    this.listeners.set(type, [...(this.listeners.get(type) ?? []), listener]);
+  }
+
+  close() { /* noop test double */ }
+
+  emit(type: string) {
+    for (const listener of this.listeners.get(type) ?? []) {
+      listener(new Event(type));
+    }
+  }
+}
 
 vi.mock('../db/db-client', () => ({
   getDB: () => mockDB,
@@ -29,8 +52,19 @@ async function renderApp() {
 
 describe('App Integration Tests', () => {
   beforeEach(() => {
+    vi.restoreAllMocks();
     mockDB.reset();
     localStorage.clear();
+    document.title = 'keeper';
+    TestEventSource.instances = [];
+    globalThis.EventSource = TestEventSource as unknown as typeof EventSource;
+    testVisibilityState = 'visible';
+    testDocumentHasFocus = true;
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => testVisibilityState,
+    });
+    vi.spyOn(document, 'hasFocus').mockImplementation(() => testDocumentHasFocus);
   });
 
   it('creates and displays a note', async () => {
@@ -1145,6 +1179,51 @@ describe('App Integration Tests', () => {
       expect(screen.getByLabelText('Remove rule tag work')).toBeInTheDocument();
       expect(tagInput).toHaveValue('');
     });
+
+    it('toggles extension note count badges', async () => {
+      const user = userEvent.setup();
+      await renderApp();
+
+      await user.click(screen.getByLabelText('Open settings'));
+      await user.click(screen.getByRole('tab', { name: 'Notes' }));
+
+      const toggle = screen.getByRole('checkbox', { name: /Show extension note count in tab title/ });
+      expect(toggle).toBeChecked();
+
+      await user.click(toggle);
+      await waitFor(() => {
+        expect(toggle).not.toBeChecked();
+      });
+      await expect(mockDB.getAppSettings()).resolves.toMatchObject({ extensionBadgeEnabled: false });
+      expect(toggle).not.toBeChecked();
+    });
+  });
+
+  it('shows extension-created notes as unseen in the tab title until the tab is focused', async () => {
+    await renderApp();
+    await waitFor(() => {
+      expect(TestEventSource.instances).toHaveLength(1);
+    });
+
+    testDocumentHasFocus = false;
+    testVisibilityState = 'hidden';
+
+    act(() => {
+      TestEventSource.instances[0]?.emit('extension-note-created');
+    });
+    expect(document.title).toBe('(1) keeper');
+
+    act(() => {
+      TestEventSource.instances[0]?.emit('extension-note-created');
+    });
+    expect(document.title).toBe('(2) keeper');
+
+    testDocumentHasFocus = true;
+    testVisibilityState = 'visible';
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    expect(document.title).toBe('keeper');
   });
 
   it('runs autotag rules from the toolbar and archives matching notes', async () => {

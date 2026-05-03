@@ -61,16 +61,19 @@ describe('Link previews', () => {
 
   it('persists link preview settings', async () => {
     await expect(api.getAppSettings()).resolves.toMatchObject({
+      extensionBadgeEnabled: true,
       linkPreviewFetchEnabled: true,
       linkPreviewDisplayEnabled: true,
     });
 
     await api.updateAppSettings({
+      extensionBadgeEnabled: false,
       linkPreviewFetchEnabled: false,
       linkPreviewDisplayEnabled: false,
     });
 
     await expect(api.getAppSettings()).resolves.toMatchObject({
+      extensionBadgeEnabled: false,
       linkPreviewFetchEnabled: false,
       linkPreviewDisplayEnabled: false,
     });

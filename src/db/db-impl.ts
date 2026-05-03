@@ -673,8 +673,8 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     getAppSettings(): Promise<AppSettings> {
       const rows = db.query(
-        "SELECT key, value FROM app_settings WHERE key IN (?, ?, ?)",
-        ["extensionTitleMaxLength", "linkPreviewFetchEnabled", "linkPreviewDisplayEnabled"],
+        "SELECT key, value FROM app_settings WHERE key IN (?, ?, ?, ?)",
+        ["extensionTitleMaxLength", "extensionBadgeEnabled", "linkPreviewFetchEnabled", "linkPreviewDisplayEnabled"],
       );
       const values = new Map<string, string>();
       for (const row of rows) {
@@ -683,6 +683,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const extensionTitleMaxLength = parseExtensionTitleMaxLength(values.get("extensionTitleMaxLength"));
       return Promise.resolve({
         extensionTitleMaxLength,
+        extensionBadgeEnabled: values.get("extensionBadgeEnabled") !== "false",
         linkPreviewFetchEnabled: values.get("linkPreviewFetchEnabled") !== "false",
         linkPreviewDisplayEnabled: values.get("linkPreviewDisplayEnabled") !== "false",
       });
@@ -693,6 +694,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const extensionTitleMaxLength = input.extensionTitleMaxLength === undefined
         ? current.extensionTitleMaxLength
         : normalizeExtensionTitleMaxLength(input.extensionTitleMaxLength);
+      const extensionBadgeEnabled = input.extensionBadgeEnabled ?? current.extensionBadgeEnabled;
       const linkPreviewFetchEnabled = input.linkPreviewFetchEnabled ?? current.linkPreviewFetchEnabled;
       const linkPreviewDisplayEnabled = input.linkPreviewDisplayEnabled ?? current.linkPreviewDisplayEnabled;
       db.run(
@@ -700,6 +702,12 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
          VALUES (?, ?, ?)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         ["extensionTitleMaxLength", String(extensionTitleMaxLength), now()],
+      );
+      db.run(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        ["extensionBadgeEnabled", String(extensionBadgeEnabled), now()],
       );
       db.run(
         `INSERT INTO app_settings (key, value, updated_at)
@@ -713,7 +721,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         ["linkPreviewDisplayEnabled", String(linkPreviewDisplayEnabled), now()],
       );
-      return { extensionTitleMaxLength, linkPreviewFetchEnabled, linkPreviewDisplayEnabled };
+      return { extensionTitleMaxLength, extensionBadgeEnabled, linkPreviewFetchEnabled, linkPreviewDisplayEnabled };
     },
 
     async runAutoTagRules(): Promise<AutoTagRunResult> {

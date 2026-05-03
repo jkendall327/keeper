@@ -53,6 +53,7 @@ interface AppContentProps {
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   displayedNotes: NoteWithTags[];
+  extensionNoteCreatedCount: number;
   selectedNoteIds: Set<string>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   sidebarOpen: boolean;
@@ -80,6 +81,7 @@ function AppContent({
   searchQuery,
   setSearchQuery,
   displayedNotes,
+  extensionNoteCreatedCount,
   selectedNoteIds,
   setSelectedNoteIds,
   sidebarOpen,
@@ -104,14 +106,20 @@ function AppContent({
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [autoApplyActiveTag, setAutoApplyActiveTagState] = useState(getAutoApplyActiveTag);
+  const [extensionBadgeEnabled, setExtensionBadgeEnabled] = useState(true);
   const [linkPreviewFetchEnabled, setLinkPreviewFetchEnabled] = useState(true);
   const [linkPreviewDisplayEnabled, setLinkPreviewDisplayEnabled] = useState(true);
+  const [unseenExtensionNoteCount, setUnseenExtensionNoteCount] = useState(0);
+  const previousExtensionNoteCreatedCount = useRef(extensionNoteCreatedCount);
+  const titleBase = useRef(document.title);
 
   useEffect(() => {
     let cancelled = false;
     const loadSettings = async () => {
       const settings = await getDB().getAppSettings();
       if (cancelled) return;
+      setExtensionBadgeEnabled(settings.extensionBadgeEnabled);
+      if (!settings.extensionBadgeEnabled) setUnseenExtensionNoteCount(0);
       setLinkPreviewFetchEnabled(settings.linkPreviewFetchEnabled);
       setLinkPreviewDisplayEnabled(settings.linkPreviewDisplayEnabled);
     };
@@ -120,6 +128,40 @@ function AppContent({
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    const clearIfFocused = () => {
+      if (document.visibilityState === 'visible' && document.hasFocus()) {
+        setUnseenExtensionNoteCount(0);
+      }
+    };
+    window.addEventListener('focus', clearIfFocused);
+    document.addEventListener('visibilitychange', clearIfFocused);
+    clearIfFocused();
+    return () => {
+      window.removeEventListener('focus', clearIfFocused);
+      document.removeEventListener('visibilitychange', clearIfFocused);
+    };
+  }, []);
+
+  useEffect(() => {
+    const previous = previousExtensionNoteCreatedCount.current;
+    previousExtensionNoteCreatedCount.current = extensionNoteCreatedCount;
+    const delta = extensionNoteCreatedCount - previous;
+    if (delta <= 0 || !extensionBadgeEnabled) return;
+    if (document.visibilityState === 'visible' && document.hasFocus()) return;
+    setUnseenExtensionNoteCount((count) => count + delta);
+  }, [extensionBadgeEnabled, extensionNoteCreatedCount]);
+
+  useEffect(() => {
+    if (!extensionBadgeEnabled) {
+      document.title = titleBase.current;
+      return;
+    }
+    document.title = unseenExtensionNoteCount > 0
+      ? `(${String(unseenExtensionNoteCount)}) ${titleBase.current}`
+      : titleBase.current;
+  }, [extensionBadgeEnabled, unseenExtensionNoteCount]);
 
   // Keep selectedNote in sync with latest data from displayed notes
   // (using displayedNotes so archived notes are findable in archive view)
@@ -177,6 +219,8 @@ function AppContent({
   }, []);
 
   const handleAppSettingsChange = useCallback((settings: AppSettings) => {
+    setExtensionBadgeEnabled(settings.extensionBadgeEnabled);
+    if (!settings.extensionBadgeEnabled) setUnseenExtensionNoteCount(0);
     setLinkPreviewFetchEnabled(settings.linkPreviewFetchEnabled);
     setLinkPreviewDisplayEnabled(settings.linkPreviewDisplayEnabled);
   }, []);
@@ -308,6 +352,7 @@ function AppContent({
           onClose={() => { setShowSettings(false); }}
           autoApplyActiveTag={autoApplyActiveTag}
           onAutoApplyActiveTagChange={handleAutoApplyActiveTagChange}
+          extensionBadgeEnabled={extensionBadgeEnabled}
           linkPreviewFetchEnabled={linkPreviewFetchEnabled}
           linkPreviewDisplayEnabled={linkPreviewDisplayEnabled}
           onAppSettingsChange={handleAppSettingsChange}
@@ -639,6 +684,7 @@ function App() {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             displayedNotes={displayedNotes}
+            extensionNoteCreatedCount={db.extensionNoteCreatedCount}
             selectedNoteIds={selectedNoteIds}
             setSelectedNoteIds={setSelectedNoteIds}
             sidebarOpen={sidebarOpen}

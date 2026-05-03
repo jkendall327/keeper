@@ -17,6 +17,7 @@ interface SettingsModalProps {
   onClose: () => void;
   autoApplyActiveTag: boolean;
   onAutoApplyActiveTagChange: (enabled: boolean) => void;
+  extensionBadgeEnabled: boolean;
   linkPreviewFetchEnabled: boolean;
   linkPreviewDisplayEnabled: boolean;
   onAppSettingsChange: (settings: AppSettings) => void;
@@ -27,6 +28,7 @@ export function SettingsModal({
   onClose,
   autoApplyActiveTag,
   onAutoApplyActiveTagChange,
+  extensionBadgeEnabled,
   linkPreviewFetchEnabled,
   linkPreviewDisplayEnabled,
   onAppSettingsChange,
@@ -47,7 +49,7 @@ export function SettingsModal({
   const [extensionTitleMaxLength, setExtensionTitleMaxLength] = useState(String(DEFAULT_EXTENSION_TITLE_MAX_LENGTH));
   const [extensionTitleSaved, setExtensionTitleSaved] = useState(false);
   const [extensionTitleError, setExtensionTitleError] = useState('');
-  const [linkPreviewError, setLinkPreviewError] = useState('');
+  const [settingsError, setSettingsError] = useState('');
 
   const normalizedPattern = pattern.trim();
   const patternValid = useMemo(() => {
@@ -181,16 +183,16 @@ export function SettingsModal({
     }
   }, [extensionTitleMaxLength]);
 
-  const saveLinkPreviewSetting = useCallback(async (
-    setting: 'linkPreviewFetchEnabled' | 'linkPreviewDisplayEnabled',
+  const saveBooleanSetting = useCallback(async (
+    setting: 'extensionBadgeEnabled' | 'linkPreviewFetchEnabled' | 'linkPreviewDisplayEnabled',
     enabled: boolean,
   ) => {
-    setLinkPreviewError('');
+    setSettingsError('');
     try {
       const settings = await getDB().updateAppSettings({ [setting]: enabled });
       onAppSettingsChange(settings);
     } catch (error) {
-      setLinkPreviewError(error instanceof Error ? error.message : 'Unable to save setting');
+      setSettingsError(error instanceof Error ? error.message : 'Unable to save setting');
     }
   }, [onAppSettingsChange]);
 
@@ -299,6 +301,18 @@ export function SettingsModal({
                 <span className="settings-hint">New notes created from a tag view inherit that tag.</span>
               </span>
             </label>
+            <label className="settings-toggle-row" htmlFor="extension-badge-enabled">
+              <input
+                id="extension-badge-enabled"
+                type="checkbox"
+                checked={extensionBadgeEnabled}
+                onChange={(e) => { void saveBooleanSetting('extensionBadgeEnabled', e.target.checked); }}
+              />
+              <span>
+                <span className="settings-label">Show extension note count in tab title</span>
+                <span className="settings-hint">Notes saved from the browser extension add to the count until this tab is focused.</span>
+              </span>
+            </label>
             <label className="settings-label" htmlFor="extension-title-max-length">
               Extension title length
             </label>
@@ -334,6 +348,7 @@ export function SettingsModal({
                 {extensionTitleSaved ? 'Saved!' : 'Save'}
               </button>
             </div>
+            {settingsError !== '' && <p className="settings-error">{settingsError}</p>}
           </div>
         )}
 
@@ -344,7 +359,7 @@ export function SettingsModal({
                 id="link-preview-fetch"
                 type="checkbox"
                 checked={linkPreviewFetchEnabled}
-                onChange={(e) => { void saveLinkPreviewSetting('linkPreviewFetchEnabled', e.target.checked); }}
+                onChange={(e) => { void saveBooleanSetting('linkPreviewFetchEnabled', e.target.checked); }}
               />
               <span>
                 <span className="settings-label">Fetch Open Graph images</span>
@@ -356,14 +371,14 @@ export function SettingsModal({
                 id="link-preview-display"
                 type="checkbox"
                 checked={linkPreviewDisplayEnabled}
-                onChange={(e) => { void saveLinkPreviewSetting('linkPreviewDisplayEnabled', e.target.checked); }}
+                onChange={(e) => { void saveBooleanSetting('linkPreviewDisplayEnabled', e.target.checked); }}
               />
               <span>
                 <span className="settings-label">Show link preview images</span>
                 <span className="settings-hint">Cached previews stay stored, but notes render as links when this is off.</span>
               </span>
             </label>
-            {linkPreviewError !== '' && <p className="settings-error">{linkPreviewError}</p>}
+            {settingsError !== '' && <p className="settings-error">{settingsError}</p>}
           </div>
         )}
 

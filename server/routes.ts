@@ -67,12 +67,13 @@ export function registerRoutes(
 
   app.post<{ Body: CreateNoteInput }>("/api/notes", async (req) => {
     const input = { ...req.body };
-    if (req.headers["x-keeper-source"] === "extension" && input.title !== undefined) {
+    const isExtensionNote = req.headers["x-keeper-source"] === "extension";
+    if (isExtensionNote && input.title !== undefined) {
       const settings = await db.getAppSettings();
       input.title = truncateExtensionTitle(input.title, settings.extensionTitleMaxLength);
     }
     const note = await db.createNote(input);
-    broadcast("refresh");
+    broadcast(isExtensionNote ? "extension-note-created" : "refresh");
     queueLinkPreview(note.body);
     return note;
   });

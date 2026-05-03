@@ -11,6 +11,7 @@ export function useDB() {
   const [initialNotes, initialTags] = use(initialLoad);
   const [notes, setNotes] = useState<NoteWithTags[]>(initialNotes);
   const [allTags, setAllTags] = useState<Tag[]>(initialTags);
+  const [extensionNoteCreatedCount, setExtensionNoteCreatedCount] = useState(0);
 
   const refresh = useCallback(async () => {
     const [freshNotes, freshTags] = await Promise.all([
@@ -26,6 +27,10 @@ export function useDB() {
   useEffect(() => {
     const es = new EventSource('/api/events');
     es.addEventListener('refresh', () => { void refresh(); });
+    es.addEventListener('extension-note-created', () => {
+      setExtensionNoteCreatedCount((count) => count + 1);
+      void refresh();
+    });
     return () => { es.close(); };
   }, [refresh]);
 
@@ -77,6 +82,7 @@ export function useDB() {
   return {
     notes,
     allTags,
+    extensionNoteCreatedCount,
     refresh,
     createNote,
     updateNote,

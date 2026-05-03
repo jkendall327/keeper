@@ -18,6 +18,12 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
           aria-label="Search notes"
           value={value}
           onChange={(e) => { onChange(e.target.value); }}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape' && value !== '') {
+              e.preventDefault();
+              onChange('');
+            }
+          }}
         />
         {value !== '' && (
           <button

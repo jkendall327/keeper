@@ -478,6 +478,41 @@ describe('App Integration Tests', () => {
     expect(document.activeElement).toBe(searchInput);
   });
 
+  it('Ctrl+N returns focus to quick add and clears transient state', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const quickAdd = await screen.findByPlaceholderText('Take a note...');
+    await user.type(quickAdd, 'Capture target');
+    await user.keyboard('{Enter}');
+
+    const noteText = await screen.findByText('Capture target');
+    const noteCard = noteText.closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
+
+    await user.keyboard('{Control>}');
+    await user.click(noteCard);
+    await user.keyboard('{/Control}');
+    expect(screen.getByText('1 selected')).toBeInTheDocument();
+
+    const searchInput = screen.getByPlaceholderText(/Search notes/);
+    await user.type(searchInput, 'zzzznotfound');
+    expect(await screen.findByText('No results found')).toBeInTheDocument();
+
+    // eslint-disable-next-line @typescript-eslint/require-await
+    await act(async () => {
+      searchInput.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'n', ctrlKey: true, bubbles: true }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(searchInput).toHaveValue('');
+      expect(screen.queryByText('1 selected')).not.toBeInTheDocument();
+      expect(document.activeElement).toBe(quickAdd);
+    });
+  });
+
   it('shows result count when searching and "No results found" for no matches', async () => {
     const user = userEvent.setup();
     await renderApp();
@@ -505,8 +540,8 @@ describe('App Integration Tests', () => {
     // "No results found" should appear
     expect(await screen.findByText('No results found')).toBeInTheDocument();
 
-    // Clear search
-    await user.clear(searchInput);
+    // Escape clears search
+    await user.keyboard('{Escape}');
 
     // Count/message should be gone
     await waitFor(() => {

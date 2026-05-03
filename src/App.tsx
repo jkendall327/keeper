@@ -27,6 +27,12 @@ function useIsMobile() {
   return isMobile;
 }
 
+function isTextEntryTarget(target: EventTarget | null) {
+  if (!(target instanceof HTMLElement)) return false;
+  const tagName = target.tagName;
+  return tagName === 'INPUT' || tagName === 'TEXTAREA' || target.isContentEditable;
+}
+
 interface AppContentProps {
   allTags: ReturnType<typeof useDB>['allTags'];
   refresh: ReturnType<typeof useDB>['refresh'];
@@ -81,6 +87,7 @@ function AppContent({
   isMobile,
 }: AppContentProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const quickAddRef = useRef<HTMLTextAreaElement>(null);
 
   // Ctrl+/ (or Cmd+/) focuses the search input
   useEffect(() => {
@@ -107,6 +114,31 @@ function AppContent({
   const clearSelection = useCallback(() => {
     setSelectedNoteIds(new Set());
   }, [setSelectedNoteIds]);
+
+  // Ctrl/Cmd+N returns to the quickest capture path from filters or selection.
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'n') return;
+      if (selectedNote !== null || showSettings) return;
+      if (
+        isTextEntryTarget(e.target) &&
+        e.target !== searchInputRef.current &&
+        e.target !== quickAddRef.current
+      ) {
+        return;
+      }
+
+      e.preventDefault();
+      setActiveFilter({ type: 'all' });
+      setSearchQuery('');
+      clearSelection();
+      window.setTimeout(() => {
+        quickAddRef.current?.focus();
+      }, 0);
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => { document.removeEventListener('keydown', handleKeyDown); };
+  }, [clearSelection, selectedNote, setActiveFilter, setSearchQuery, showSettings]);
 
   const handleBulkSelect = useCallback((ids: Set<string>) => {
     setSelectedNoteIds(ids);
@@ -199,7 +231,7 @@ function AppContent({
                   : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
               </p>
             )}
-            <QuickAdd onCreate={handleCreateNote} />
+            <QuickAdd ref={quickAddRef} onCreate={handleCreateNote} />
             {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
               <div className="empty-state">
                 <Icon name="sticky_note_2" size={48} />

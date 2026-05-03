@@ -4,7 +4,7 @@ import Fastify from "fastify";
 import fastifyMultipart from "@fastify/multipart";
 import fastifyStatic from "@fastify/static";
 import { createSqliteAdapter } from "./sqlite-adapter.ts";
-import { createMediaHandler } from "./media-handler.ts";
+import { bufferToArrayBuffer, createMediaHandler } from "./media-handler.ts";
 import { registerRoutes } from "./routes.ts";
 import { createKeeperDB } from "../src/db/db-impl.ts";
 import { randomUUID } from "node:crypto";
@@ -39,8 +39,7 @@ keeperDb.deleteNote = media.deleteNoteWithMedia.bind(media);
 keeperDb.getMedia = async (id: string) => {
   const result = await media.serveMedia(id);
   if (result === null) return null;
-  const { buffer } = result;
-  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+  return bufferToArrayBuffer(result.buffer);
 };
 
 // Register API routes

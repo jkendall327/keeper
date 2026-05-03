@@ -27,6 +27,12 @@ export interface MediaHandler {
   deleteNoteWithMedia(noteId: string): Promise<void>;
 }
 
+export function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
+  const arrayBuffer = new ArrayBuffer(buffer.byteLength);
+  new Uint8Array(arrayBuffer).set(buffer);
+  return arrayBuffer;
+}
+
 export async function createMediaHandler(
   mediaDir: string,
   db: SqliteDb,

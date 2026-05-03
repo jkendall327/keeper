@@ -5,7 +5,7 @@ import type {
   CreateNoteInput,
   UpdateNoteInput,
 } from "../src/db/types.ts";
-import type { MediaHandler } from "./media-handler.ts";
+import { bufferToArrayBuffer, type MediaHandler } from "./media-handler.ts";
 
 export function registerRoutes(
   app: FastifyInstance,
@@ -297,10 +297,7 @@ export function registerRoutes(
     return media.storeMedia({
       noteId,
       mimeType,
-      data: fileBuffer.buffer.slice(
-        fileBuffer.byteOffset,
-        fileBuffer.byteOffset + fileBuffer.byteLength,
-      ),
+      data: bufferToArrayBuffer(fileBuffer),
     });
   });
 

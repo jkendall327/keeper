@@ -114,6 +114,14 @@ export function registerRoutes(
     },
   );
 
+  app.post<{ Body: { ids: string[] } }>(
+    "/api/notes/restore",
+    async (req) => {
+      await db.restoreNotes(req.body.ids);
+      return {};
+    },
+  );
+
   app.post<{ Params: { id: string } }>(
     "/api/notes/:id/pin",
     async (req) => {
@@ -145,6 +153,22 @@ export function registerRoutes(
     "/api/notes/:noteId/tags/:tagName",
     async (req) => {
       return db.removeTag(req.params.noteId, req.params.tagName);
+    },
+  );
+
+  app.post<{ Body: { noteIds: string[]; tagName: string } }>(
+    "/api/notes/tags/add",
+    async (req) => {
+      await db.addTagToNotes(req.body.noteIds, req.body.tagName);
+      return {};
+    },
+  );
+
+  app.post<{ Body: { noteIds: string[]; tagName: string } }>(
+    "/api/notes/tags/remove",
+    async (req) => {
+      await db.removeTagFromNotes(req.body.noteIds, req.body.tagName);
+      return {};
     },
   );
 

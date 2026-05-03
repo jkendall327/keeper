@@ -1,29 +1,17 @@
 # Keeper
 
-Read SPEC.md to understand the project and its goals.
+Read SPEC.md if you need to understand the project and its goals.
 
-## Build & Dev
+## Build
 
-- `npm run dev` — start dev server (requires COOP/COEP headers, configured in vite.config.ts)
-- `npm run build` — typecheck + production build
-- `npm run lint` — ESLint
-- `npm test` — run all tests
-- `npm run test:watch` — run tests in watch mode
+`npm run dev` — starts dev server (requires COOP/COEP headers, configured in vite.config.ts)
 
-## Testing & Linting
+Run `npm test` and `npm run lint` to verify your work.
+
+## Testing
 
 This project prioritizes **high-value integration and property-based tests** over fastidious unit tests with mocks.
 
 - **Data layer** (`src/db/__tests__/`): tests using real SQLite (better-sqlite3) to verify actual behavior including FTS5, triggers, foreign key constraints, and mock↔real DB conformance.
 - **UI layer** (`src/__tests__/App.test.tsx`, `IconPicker.test.tsx`): integration tests using React Testing Library with a mock DB, covering modal interactions, search, multi-select, tag management, icon picker, empty states, settings, chat, and more.
 - **LLM layer** (`src/__tests__/tool-executor.test.ts`, `mcp-parser.test.ts`, `llm-client.test.ts`, `streaming.test.ts`): tests covering tool execution, MCP response parsing, LLM client configuration, and streaming.
-
-**Always run both tests AND lint before committing**:
-- `npm test` — validate functionality
-- `npm run lint` — validate code style and catch type errors
-
-Both commands must pass with zero errors before committing. When modifying code, update or add tests as needed.
-
-## Workflow
-
-- Read the git log briefly to see what work's been done already.

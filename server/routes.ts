@@ -32,6 +32,8 @@ export function registerRoutes(
 
     void (async () => {
       try {
+        const settings = await db.getAppSettings();
+        if (!settings.linkPreviewFetchEnabled) return;
         const existing = await db.getLinkPreview(url);
         if (existing !== null) return;
         const result = await fetchOgImage(url);

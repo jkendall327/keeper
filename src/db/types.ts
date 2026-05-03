@@ -84,10 +84,14 @@ export const MAX_EXTENSION_TITLE_MAX_LENGTH = 500;
 
 export interface AppSettings {
   extensionTitleMaxLength: number;
+  linkPreviewFetchEnabled: boolean;
+  linkPreviewDisplayEnabled: boolean;
 }
 
 export interface UpdateAppSettingsInput {
   extensionTitleMaxLength?: number;
+  linkPreviewFetchEnabled?: boolean;
+  linkPreviewDisplayEnabled?: boolean;
 }
 
 // ── Input types ─────────────────────────────────────────────

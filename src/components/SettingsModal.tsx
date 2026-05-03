@@ -6,6 +6,7 @@ import {
   DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
   MAX_EXTENSION_TITLE_MAX_LENGTH,
   MIN_EXTENSION_TITLE_MAX_LENGTH,
+  type AppSettings,
   type AutoTagRule,
   type Tag,
 } from '../db/types.ts';
@@ -16,10 +17,21 @@ interface SettingsModalProps {
   onClose: () => void;
   autoApplyActiveTag: boolean;
   onAutoApplyActiveTagChange: (enabled: boolean) => void;
+  linkPreviewFetchEnabled: boolean;
+  linkPreviewDisplayEnabled: boolean;
+  onAppSettingsChange: (settings: AppSettings) => void;
 }
 
-export function SettingsModal({ allTags, onClose, autoApplyActiveTag, onAutoApplyActiveTagChange }: SettingsModalProps) {
-  const [activeTab, setActiveTab] = useState<'api' | 'notes' | 'autotag'>('api');
+export function SettingsModal({
+  allTags,
+  onClose,
+  autoApplyActiveTag,
+  onAutoApplyActiveTagChange,
+  linkPreviewFetchEnabled,
+  linkPreviewDisplayEnabled,
+  onAppSettingsChange,
+}: SettingsModalProps) {
+  const [activeTab, setActiveTab] = useState<'api' | 'notes' | 'autotag' | 'link-previews'>('api');
   const [key, setKey] = useState(() => getApiKey() ?? '');
   const [configured, setConfigured] = useState(isLLMConfigured);
   const [saved, setSaved] = useState(false);
@@ -35,6 +47,7 @@ export function SettingsModal({ allTags, onClose, autoApplyActiveTag, onAutoAppl
   const [extensionTitleMaxLength, setExtensionTitleMaxLength] = useState(String(DEFAULT_EXTENSION_TITLE_MAX_LENGTH));
   const [extensionTitleSaved, setExtensionTitleSaved] = useState(false);
   const [extensionTitleError, setExtensionTitleError] = useState('');
+  const [linkPreviewError, setLinkPreviewError] = useState('');
 
   const normalizedPattern = pattern.trim();
   const patternValid = useMemo(() => {
@@ -78,13 +91,14 @@ export function SettingsModal({ allTags, onClose, autoApplyActiveTag, onAutoAppl
       const settings = await getDB().getAppSettings();
       if (!cancelled) {
         setExtensionTitleMaxLength(String(settings.extensionTitleMaxLength));
+        onAppSettingsChange(settings);
       }
     };
     void loadSettings();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [onAppSettingsChange]);
 
   const handleSave = useCallback(() => {
     if (key.trim() === '') return;
@@ -167,6 +181,19 @@ export function SettingsModal({ allTags, onClose, autoApplyActiveTag, onAutoAppl
     }
   }, [extensionTitleMaxLength]);
 
+  const saveLinkPreviewSetting = useCallback(async (
+    setting: 'linkPreviewFetchEnabled' | 'linkPreviewDisplayEnabled',
+    enabled: boolean,
+  ) => {
+    setLinkPreviewError('');
+    try {
+      const settings = await getDB().updateAppSettings({ [setting]: enabled });
+      onAppSettingsChange(settings);
+    } catch (error) {
+      setLinkPreviewError(error instanceof Error ? error.message : 'Unable to save setting');
+    }
+  }, [onAppSettingsChange]);
+
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="settings-modal">
@@ -201,6 +228,14 @@ export function SettingsModal({ allTags, onClose, autoApplyActiveTag, onAutoAppl
             aria-selected={activeTab === 'notes'}
           >
             Notes
+          </button>
+          <button
+            className={`settings-tab${activeTab === 'link-previews' ? ' settings-tab-active' : ''}`}
+            onClick={() => { setActiveTab('link-previews'); }}
+            role="tab"
+            aria-selected={activeTab === 'link-previews'}
+          >
+            Link Previews
           </button>
         </div>
 
@@ -299,6 +334,36 @@ export function SettingsModal({ allTags, onClose, autoApplyActiveTag, onAutoAppl
                 {extensionTitleSaved ? 'Saved!' : 'Save'}
               </button>
             </div>
+          </div>
+        )}
+
+        {activeTab === 'link-previews' && (
+          <div className="settings-section">
+            <label className="settings-toggle-row" htmlFor="link-preview-fetch">
+              <input
+                id="link-preview-fetch"
+                type="checkbox"
+                checked={linkPreviewFetchEnabled}
+                onChange={(e) => { void saveLinkPreviewSetting('linkPreviewFetchEnabled', e.target.checked); }}
+              />
+              <span>
+                <span className="settings-label">Fetch Open Graph images</span>
+                <span className="settings-hint">When a note is only a URL, Keeper checks the page for og:image.</span>
+              </span>
+            </label>
+            <label className="settings-toggle-row" htmlFor="link-preview-display">
+              <input
+                id="link-preview-display"
+                type="checkbox"
+                checked={linkPreviewDisplayEnabled}
+                onChange={(e) => { void saveLinkPreviewSetting('linkPreviewDisplayEnabled', e.target.checked); }}
+              />
+              <span>
+                <span className="settings-label">Show link preview images</span>
+                <span className="settings-hint">Cached previews stay stored, but notes render as links when this is off.</span>
+              </span>
+            </label>
+            {linkPreviewError !== '' && <p className="settings-error">{linkPreviewError}</p>}
           </div>
         )}
 

@@ -14,7 +14,7 @@ import { TagApplier } from './components/TagApplier.tsx';
 import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
 import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
-import type { CreateNoteInput, NoteWithTags, Tag } from './db/types.ts';
+import type { AppSettings, CreateNoteInput, NoteWithTags, Tag } from './db/types.ts';
 
 function useIsMobile() {
   const query = useMemo(() => window.matchMedia('(max-width: 768px)'), []);
@@ -104,6 +104,22 @@ function AppContent({
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [autoApplyActiveTag, setAutoApplyActiveTagState] = useState(getAutoApplyActiveTag);
+  const [linkPreviewFetchEnabled, setLinkPreviewFetchEnabled] = useState(true);
+  const [linkPreviewDisplayEnabled, setLinkPreviewDisplayEnabled] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadSettings = async () => {
+      const settings = await getDB().getAppSettings();
+      if (cancelled) return;
+      setLinkPreviewFetchEnabled(settings.linkPreviewFetchEnabled);
+      setLinkPreviewDisplayEnabled(settings.linkPreviewDisplayEnabled);
+    };
+    void loadSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Keep selectedNote in sync with latest data from displayed notes
   // (using displayedNotes so archived notes are findable in archive view)
@@ -158,6 +174,11 @@ function AppContent({
   const handleAutoApplyActiveTagChange = useCallback((enabled: boolean) => {
     setAutoApplyActiveTag(enabled);
     setAutoApplyActiveTagState(enabled);
+  }, []);
+
+  const handleAppSettingsChange = useCallback((settings: AppSettings) => {
+    setLinkPreviewFetchEnabled(settings.linkPreviewFetchEnabled);
+    setLinkPreviewDisplayEnabled(settings.linkPreviewDisplayEnabled);
   }, []);
 
   return (
@@ -257,6 +278,7 @@ function AppContent({
               selectedNoteIds={selectedNoteIds}
               onBulkSelect={handleBulkSelect}
               onClearSelection={clearSelection}
+              showLinkPreviews={linkPreviewDisplayEnabled}
               isTrashView={activeFilter.type === 'trash'}
               onRestore={restoreNote}
             />
@@ -276,6 +298,7 @@ function AppContent({
             : trashNote}
           onAddTag={addTag}
           onRemoveTag={removeTag}
+          showLinkPreviews={linkPreviewDisplayEnabled}
           onClose={() => { setSelectedNote(null); }}
         />
       )}
@@ -285,6 +308,9 @@ function AppContent({
           onClose={() => { setShowSettings(false); }}
           autoApplyActiveTag={autoApplyActiveTag}
           onAutoApplyActiveTagChange={handleAutoApplyActiveTagChange}
+          linkPreviewFetchEnabled={linkPreviewFetchEnabled}
+          linkPreviewDisplayEnabled={linkPreviewDisplayEnabled}
+          onAppSettingsChange={handleAppSettingsChange}
         />
       )}
     </div>

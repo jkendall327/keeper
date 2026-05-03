@@ -226,6 +226,7 @@
 
 .settings-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 20px;
   border-bottom: 1px solid rgba(128, 128, 128, 0.2);

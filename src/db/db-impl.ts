@@ -672,12 +672,20 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     },
 
     getAppSettings(): Promise<AppSettings> {
-      const row = db.query(
-        "SELECT value FROM app_settings WHERE key = ?",
-        ["extensionTitleMaxLength"],
-      )[0];
-      const extensionTitleMaxLength = parseExtensionTitleMaxLength(row?.["value"] as string | undefined);
-      return Promise.resolve({ extensionTitleMaxLength });
+      const rows = db.query(
+        "SELECT key, value FROM app_settings WHERE key IN (?, ?, ?)",
+        ["extensionTitleMaxLength", "linkPreviewFetchEnabled", "linkPreviewDisplayEnabled"],
+      );
+      const values = new Map<string, string>();
+      for (const row of rows) {
+        values.set(row["key"] as string, row["value"] as string);
+      }
+      const extensionTitleMaxLength = parseExtensionTitleMaxLength(values.get("extensionTitleMaxLength"));
+      return Promise.resolve({
+        extensionTitleMaxLength,
+        linkPreviewFetchEnabled: values.get("linkPreviewFetchEnabled") !== "false",
+        linkPreviewDisplayEnabled: values.get("linkPreviewDisplayEnabled") !== "false",
+      });
     },
 
     async updateAppSettings(input: UpdateAppSettingsInput): Promise<AppSettings> {
@@ -685,13 +693,27 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const extensionTitleMaxLength = input.extensionTitleMaxLength === undefined
         ? current.extensionTitleMaxLength
         : normalizeExtensionTitleMaxLength(input.extensionTitleMaxLength);
+      const linkPreviewFetchEnabled = input.linkPreviewFetchEnabled ?? current.linkPreviewFetchEnabled;
+      const linkPreviewDisplayEnabled = input.linkPreviewDisplayEnabled ?? current.linkPreviewDisplayEnabled;
       db.run(
         `INSERT INTO app_settings (key, value, updated_at)
          VALUES (?, ?, ?)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         ["extensionTitleMaxLength", String(extensionTitleMaxLength), now()],
       );
-      return { extensionTitleMaxLength };
+      db.run(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        ["linkPreviewFetchEnabled", String(linkPreviewFetchEnabled), now()],
+      );
+      db.run(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        ["linkPreviewDisplayEnabled", String(linkPreviewDisplayEnabled), now()],
+      );
+      return { extensionTitleMaxLength, linkPreviewFetchEnabled, linkPreviewDisplayEnabled };
     },
 
     async runAutoTagRules(): Promise<AutoTagRunResult> {

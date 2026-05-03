@@ -12,6 +12,7 @@ interface NoteModalProps {
   onDelete: (id: string) => Promise<void>;
   onAddTag: (noteId: string, tagName: string) => Promise<void>;
   onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
+  showLinkPreviews: boolean;
   onClose: () => void;
 }
 
@@ -22,6 +23,7 @@ export function NoteModal({
   onDelete,
   onAddTag,
   onRemoveTag,
+  showLinkPreviews,
   onClose,
 }: NoteModalProps) {
   const [title, setTitle] = useState(note.title);
@@ -340,7 +342,7 @@ export function NoteModal({
           {(() => {
             const imageUrl =
               getImageUrl(body) ??
-              (note.link_preview?.status === 'found' && note.link_preview.url === body.trim()
+              (showLinkPreviews && note.link_preview?.status === 'found' && note.link_preview.url === body.trim()
                 ? note.link_preview.image_url
                 : null);
             if (imageUrl !== null) {

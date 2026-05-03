@@ -20,11 +20,12 @@ interface NoteCardProps {
   onAddTag: (noteId: string, tagName: string) => Promise<void>;
   onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
   isSelected?: boolean;
+  showLinkPreviews: boolean;
   isTrashView?: boolean;
   onRestore?: (id: string) => Promise<void>;
 }
 
-export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTogglePin, onToggleArchive, onUpdate, onAddTag, onRemoveTag, isSelected, isTrashView, onRestore }: NoteCardProps) {
+export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTogglePin, onToggleArchive, onUpdate, onAddTag, onRemoveTag, isSelected, showLinkPreviews, isTrashView, onRestore }: NoteCardProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showTagApplier, setShowTagApplier] = useState(false);
@@ -134,7 +135,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
       {(() => {
         const imageUrl =
           getImageUrl(note.body) ??
-          (note.link_preview?.status === 'found' ? note.link_preview.image_url : null);
+          (showLinkPreviews && note.link_preview?.status === 'found' ? note.link_preview.image_url : null);
         if (imageUrl !== null) {
           return (
             <div className="note-card-body">

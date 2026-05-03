@@ -35,6 +35,8 @@ export function createMockDB(): MockDB {
   const linkPreviews = new Map<string, LinkPreview>();
   let appSettings: AppSettings = {
     extensionTitleMaxLength: DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
+    linkPreviewFetchEnabled: true,
+    linkPreviewDisplayEnabled: true,
   };
 
   const generateId = () => `n${String(noteId++)}`;
@@ -52,6 +54,8 @@ export function createMockDB(): MockDB {
     linkPreviews.clear();
     appSettings = {
       extensionTitleMaxLength: DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
+      linkPreviewFetchEnabled: true,
+      linkPreviewDisplayEnabled: true,
     };
   };
 
@@ -431,6 +435,8 @@ export function createMockDB(): MockDB {
         extensionTitleMaxLength: input.extensionTitleMaxLength === undefined
           ? appSettings.extensionTitleMaxLength
           : normalizeExtensionTitleMaxLength(input.extensionTitleMaxLength),
+        linkPreviewFetchEnabled: input.linkPreviewFetchEnabled ?? appSettings.linkPreviewFetchEnabled,
+        linkPreviewDisplayEnabled: input.linkPreviewDisplayEnabled ?? appSettings.linkPreviewDisplayEnabled,
       };
       return Promise.resolve(appSettings);
     },

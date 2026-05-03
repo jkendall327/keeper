@@ -58,4 +58,21 @@ describe('Link previews', () => {
     expect(notes.find((note) => note.id === exact.id)?.link_preview?.status).toBe('found');
     expect(notes.find((note) => note.id === embedded.id)?.link_preview).toBe(null);
   });
+
+  it('persists link preview settings', async () => {
+    await expect(api.getAppSettings()).resolves.toMatchObject({
+      linkPreviewFetchEnabled: true,
+      linkPreviewDisplayEnabled: true,
+    });
+
+    await api.updateAppSettings({
+      linkPreviewFetchEnabled: false,
+      linkPreviewDisplayEnabled: false,
+    });
+
+    await expect(api.getAppSettings()).resolves.toMatchObject({
+      linkPreviewFetchEnabled: false,
+      linkPreviewDisplayEnabled: false,
+    });
+  });
 });

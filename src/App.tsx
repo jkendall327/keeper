@@ -2,6 +2,8 @@ import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from 'rea
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { useDisplayedNotes } from './hooks/useDisplayedNotes.ts';
+import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
+import { AppHeader } from './components/AppHeader.tsx';
 import { QuickAdd } from './components/QuickAdd.tsx';
 import { NoteGrid } from './components/NoteGrid.tsx';
 import { NoteModal } from './components/NoteModal.tsx';
@@ -11,11 +13,10 @@ import { Sidebar, type FilterType } from './components/Sidebar.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
 import { ChatView } from './components/ChatView.tsx';
 import { Icon } from './components/Icon.tsx';
-import { TagApplier } from './components/TagApplier.tsx';
 import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
 import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
-import type { AppSettings, CreateNoteInput, NoteWithTags, Tag } from './db/types.ts';
+import type { AppSettings, CreateNoteInput, NoteWithTags } from './db/types.ts';
 
 function useIsMobile() {
   const query = useMemo(() => window.matchMedia('(max-width: 768px)'), []);
@@ -384,13 +385,9 @@ function App() {
     getNotesForTag,
     getLinkedNotes,
   } = db;
-  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
   const [searchQuery, setSearchQuery] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
-  const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
-  const [autoTagStatus, setAutoTagStatus] = useState('');
-  const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -407,7 +404,16 @@ function App() {
     search,
     searchQuery,
   });
-  const displayedNoteIds = useMemo(() => displayedNotes.map((n) => n.id), [displayedNotes]);
+  const bulkActions = useBulkNoteActions({
+    archiveNotes,
+    deleteNotes,
+    displayedNotes,
+    isTrashView,
+    restoreNotes,
+    runAutoTagRules: db.runAutoTagRules,
+    trashNotes,
+  });
+  const { handleBulkDelete, selectedNoteIds, selectedNotes, setSelectedNoteIds } = bulkActions;
 
   // Handle Web Share Target: when opened via /share?title=...&text=...&url=...
   useEffect(() => {
@@ -429,204 +435,21 @@ function App() {
     window.history.replaceState(null, '', '/');
   }, [createSharedNote]);
 
-  const handleSelectAll = useCallback(() => {
-    if (selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0) {
-      setSelectedNoteIds(new Set());
-    } else {
-      setSelectedNoteIds(new Set(displayedNoteIds));
-    }
-  }, [selectedNoteIds.size, displayedNoteIds]);
-
-  const handleBulkDelete = useCallback(async () => {
-    const ids = Array.from(selectedNoteIds);
-    if (ids.length === 0) return;
-    if (isTrashView) {
-      if (!window.confirm(`Permanently delete ${String(ids.length)} selected note${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
-      await deleteNotes(ids);
-    } else {
-      await trashNotes(ids);
-    }
-    setSelectedNoteIds(new Set());
-  }, [selectedNoteIds, isTrashView, deleteNotes, trashNotes]);
-
-  // Delete key deletes selected notes
-  useEffect(() => {
-    const handleDeleteKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Delete') return;
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return;
-      if (selectedNoteIds.size === 0) return;
-      e.preventDefault();
-      void handleBulkDelete();
-    };
-    document.addEventListener('keydown', handleDeleteKey);
-    return () => { document.removeEventListener('keydown', handleDeleteKey); };
-  }, [selectedNoteIds.size, handleBulkDelete]);
-
-  const handleBulkRestore = useCallback(async () => {
-    const ids = Array.from(selectedNoteIds);
-    if (ids.length === 0) return;
-    await restoreNotes(ids);
-    setSelectedNoteIds(new Set());
-  }, [selectedNoteIds, restoreNotes]);
-
-  const handleBulkArchive = useCallback(async () => {
-    const ids = Array.from(selectedNoteIds);
-    if (ids.length === 0) return;
-    await archiveNotes(ids);
-    setSelectedNoteIds(new Set());
-  }, [selectedNoteIds, archiveNotes]);
-
-  const handleRunAutoTagRules = useCallback(async () => {
-    const result = await db.runAutoTagRules();
-    setSelectedNoteIds(new Set());
-    setAutoTagStatus(
-      `${String(result.matchedNoteCount)} matched, ${String(result.archivedNoteCount)} archived`,
-    );
-    window.setTimeout(() => { setAutoTagStatus(''); }, 3500);
-  }, [db]);
-
-  // Compute applied (all selected have) and indeterminate (some selected have) tags for bulk tagging
-  const { bulkAppliedTags, bulkIndeterminateTags } = useMemo(() => {
-    if (selectedNoteIds.size === 0) return { bulkAppliedTags: [] as Tag[], bulkIndeterminateTags: [] as Tag[] };
-    const selectedNotes = displayedNotes.filter((n) => selectedNoteIds.has(n.id));
-    if (selectedNotes.length === 0) return { bulkAppliedTags: [] as Tag[], bulkIndeterminateTags: [] as Tag[] };
-
-    // Count how many selected notes have each tag
-    const tagCounts = new Map<string, { tag: Tag; count: number }>();
-    for (const note of selectedNotes) {
-      for (const tag of note.tags) {
-        const key = tag.name.toLowerCase();
-        const entry = tagCounts.get(key);
-        if (entry !== undefined) {
-          entry.count++;
-        } else {
-          tagCounts.set(key, { tag, count: 1 });
-        }
-      }
-    }
-
-    const applied: Tag[] = [];
-    const indeterminate: Tag[] = [];
-    for (const { tag, count } of tagCounts.values()) {
-      if (count === selectedNotes.length) {
-        applied.push(tag);
-      } else {
-        indeterminate.push(tag);
-      }
-    }
-    return { bulkAppliedTags: applied, bulkIndeterminateTags: indeterminate };
-  }, [selectedNoteIds, displayedNotes]);
-
   const handleSidebarClose = useCallback(() => { setSidebarOpen(false); }, []);
 
   return (
     <div className="app">
-      <header className="app-header">
-        <div className="app-header-left">
-          {isMobile && (
-            <button
-              className="hamburger-btn"
-              onClick={() => { setSidebarOpen((v) => !v); }}
-              aria-label="Toggle sidebar"
-            >
-              <Icon name="menu" size={24} />
-            </button>
-          )}
-          {!isMobile && <h1>Keeper</h1>}
-        </div>
-        <div className="app-header-actions">
-          {autoTagStatus !== '' && (
-            <span className="autotag-run-status" role="status">{autoTagStatus}</span>
-          )}
-          <button
-            className="bulk-action-btn autotag-run-btn"
-            onClick={() => { void handleRunAutoTagRules(); }}
-            title="Run autotag rules"
-            aria-label="Run autotag rules"
-          >
-            <Icon name="auto_mode" size={20} />
-          </button>
-          {displayedNoteIds.length > 0 && (
-            <button
-              className="bulk-action-btn select-all-btn"
-              onClick={handleSelectAll}
-              title={selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0
-                ? 'Deselect All'
-                : 'Select All'}
-            >
-              {isMobile
-                ? <Icon name={selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0 ? 'deselect' : 'select_all'} size={20} />
-                : selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0
-                  ? 'Deselect All'
-                  : 'Select All'}
-            </button>
-          )}
-          {selectedNoteIds.size > 0 && (
-            <div className="bulk-actions">
-              <span className="bulk-count">{selectedNoteIds.size} selected</span>
-              {isTrashView && (
-                <button
-                  className="bulk-action-btn bulk-archive-btn"
-                  onClick={() => { void handleBulkRestore(); }}
-                  title="Restore"
-                >
-                  {isMobile ? <Icon name="restore_from_trash" size={20} /> : 'Restore'}
-                </button>
-              )}
-              {!isTrashView && (
-                <div style={{ position: 'relative', display: 'inline-block' }}>
-                  <button
-                    ref={bulkTagBtnRef}
-                    className="bulk-action-btn"
-                    onClick={() => { setShowBulkTagApplier((v) => !v); }}
-                    title="Label"
-                  >
-                    {isMobile ? <Icon name="label" size={20} /> : 'Label'}
-                  </button>
-                  {showBulkTagApplier && (
-                    <TagApplier
-                      noteIds={Array.from(selectedNoteIds)}
-                      appliedTags={bulkAppliedTags}
-                      indeterminateTags={bulkIndeterminateTags}
-                      allTags={db.allTags}
-                      onAddTag={db.addTagToNotes}
-                      onRemoveTag={db.removeTagFromNotes}
-                      onClose={() => { setShowBulkTagApplier(false); }}
-                      anchorRef={bulkTagBtnRef}
-                      direction="down"
-                    />
-                  )}
-                </div>
-              )}
-              {!isArchiveView && !isTrashView && (
-                <button
-                  className="bulk-action-btn bulk-archive-btn"
-                  onClick={() => { void handleBulkArchive(); }}
-                  title="Archive"
-                >
-                  {isMobile ? <Icon name="archive" size={20} /> : 'Archive'}
-                </button>
-              )}
-              {!isMobile && (
-                <button
-                  className="bulk-action-btn bulk-export-btn"
-                  onClick={() => { setShowExportModal(true); }}
-                >
-                  Export
-                </button>
-              )}
-              <button
-                className="bulk-action-btn bulk-delete-btn"
-                onClick={() => { void handleBulkDelete(); }}
-                title="Delete"
-              >
-                {isMobile ? <Icon name="delete" size={20} /> : 'Delete'}
-              </button>
-            </div>
-          )}
-        </div>
-      </header>
+      <AppHeader
+        allTags={db.allTags}
+        bulkActions={bulkActions}
+        isArchiveView={isArchiveView}
+        isMobile={isMobile}
+        isTrashView={isTrashView}
+        onAddTagToNotes={db.addTagToNotes}
+        onOpenExport={() => { setShowExportModal(true); }}
+        onRemoveTagFromNotes={db.removeTagFromNotes}
+        onToggleSidebar={() => { setSidebarOpen((v) => !v); }}
+      />
       <main className="app-main">
         <Suspense fallback={<p className="loading">Loading...</p>}>
           <AppContent
@@ -660,7 +483,7 @@ function App() {
       </main>
       {showExportModal && selectedNoteIds.size > 0 && (
         <ExportModal
-          notes={displayedNotes.filter((n) => selectedNoteIds.has(n.id))}
+          notes={selectedNotes}
           onClose={() => { setShowExportModal(false); }}
           onDelete={() => { void handleBulkDelete(); }}
         />

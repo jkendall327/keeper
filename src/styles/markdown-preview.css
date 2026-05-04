@@ -14,12 +14,29 @@
   font-weight: 600;
 }
 
-.markdown-preview h1 { font-size: 1.4rem; }
-.markdown-preview h2 { font-size: 1.2rem; }
-.markdown-preview h3 { font-size: 1.05rem; }
-.markdown-preview h4 { font-size: 1rem; }
-.markdown-preview h5 { font-size: 0.95rem; }
-.markdown-preview h6 { font-size: 0.9rem; }
+.markdown-preview h1 {
+  font-size: 1.4rem;
+}
+
+.markdown-preview h2 {
+  font-size: 1.2rem;
+}
+
+.markdown-preview h3 {
+  font-size: 1.05rem;
+}
+
+.markdown-preview h4 {
+  font-size: 1rem;
+}
+
+.markdown-preview h5 {
+  font-size: 0.95rem;
+}
+
+.markdown-preview h6 {
+  font-size: 0.9rem;
+}
 
 .markdown-preview p {
   margin: 0.5em 0;
@@ -96,7 +113,6 @@
 
 .modal-body-live-preview img {
   max-width: 100%;
-  max-height: 400px;
   height: auto;
   object-fit: contain;
   display: block;

@@ -55,14 +55,16 @@ describe('Note archiving', () => {
     expect(untagged[1]?.archived).toBe(true);
   });
 
-  it('should exclude archived notes from getLinkedNotes', async () => {
+  it('should include archived notes in getLinkedNotes after active notes', async () => {
     const note1 = await api.createNote({ body: 'Check https://example.com' });
-    await api.createNote({ body: 'Check https://other.com' });
+    const note2 = await api.createNote({ body: 'Check https://other.com' });
 
     await api.toggleArchiveNote(note1.id);
 
     const linked = await api.getLinkedNotes();
-    expect(linked.every((n) => n.id !== note1.id)).toBe(true);
+    expect(linked.map((n) => n.id)).toEqual([note2.id, note1.id]);
+    expect(linked[0]?.archived).toBe(false);
+    expect(linked[1]?.archived).toBe(true);
   });
 
   it('should include archived notes in getNotesForTag after active notes', async () => {

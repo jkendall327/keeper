@@ -333,8 +333,9 @@ export function createMockDB(): MockDB {
     async getUntaggedNotes(): Promise<NoteWithTags[]> {
       return Promise.resolve(
         Array.from(notes.values())
-          .filter(n => n.tags.length === 0 && !n.archived && !n.trashed)
+          .filter(n => n.tags.length === 0 && !n.trashed)
           .sort((a, b) => {
+            if (a.archived !== b.archived) return a.archived ? 1 : -1;
             if (a.pinned !== b.pinned) return a.pinned ? -1 : 1;
             return b.updated_at.localeCompare(a.updated_at);
           }),

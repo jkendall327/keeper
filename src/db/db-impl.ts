@@ -549,8 +549,8 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     getUntaggedNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
         `SELECT * FROM notes
-         WHERE id NOT IN (SELECT note_id FROM note_tags) AND archived = 0 AND trashed = 0
-         ORDER BY pinned DESC, updated_at DESC`,
+         WHERE id NOT IN (SELECT note_id FROM note_tags) AND trashed = 0
+         ORDER BY archived ASC, pinned DESC, updated_at DESC`,
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },

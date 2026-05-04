@@ -1,9 +1,12 @@
-import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Suspense, useState, useCallback, useRef, useMemo } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { useDisplayedNotes } from './hooks/useDisplayedNotes.ts';
 import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
 import { useExtensionBadge } from './hooks/useExtensionBadge.ts';
+import { useIsMobile } from './hooks/useIsMobile.ts';
+import { useQuickCaptureShortcut, useSearchFocusShortcut } from './hooks/useAppShortcuts.ts';
+import { useWebShareTarget } from './hooks/useWebShareTarget.ts';
 import { AppHeader } from './components/AppHeader.tsx';
 import { QuickAdd } from './components/QuickAdd.tsx';
 import { NoteGrid } from './components/NoteGrid.tsx';
@@ -19,23 +22,6 @@ import { getDB } from './db/db-client.ts';
 import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
 import type { CreateNoteInput, NoteWithTags } from './db/types.ts';
 import type { NoteCommands } from './components/note-commands.ts';
-
-function useIsMobile() {
-  const query = useMemo(() => window.matchMedia('(max-width: 768px)'), []);
-  const [isMobile, setIsMobile] = useState(query.matches);
-  useEffect(() => {
-    const handler = (e: MediaQueryListEvent) => { setIsMobile(e.matches); };
-    query.addEventListener('change', handler);
-    return () => { query.removeEventListener('change', handler); };
-  }, [query]);
-  return isMobile;
-}
-
-function isTextEntryTarget(target: EventTarget | null) {
-  if (!(target instanceof HTMLElement)) return false;
-  const tagName = target.tagName;
-  return tagName === 'INPUT' || tagName === 'TEXTAREA' || target.isContentEditable;
-}
 
 interface AppContentProps {
   allTags: ReturnType<typeof useDB>['allTags'];
@@ -94,18 +80,7 @@ function AppContent({
 }: AppContentProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const quickAddRef = useRef<HTMLTextAreaElement>(null);
-
-  // Ctrl+/ (or Cmd+/) focuses the search input
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
-        e.preventDefault();
-        searchInputRef.current?.focus();
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => { document.removeEventListener('keydown', handleKeyDown); };
-  }, []);
+  useSearchFocusShortcut(searchInputRef);
 
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -127,30 +102,15 @@ function AppContent({
     setSelectedNoteIds(new Set());
   }, [setSelectedNoteIds]);
 
-  // Ctrl/Cmd+N returns to the quickest capture path from filters or selection.
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'n') return;
-      if (selectedNote !== null || showSettings) return;
-      if (
-        isTextEntryTarget(e.target) &&
-        e.target !== searchInputRef.current &&
-        e.target !== quickAddRef.current
-      ) {
-        return;
-      }
-
-      e.preventDefault();
-      setActiveFilter({ type: 'all' });
-      setSearchQuery('');
-      clearSelection();
-      window.setTimeout(() => {
-        quickAddRef.current?.focus();
-      }, 0);
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => { document.removeEventListener('keydown', handleKeyDown); };
-  }, [clearSelection, selectedNote, setActiveFilter, setSearchQuery, showSettings]);
+  useQuickCaptureShortcut({
+    clearSelection,
+    quickAddRef,
+    searchInputRef,
+    selectedNote,
+    setActiveFilter,
+    setSearchQuery,
+    showSettings,
+  });
 
   const handleBulkSelect = useCallback((ids: Set<string>) => {
     setSelectedNoteIds(ids);
@@ -362,26 +322,7 @@ function App() {
     trashNotes,
   });
   const { handleBulkDelete, selectedNoteIds, selectedNotes, setSelectedNoteIds } = bulkActions;
-
-  // Handle Web Share Target: when opened via /share?title=...&text=...&url=...
-  useEffect(() => {
-    if (window.location.pathname !== '/share') return;
-    const params = new URLSearchParams(window.location.search);
-    const title = params.get('title') ?? '';
-    const text = params.get('text') ?? '';
-    const url = params.get('url') ?? '';
-
-    const parts: string[] = [];
-    if (title !== '') parts.push(title);
-    if (text !== '') parts.push(text);
-    if (url !== '' && url !== text) parts.push(url);
-    const body = parts.join('\n');
-
-    if (body !== '') {
-      void createSharedNote({ body });
-    }
-    window.history.replaceState(null, '', '/');
-  }, [createSharedNote]);
+  useWebShareTarget({ createNote: createSharedNote });
 
   const handleSidebarClose = useCallback(() => { setSidebarOpen(false); }, []);
 

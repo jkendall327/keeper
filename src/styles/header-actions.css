@@ -16,6 +16,11 @@
   white-space: nowrap;
 }
 
+.autotag-run-status {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
 .bulk-action-btn {
   padding: 6px 14px;
   font-family: inherit;

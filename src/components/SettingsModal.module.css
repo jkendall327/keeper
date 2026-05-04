@@ -289,11 +289,6 @@
   flex-shrink: 0;
 }
 
-.autotag-run-status {
-  font-size: 0.85rem;
-  opacity: 0.75;
-}
-
 @media (prefers-color-scheme: light) {
   .settings-modal {
     background: #fff;

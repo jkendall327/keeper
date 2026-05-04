@@ -35,6 +35,7 @@ export function NoteModal({
   const [tagInput, setTagInput] = useState('');
   const tagInputValueRef = useRef(tagInput);
   const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
+  const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
   const pendingTagNamesRef = useRef<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
@@ -282,6 +283,11 @@ export function NoteModal({
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
+      if (lightboxImageUrl !== null) {
+        e.stopPropagation();
+        setLightboxImageUrl(null);
+        return;
+      }
       void saveAndClose();
     }
   };
@@ -434,9 +440,14 @@ export function NoteModal({
             if (imageUrl !== null) {
               return (
                 <div className="modal-body-live-preview">
-                  <a href={imageUrl} target="_blank" rel="noopener noreferrer">
+                  <button
+                    type="button"
+                    className="modal-image-preview-button"
+                    onClick={() => { setLightboxImageUrl(imageUrl); }}
+                    aria-label="Open image preview"
+                  >
                     <img src={imageUrl} alt={title !== '' ? title : 'Image note'} />
-                  </a>
+                  </button>
                 </div>
               );
             }
@@ -536,6 +547,30 @@ export function NoteModal({
             {...(isTrashView !== undefined ? { isTrashView } : {})}
           />
         </div>
+        {lightboxImageUrl !== null && (
+          <div
+            className="image-lightbox-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image preview"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setLightboxImageUrl(null);
+            }}
+          >
+            <div className="image-lightbox-panel">
+              <button
+                type="button"
+                className="image-lightbox-close"
+                onClick={() => { setLightboxImageUrl(null); }}
+                aria-label="Close image preview"
+                autoFocus
+              >
+                <Icon name="close" size={22} />
+              </button>
+              <img src={lightboxImageUrl} alt={title !== '' ? title : 'Image note'} />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -111,6 +111,31 @@ describe('App Integration Tests', () => {
     expect(await screen.findByText('Updated text')).toBeInTheDocument();
   });
 
+  it('opens image notes in a lightbox from the note modal', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const imageUrl = 'https://example.com/photo.jpg';
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, imageUrl);
+    await user.keyboard('{Enter}');
+
+    await user.click(await screen.findByAltText('Image note'));
+
+    const modal = document.querySelector<HTMLElement>('.modal-panel');
+    if (modal === null) throw new Error('Modal not found');
+
+    await user.click(within(modal).getByRole('button', { name: 'Open image preview' }));
+
+    const lightbox = screen.getByRole('dialog', { name: 'Image preview' });
+    expect(within(lightbox).getByAltText('Image note')).toHaveAttribute('src', imageUrl);
+
+    await user.keyboard('{Escape}');
+
+    expect(screen.queryByRole('dialog', { name: 'Image preview' })).not.toBeInTheDocument();
+    expect(document.querySelector('.modal-panel')).toBeInTheDocument();
+  });
+
   it('adds and removes tags', async () => {
     const user = userEvent.setup();
     await renderApp();

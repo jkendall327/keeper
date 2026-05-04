@@ -336,13 +336,18 @@ function AppContent({
           onUpdate={updateNote}
           onDelete={activeFilter.type === 'trash'
             ? async (id: string) => {
-                if (!window.confirm('Permanently delete this note? This cannot be undone.')) return;
+                if (!window.confirm('Permanently delete this note? This cannot be undone.')) return false;
                 await deleteNote(id);
+                return true;
               }
             : trashNote}
+          onTogglePin={togglePinNote}
+          onToggleArchive={toggleArchiveNote}
           onAddTag={addTag}
           onRemoveTag={removeTag}
           showLinkPreviews={linkPreviewDisplayEnabled}
+          isTrashView={activeFilter.type === 'trash'}
+          onRestore={restoreNote}
           onClose={() => { setSelectedNote(null); }}
         />
       )}

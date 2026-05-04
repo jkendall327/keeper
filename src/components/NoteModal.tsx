@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { tagDisplayIcon, type NoteWithTags, type Tag, type UpdateNoteInput } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
+import { NoteActions } from './NoteActions.tsx';
 import { getDB } from '../db/db-client.ts';
 import { getImageUrl } from '../utils/image-url.ts';
 
@@ -9,10 +10,14 @@ interface NoteModalProps {
   note: NoteWithTags;
   allTags: Tag[];
   onUpdate: (input: UpdateNoteInput) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
+  onDelete: (id: string) => Promise<unknown>;
+  onTogglePin: (id: string) => Promise<void>;
+  onToggleArchive: (id: string) => Promise<void>;
   onAddTag: (noteId: string, tagName: string) => Promise<void>;
   onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
   showLinkPreviews: boolean;
+  isTrashView?: boolean;
+  onRestore?: (id: string) => Promise<void>;
   onClose: () => void;
 }
 
@@ -21,9 +26,13 @@ export function NoteModal({
   allTags,
   onUpdate,
   onDelete,
+  onTogglePin,
+  onToggleArchive,
   onAddTag,
   onRemoveTag,
   showLinkPreviews,
+  isTrashView,
+  onRestore,
   onClose,
 }: NoteModalProps) {
   const [title, setTitle] = useState(note.title);
@@ -197,15 +206,22 @@ export function NoteModal({
     setBody(newValue);
   };
 
+  const saveNonEmptyChanges = useCallback(async () => {
+    const trimmedBody = body.trimEnd();
+    if (trimmedBody.trim() !== '' && (title !== note.title || trimmedBody !== note.body)) {
+      await onUpdate({ id: note.id, title, body: trimmedBody });
+    }
+  }, [body, title, note, onUpdate]);
+
   const saveAndClose = useCallback(async () => {
     const trimmedBody = body.trimEnd();
     if (trimmedBody.trim() === '') {
       await onDelete(note.id);
-    } else if (title !== note.title || trimmedBody !== note.body) {
-      await onUpdate({ id: note.id, title, body: trimmedBody });
+    } else {
+      await saveNonEmptyChanges();
     }
     onClose();
-  }, [body, title, note, onDelete, onUpdate, onClose]);
+  }, [body, note.id, onClose, onDelete, saveNonEmptyChanges]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -414,6 +430,21 @@ export function NoteModal({
               </ul>
             )}
           </div>
+          <NoteActions
+            note={note}
+            className="modal-note-actions"
+            copyText={body}
+            includePin
+            onTogglePin={onTogglePin}
+            onToggleArchive={onToggleArchive}
+            onDelete={onDelete}
+            onBeforeArchive={saveNonEmptyChanges}
+            onBeforePin={saveNonEmptyChanges}
+            onAfterArchive={onClose}
+            onAfterDelete={onClose}
+            {...(isTrashView !== undefined ? { isTrashView } : {})}
+            {...(onRestore !== undefined ? { onRestore } : {})}
+          />
         </div>
       </div>
     </div>

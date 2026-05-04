@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor, act, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { createMockDB } from './mock-db';
 import type { MockDB } from './mock-db';
@@ -191,6 +191,60 @@ describe('App Integration Tests', () => {
 
     expect(writeText).toHaveBeenCalledWith('Copy me');
     expect(screen.queryByPlaceholderText('Add tag...')).not.toBeInTheDocument();
+  });
+
+  it('shows modal note actions and copies the current modal body', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Copy from modal');
+    await user.keyboard('{Enter}');
+
+    await user.click(await screen.findByText('Copy from modal'));
+    const modal = document.querySelector<HTMLElement>('.modal-panel');
+    if (modal === null) throw new Error('Modal not found');
+
+    const bodyInput = within(modal).getByPlaceholderText('Note');
+    await user.clear(bodyInput);
+    await user.type(bodyInput, 'Unsaved modal copy');
+
+    expect(within(modal).getByLabelText('Archive note')).toBeInTheDocument();
+    expect(within(modal).getByLabelText('Delete note')).toBeInTheDocument();
+    expect(within(modal).getByLabelText('Pin note')).toBeInTheDocument();
+
+    await user.click(within(modal).getByLabelText('Copy note'));
+
+    expect(writeText).toHaveBeenCalledWith('Unsaved modal copy');
+  });
+
+  it('archives from the modal without switching to the archive view', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Keep visible');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Keep visible');
+    await user.type(input, 'Archive from modal');
+    await user.keyboard('{Enter}');
+
+    await user.click(await screen.findByText('Archive from modal'));
+    const modal = document.querySelector<HTMLElement>('.modal-panel');
+    if (modal === null) throw new Error('Modal not found');
+
+    await user.click(within(modal).getByLabelText('Archive note'));
+
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('Note')).not.toBeInTheDocument();
+    });
+    expect(screen.queryByText('Archive from modal')).not.toBeInTheDocument();
+    expect(screen.getByText('Keep visible')).toBeInTheDocument();
   });
 
   it('shows multiple notes', async () => {

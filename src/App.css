@@ -668,6 +668,11 @@
   transition: opacity 0.15s;
 }
 
+.note-card-actions-inline {
+  display: flex;
+  gap: 4px;
+}
+
 .note-card:hover .note-card-actions-bottom,
 .note-card-tag-open .note-card-actions-bottom {
   opacity: 1;
@@ -981,6 +986,14 @@
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
+}
+
+.modal-note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: auto;
+  padding-top: 12px;
 }
 
 .modal-tags-title {

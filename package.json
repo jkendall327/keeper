@@ -4,8 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "css-types": "tcm src --watch",
-    "css-types:build": "tcm src",
+    "css-types": "tcm src --pattern '**/*.module.css' --watch",
+    "css-types:build": "tcm src --pattern '**/*.module.css'",
     "dev": "concurrently -n server,vite -c blue,green \"npm:server\" \"npm:dev:vite\"",
     "dev:vite": "vite",
     "build": "npm run css-types:build && tsc -b && vite build",

@@ -871,6 +871,63 @@ describe('App Integration Tests', () => {
     });
   });
 
+  it('archives tagged notes from the inbox header only', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const archiveTaggedBtn = await screen.findByRole('button', { name: 'Archive tagged notes' });
+    expect(archiveTaggedBtn).toBeDisabled();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Tagged inbox note');
+    await user.keyboard('{Enter}');
+    await user.type(input, 'Plain inbox note');
+    await user.keyboard('{Enter}');
+    await screen.findByText('Plain inbox note');
+
+    await user.click(await screen.findByText('Tagged inbox note'));
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'work');
+    await user.keyboard('{Enter}');
+    await screen.findByLabelText('Remove tag work');
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(archiveTaggedBtn).toBeEnabled();
+    });
+
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    const workTag = await waitFor(() => {
+      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
+        (button) => button.textContent === 'work',
+      );
+      if (tagButton === undefined) throw new Error('work tag not found');
+      return tagButton;
+    });
+
+    await user.click(workTag);
+    expect(screen.queryByRole('button', { name: 'Archive tagged notes' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByText('Inbox'));
+    const searchInput = screen.getByPlaceholderText(/Search notes/);
+    await user.type(searchInput, 'Plain');
+    expect(screen.getByText('Plain inbox note')).toBeInTheDocument();
+    expect(screen.queryByText('Tagged inbox note')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Archive tagged notes' }));
+    await user.clear(searchInput);
+
+    await waitFor(() => {
+      expect(screen.queryByText('Tagged inbox note')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('Plain inbox note')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /^Archive$/ }));
+    await screen.findByText('Tagged inbox note');
+    expect(screen.queryByRole('button', { name: 'Archive tagged notes' })).not.toBeInTheDocument();
+  });
+
   it('does not reopen a stale modal after removing the active tag from a note', async () => {
     const user = userEvent.setup();
     await renderApp();

@@ -11,6 +11,7 @@ interface AppHeaderProps {
   allTags: Tag[];
   bulkActions: ReturnType<typeof useBulkNoteActions>;
   isArchiveView: boolean;
+  isInboxView: boolean;
   isMobile: boolean;
   isTrashView: boolean;
   onAddTagToNotes: DB['addTagToNotes'];
@@ -23,6 +24,7 @@ export function AppHeader({
   allTags,
   bulkActions,
   isArchiveView,
+  isInboxView,
   isMobile,
   isTrashView,
   onAddTagToNotes,
@@ -37,12 +39,14 @@ export function AppHeader({
     bulkAppliedTags,
     bulkIndeterminateTags,
     displayedNoteIds,
+    handleArchiveTaggedInboxNotes,
     handleBulkArchive,
     handleBulkDelete,
     handleBulkRestore,
     handleRunAutoTagRules,
     handleSelectAll,
     selectedNoteIds,
+    taggedInboxNoteIds,
   } = bulkActions;
   const displayedNoteCount = displayedNoteIds.length;
   const allDisplayedSelected = selectedNoteIds.size === displayedNoteCount && displayedNoteCount > 0;
@@ -73,6 +77,17 @@ export function AppHeader({
         >
           <Icon name="auto_mode" size={20} />
         </button>
+        {isInboxView && (
+          <button
+            className="bulk-action-btn archive-tagged-btn"
+            onClick={() => { void handleArchiveTaggedInboxNotes(); }}
+            title="Archive tagged notes"
+            aria-label="Archive tagged notes"
+            disabled={taggedInboxNoteIds.length === 0}
+          >
+            {isMobile ? <Icon name="archive" size={20} /> : 'Archive tagged'}
+          </button>
+        )}
         {displayedNoteCount > 0 && (
           <button
             className="bulk-action-btn select-all-btn"

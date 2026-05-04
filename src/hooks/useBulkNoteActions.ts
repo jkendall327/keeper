@@ -8,6 +8,7 @@ interface UseBulkNoteActionsOptions {
   archiveNotes: DB['archiveNotes'];
   deleteNotes: DB['deleteNotes'];
   displayedNotes: NoteWithTags[];
+  inboxNotes: NoteWithTags[];
   isTrashView: boolean;
   restoreNotes: DB['restoreNotes'];
   runAutoTagRules: DB['runAutoTagRules'];
@@ -18,6 +19,7 @@ export function useBulkNoteActions({
   archiveNotes,
   deleteNotes,
   displayedNotes,
+  inboxNotes,
   isTrashView,
   restoreNotes,
   runAutoTagRules,
@@ -27,6 +29,10 @@ export function useBulkNoteActions({
   const [autoTagStatus, setAutoTagStatus] = useState('');
 
   const displayedNoteIds = useMemo(() => displayedNotes.map((note) => note.id), [displayedNotes]);
+  const taggedInboxNoteIds = useMemo(
+    () => inboxNotes.filter((note) => note.tags.length > 0).map((note) => note.id),
+    [inboxNotes],
+  );
   const selectedNotes = useMemo(
     () => displayedNotes.filter((note) => selectedNoteIds.has(note.id)),
     [displayedNotes, selectedNoteIds],
@@ -85,6 +91,12 @@ export function useBulkNoteActions({
     clearSelection();
   }, [clearSelection, selectedNoteIds, archiveNotes]);
 
+  const handleArchiveTaggedInboxNotes = useCallback(async () => {
+    if (taggedInboxNoteIds.length === 0) return;
+    await archiveNotes(taggedInboxNoteIds);
+    clearSelection();
+  }, [archiveNotes, clearSelection, taggedInboxNoteIds]);
+
   const handleRunAutoTagRules = useCallback(async () => {
     const result = await runAutoTagRules();
     clearSelection();
@@ -128,6 +140,7 @@ export function useBulkNoteActions({
     bulkIndeterminateTags,
     clearSelection,
     displayedNoteIds,
+    handleArchiveTaggedInboxNotes,
     handleBulkArchive,
     handleBulkDelete,
     handleBulkRestore,
@@ -136,5 +149,6 @@ export function useBulkNoteActions({
     selectedNoteIds,
     selectedNotes,
     setSelectedNoteIds,
+    taggedInboxNoteIds,
   };
 }

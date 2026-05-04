@@ -202,6 +202,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const isArchiveView = activeFilter.type === 'archive';
+  const isInboxView = activeFilter.type === 'all';
   const isTrashView = activeFilter.type === 'trash';
   const displayedNotes = useDisplayedNotes({
     activeFilter,
@@ -218,6 +219,7 @@ function App() {
     archiveNotes,
     deleteNotes,
     displayedNotes,
+    inboxNotes: dbNotes,
     isTrashView,
     restoreNotes,
     runAutoTagRules: db.runAutoTagRules,
@@ -234,6 +236,7 @@ function App() {
         allTags={db.allTags}
         bulkActions={bulkActions}
         isArchiveView={isArchiveView}
+        isInboxView={isInboxView}
         isMobile={isMobile}
         isTrashView={isTrashView}
         onAddTagToNotes={db.addTagToNotes}

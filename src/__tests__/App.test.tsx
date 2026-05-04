@@ -744,6 +744,84 @@ describe('App Integration Tests', () => {
     });
   });
 
+  it('does not reopen a stale modal after removing the active tag from a note', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Former foo note');
+    await user.keyboard('{Enter}');
+
+    await user.click(await screen.findByText('Former foo note'));
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'foo');
+    await user.keyboard('{Enter}');
+    await user.keyboard('{Escape}');
+
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    const fooTag = await waitFor(() => {
+      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
+        (button) => button.textContent === 'foo',
+      );
+      if (tagButton === undefined) throw new Error('foo tag not found');
+      return tagButton;
+    });
+
+    await user.click(fooTag);
+    await user.click(await screen.findByText('Former foo note'));
+    await user.click(await screen.findByLabelText('Remove tag foo'));
+
+    await waitFor(() => {
+      expect(document.querySelector('.modal-panel')).not.toBeInTheDocument();
+      expect(screen.queryByText('Former foo note')).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText('Untagged'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Former foo note')).toBeInTheDocument();
+      expect(document.querySelector('.modal-panel')).not.toBeInTheDocument();
+    });
+  });
+
+  it('does not reopen a stale modal after adding a tag to an untagged note', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'New foo note');
+    await user.keyboard('{Enter}');
+
+    await user.click(screen.getByText('Untagged'));
+    await user.click(await screen.findByText('New foo note'));
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'foo');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(document.querySelector('.modal-panel')).not.toBeInTheDocument();
+      expect(screen.queryByText('New foo note')).not.toBeInTheDocument();
+    });
+
+    const sidebar = document.querySelector('.sidebar');
+    if (sidebar === null) throw new Error('Sidebar not found');
+    const fooTag = await waitFor(() => {
+      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
+        (button) => button.textContent === 'foo',
+      );
+      if (tagButton === undefined) throw new Error('foo tag not found');
+      return tagButton;
+    });
+
+    await user.click(fooTag);
+
+    await waitFor(() => {
+      expect(screen.getByText('New foo note')).toBeInTheDocument();
+      expect(document.querySelector('.modal-panel')).not.toBeInTheDocument();
+    });
+  });
+
   it('applies the active tag to notes created from a tag view when enabled', async () => {
     const user = userEvent.setup();
     await renderApp();

@@ -43,6 +43,10 @@ interface AppContentProps {
   isMobile: boolean;
 }
 
+function filterKey(filter: FilterType) {
+  return filter.type === 'tag' ? `tag:${String(filter.tagId)}` : filter.type;
+}
+
 function AppContent({
   allTags,
   refresh,
@@ -127,6 +131,7 @@ function AppContent({
           <ChatPanel refresh={refresh} />
         ) : (
           <NotesPanel
+            key={filterKey(activeFilter)}
             allTags={allTags}
             createNote={createNote}
             updateNote={updateNote}

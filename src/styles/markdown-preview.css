@@ -116,9 +116,15 @@
   height: auto;
   object-fit: contain;
   display: block;
+  margin-left: auto;
+  margin-right: auto;
   border-radius: 4px;
   max-height: 400px;
   overflow-y: auto;
+}
+
+.modal-body-live-preview a {
+  display: block;
 }
 
 /* Image styling in markdown preview */
@@ -129,6 +135,11 @@
   margin: 1rem 0;
   border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-body-live-preview .markdown-preview img {
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* Image styling in note cards (grid view) */

@@ -220,87 +220,63 @@ export function SettingsModal({
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className={styles.modal}>
-        <div className={styles['settings-header']}>
+        <div className={styles.header}>
           <h2>Settings</h2>
-          <button className={styles['settings-close-btn']} onClick={onClose} aria-label="Close settings">
+          <button className={styles.closeBtn} onClick={onClose} aria-label="Close settings">
             <Icon name="close" size={20} />
           </button>
         </div>
 
-        <div className={styles['settings-tabs']} role="tablist" aria-label="Settings sections">
-          <button
-            className={cx(styles['settings-tab'], activeTab === 'api' && styles['settings-tab-active'])}
-            onClick={() => { setActiveTab('api'); }}
-            role="tab"
-            aria-selected={activeTab === 'api'}
-          >
+        <div className={styles.tabs} role="tablist" aria-label="Settings sections">
+          <button className={cx(styles.tab, activeTab === 'api' && styles.tabActive)} onClick={() => { setActiveTab('api'); }} role="tab" aria-selected={activeTab === 'api'}>
             API Key
           </button>
-          <button
-            className={cx(styles['settings-tab'], activeTab === 'autotag' && styles['settings-tab-active'])}
-            onClick={() => { setActiveTab('autotag'); }}
-            role="tab"
-            aria-selected={activeTab === 'autotag'}
-          >
+          <button className={cx(styles.tab, activeTab === 'autotag' && styles.tabActive)} onClick={() => { setActiveTab('autotag'); }} role="tab" aria-selected={activeTab === 'autotag'}>
             Autotag Rules
           </button>
-          <button
-            className={cx(styles['settings-tab'], activeTab === 'notes' && styles['settings-tab-active'])}
-            onClick={() => { setActiveTab('notes'); }}
-            role="tab"
-            aria-selected={activeTab === 'notes'}
-          >
+          <button className={cx(styles.tab, activeTab === 'notes' && styles.tabActive)} onClick={() => { setActiveTab('notes'); }} role="tab" aria-selected={activeTab === 'notes'}>
             Notes
           </button>
-          <button
-            className={cx(styles['settings-tab'], activeTab === 'link-previews' && styles['settings-tab-active'])}
-            onClick={() => { setActiveTab('link-previews'); }}
-            role="tab"
-            aria-selected={activeTab === 'link-previews'}
-          >
+          <button className={cx(styles.tab, activeTab === 'link-previews' && styles.tabActive)} onClick={() => { setActiveTab('link-previews'); }} role="tab" aria-selected={activeTab === 'link-previews'}>
             Link Previews
           </button>
         </div>
 
         {activeTab === 'api' && (
-          <div className={styles['settings-section']}>
-            <label className={styles['settings-label']} htmlFor="openrouter-key">
+          <div className={styles.section}>
+            <label className={styles.label} htmlFor="openrouter-key">
               OpenRouter API Key
             </label>
-            <p className={styles['settings-hint']}>
+            <p className={styles.hint}>
               Required for AI chat. Get a key at openrouter.ai
             </p>
-            <div className={styles['settings-key-row']}>
+            <div className={styles.keyRow}>
               <input
                 id="openrouter-key"
                 type="password"
-                className={styles['settings-key-input']}
+                className={styles.keyInput}
                 placeholder="sk-or-..."
                 value={key}
                 onChange={(e) => { setKey(e.target.value); }}
               />
             </div>
-            <div className={styles['settings-key-actions']}>
-              <button
-                className={styles['settings-save-btn']}
-                onClick={handleSave}
-                disabled={key.trim() === ''}
-              >
+            <div className={styles.keyActions}>
+              <button className={styles.saveBtn} onClick={handleSave} disabled={key.trim() === ''}>
                 {saved ? 'Saved!' : 'Save'}
               </button>
               {configured && (
-                <button className={styles['settings-clear-btn']} onClick={handleClear}>
+                <button className={styles.clearBtn} onClick={handleClear}>
                   Clear key
                 </button>
               )}
             </div>
-            <p className={styles['settings-status']}>
+            <p className={styles.status}>
               {configured ? (
-                <span className={styles['settings-status-ok']}>
+                <span className={styles.statusOk}>
                   <Icon name="check_circle" size={16} /> Configured
                 </span>
               ) : (
-                <span className={styles['settings-status-none']}>
+                <span className={styles.statusNone}>
                   <Icon name="error" size={16} /> Not configured
                 </span>
               )}
@@ -309,8 +285,8 @@ export function SettingsModal({
         )}
 
         {activeTab === 'notes' && (
-          <div className={styles['settings-section']}>
-            <label className={styles['settings-toggle-row']} htmlFor="auto-apply-active-tag">
+          <div className={styles.section}>
+            <label className={styles.toggleRow} htmlFor="auto-apply-active-tag">
               <input
                 id="auto-apply-active-tag"
                 type="checkbox"
@@ -318,11 +294,11 @@ export function SettingsModal({
                 onChange={(e) => { onAutoApplyActiveTagChange(e.target.checked); }}
               />
               <span>
-                <span className={styles['settings-label']}>Apply current tag to new notes</span>
-                <span className={styles['settings-hint']}>New notes created from a tag view inherit that tag.</span>
+                <span className={styles.label}>Apply current tag to new notes</span>
+                <span className={styles.hint}>New notes created from a tag view inherit that tag.</span>
               </span>
             </label>
-            <label className={styles['settings-toggle-row']} htmlFor="extension-badge-enabled">
+            <label className={styles.toggleRow} htmlFor="extension-badge-enabled">
               <input
                 id="extension-badge-enabled"
                 type="checkbox"
@@ -330,23 +306,23 @@ export function SettingsModal({
                 onChange={(e) => { void saveBooleanSetting('extensionBadgeEnabled', e.target.checked); }}
               />
               <span>
-                <span className={styles['settings-label']}>Show extension note count in tab title</span>
-                <span className={styles['settings-hint']}>Notes saved from the browser extension add to the count until this tab is focused.</span>
+                <span className={styles.label}>Show extension note count in tab title</span>
+                <span className={styles.hint}>Notes saved from the browser extension add to the count until this tab is focused.</span>
               </span>
             </label>
-            <label className={styles['settings-label']} htmlFor="extension-title-max-length">
+            <label className={styles.label} htmlFor="extension-title-max-length">
               Extension title length
             </label>
-            <p className={styles['settings-hint']}>
+            <p className={styles.hint}>
               Page titles longer than this are shortened when notes are created by the extension.
             </p>
-            <div className={styles['settings-key-row']}>
+            <div className={styles.keyRow}>
               <input
                 id="extension-title-max-length"
                 type="number"
                 min={MIN_EXTENSION_TITLE_MAX_LENGTH}
                 max={MAX_EXTENSION_TITLE_MAX_LENGTH}
-                className={styles['settings-key-input']}
+                className={styles.keyInput}
                 value={extensionTitleMaxLength}
                 onChange={(e) => {
                   setExtensionTitleMaxLength(e.target.value);
@@ -360,22 +336,19 @@ export function SettingsModal({
                 }}
               />
             </div>
-            {extensionTitleError !== '' && <p className={styles['settings-error']}>{extensionTitleError}</p>}
-            <div className={styles['settings-key-actions']}>
-              <button
-                className={styles['settings-save-btn']}
-                onClick={() => { void saveExtensionTitleMaxLength(); }}
-              >
+            {extensionTitleError !== '' && <p className={styles.error}>{extensionTitleError}</p>}
+            <div className={styles.keyActions}>
+              <button className={styles.saveBtn} onClick={() => { void saveExtensionTitleMaxLength(); }}>
                 {extensionTitleSaved ? 'Saved!' : 'Save'}
               </button>
             </div>
-            {settingsError !== '' && <p className={styles['settings-error']}>{settingsError}</p>}
+            {settingsError !== '' && <p className={styles.error}>{settingsError}</p>}
           </div>
         )}
 
         {activeTab === 'link-previews' && (
-          <div className={styles['settings-section']}>
-            <label className={styles['settings-toggle-row']} htmlFor="link-preview-fetch">
+          <div className={styles.section}>
+            <label className={styles.toggleRow} htmlFor="link-preview-fetch">
               <input
                 id="link-preview-fetch"
                 type="checkbox"
@@ -383,11 +356,11 @@ export function SettingsModal({
                 onChange={(e) => { void saveBooleanSetting('linkPreviewFetchEnabled', e.target.checked); }}
               />
               <span>
-                <span className={styles['settings-label']}>Fetch Open Graph images</span>
-                <span className={styles['settings-hint']}>When a note is only a URL, Keeper checks the page for og:image.</span>
+                <span className={styles.label}>Fetch Open Graph images</span>
+                <span className={styles.hint}>When a note is only a URL, Keeper checks the page for og:image.</span>
               </span>
             </label>
-            <label className={styles['settings-toggle-row']} htmlFor="link-preview-display">
+            <label className={styles.toggleRow} htmlFor="link-preview-display">
               <input
                 id="link-preview-display"
                 type="checkbox"
@@ -395,33 +368,33 @@ export function SettingsModal({
                 onChange={(e) => { void saveBooleanSetting('linkPreviewDisplayEnabled', e.target.checked); }}
               />
               <span>
-                <span className={styles['settings-label']}>Show link preview images</span>
-                <span className={styles['settings-hint']}>Cached previews stay stored, but notes render as links when this is off.</span>
+                <span className={styles.label}>Show link preview images</span>
+                <span className={styles.hint}>Cached previews stay stored, but notes render as links when this is off.</span>
               </span>
             </label>
-            {settingsError !== '' && <p className={styles['settings-error']}>{settingsError}</p>}
+            {settingsError !== '' && <p className={styles.error}>{settingsError}</p>}
           </div>
         )}
 
         {activeTab === 'autotag' && (
-          <div className={styles['settings-section']}>
-            <label className={styles['settings-label']} htmlFor="autotag-pattern">
+          <div className={styles.section}>
+            <label className={styles.label} htmlFor="autotag-pattern">
               URL regex
             </label>
             <input
               id="autotag-pattern"
-              className={styles['settings-key-input']}
+              className={styles.keyInput}
               placeholder="example\\.com"
               value={pattern}
               onChange={(e) => { setPattern(e.target.value); }}
             />
-            <label className={styles['settings-label']} htmlFor="autotag-tag-input">
+            <label className={styles.label} htmlFor="autotag-tag-input">
               Tags
             </label>
-            <div className={styles['autotag-tag-input-wrapper']}>
-              <div className={styles['autotag-chip-input']}>
+            <div className={styles.autotagTagInputWrapper}>
+              <div className={styles.autotagChipInput}>
                 {tagNames.map((name) => (
-                  <span className={styles['autotag-chip']} key={name}>
+                  <span className={styles.chip} key={name}>
                     {name}
                     <button
                       onClick={() => { setTagNames((current) => current.filter((tag) => tag !== name)); }}
@@ -469,38 +442,38 @@ export function SettingsModal({
                 </ul>
               )}
             </div>
-            {ruleError !== '' && <p className={styles['settings-error']}>{ruleError}</p>}
-            <div className={styles['settings-key-actions']}>
+            {ruleError !== '' && <p className={styles.error}>{ruleError}</p>}
+            <div className={styles.keyActions}>
               <button
-                className={styles['settings-save-btn']}
+                className={styles.saveBtn}
                 onClick={() => { void saveRule(); }}
                 disabled={!canSaveRule}
               >
                 {editingId === null ? 'Create Rule' : 'Save Rule'}
               </button>
               {editingId !== null && (
-                <button className={styles['settings-clear-btn']} onClick={resetRuleForm}>
+                <button className={styles.clearBtn} onClick={resetRuleForm}>
                   Cancel
                 </button>
               )}
             </div>
 
-            <div className={styles['autotag-rule-list']}>
-              {rulesLoading && <p className={styles['settings-hint']}>Loading rules...</p>}
+            <div className={styles.ruleList}>
+              {rulesLoading && <p className={styles.hint}>Loading rules...</p>}
               {!rulesLoading && rules.length === 0 && (
-                <p className={styles['settings-hint']}>No autotag rules configured.</p>
+                <p className={styles.hint}>No autotag rules configured.</p>
               )}
               {rules.map((rule) => (
-                <div className={styles['autotag-rule-row']} key={rule.id}>
-                  <div className={styles['autotag-rule-main']}>
+                <div className={styles.ruleRow} key={rule.id}>
+                  <div className={styles.ruleMain}>
                     <code>/{rule.pattern}/i</code>
-                    <div className={styles['autotag-rule-tags']}>
+                    <div className={styles.ruleTags}>
                       {rule.tagNames.map((name) => (
-                        <span className={styles['autotag-chip']} key={name}>{name}</span>
+                        <span className={styles.chip} key={name}>{name}</span>
                       ))}
                     </div>
                   </div>
-                  <div className={styles['autotag-rule-actions']}>
+                  <div className={styles.ruleActions}>
                     <button onClick={() => { editRule(rule); }} aria-label={`Edit autotag rule ${rule.pattern}`}>
                       <Icon name="edit" size={18} />
                     </button>

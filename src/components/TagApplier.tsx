@@ -1,19 +1,19 @@
 import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { tagDisplayIcon, type Tag } from '../db/types.ts';
+import { tagDisplayIcon, type NoteId, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 
 interface TagApplierProps {
   /** IDs of the notes to tag (supports single or bulk) */
-  noteIds: string[];
+  noteIds: NoteId[];
   /** Tags currently applied to the target note(s) */
   appliedTags: Tag[];
   /** Tags applied to some but not all target notes (indeterminate state) */
   indeterminateTags?: Tag[];
   /** All tags that exist in the system */
   allTags: Tag[];
-  onAddTag: (noteIds: string[], tagName: string) => Promise<void>;
-  onRemoveTag: (noteIds: string[], tagName: string) => Promise<void>;
+  onAddTag: (noteIds: NoteId[], tagName: string) => Promise<void>;
+  onRemoveTag: (noteIds: NoteId[], tagName: string) => Promise<void>;
   onClose: () => void;
   /** Element to anchor the popover to */
   anchorRef?: React.RefObject<HTMLElement | null>;

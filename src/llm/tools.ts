@@ -1,4 +1,4 @@
-import type { KeeperDB, NoteWithTags, Tag } from "../db/types.ts";
+import { toNoteId, type KeeperDB, type NoteWithTags, type Tag } from "../db/types.ts";
 
 export type ToolName =
   | "list_notes"
@@ -125,7 +125,7 @@ export async function executeTool(
     case "get_note": {
       const id = requireStr(name, args, "id");
       if (typeof id !== "string") return id;
-      const note = await db.getNote(id);
+      const note = await db.getNote(toNoteId(id));
       if (note === null) return ok(name, `Note "${id}" not found.`);
       return ok(name, formatNote(note));
     }
@@ -144,7 +144,7 @@ export async function executeTool(
       const body = requireStr(name, args, "body");
       if (typeof body !== "string") return body;
       const title = optionalStr(args, "title");
-      const note = await db.updateNote({ id, body, ...(title !== undefined ? { title } : {}) });
+      const note = await db.updateNote({ id: toNoteId(id), body, ...(title !== undefined ? { title } : {}) });
       return ok(name, `Note updated.\n${formatNote(note)}`);
     }
 
@@ -160,7 +160,7 @@ export async function executeTool(
     case "confirm_delete_note": {
       const id = requireStr(name, args, "id");
       if (typeof id !== "string") return id;
-      await db.deleteNote(id);
+      await db.deleteNote(toNoteId(id));
       return ok(name, `Note "${id}" deleted.`);
     }
 
@@ -169,7 +169,7 @@ export async function executeTool(
       if (typeof noteId !== "string") return noteId;
       const tagName = requireStr(name, args, "tag_name", { nonEmpty: true });
       if (typeof tagName !== "string") return tagName;
-      const note = await db.addTag(noteId, tagName);
+      const note = await db.addTag(toNoteId(noteId), tagName);
       return ok(name, `Tag "${tagName}" added.\n${formatNote(note)}`);
     }
 
@@ -178,7 +178,7 @@ export async function executeTool(
       if (typeof noteId !== "string") return noteId;
       const tagName = requireStr(name, args, "tag_name");
       if (typeof tagName !== "string") return tagName;
-      const note = await db.removeTag(noteId, tagName);
+      const note = await db.removeTag(toNoteId(noteId), tagName);
       return ok(name, `Tag "${tagName}" removed.\n${formatNote(note)}`);
     }
 
@@ -211,7 +211,7 @@ export async function executeTool(
     case "toggle_pin": {
       const id = requireStr(name, args, "id");
       if (typeof id !== "string") return id;
-      const note = await db.togglePinNote(id);
+      const note = await db.togglePinNote(toNoteId(id));
       return ok(
         name,
         `Note ${note.pinned ? "pinned" : "unpinned"}.\n${formatNote(note)}`,
@@ -221,7 +221,7 @@ export async function executeTool(
     case "toggle_archive": {
       const id = requireStr(name, args, "id");
       if (typeof id !== "string") return id;
-      const note = await db.toggleArchiveNote(id);
+      const note = await db.toggleArchiveNote(toNoteId(id));
       return ok(
         name,
         `Note ${note.archived ? "archived" : "unarchived"}.\n${formatNote(note)}`,

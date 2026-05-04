@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestDb } from './test-db.ts';
 import { createKeeperDB } from '../db-impl.ts';
-import type { KeeperDB } from '../types.ts';
+import { toNoteId, type KeeperDB } from '../types.ts';
 
 describe('Note CRUD', () => {
   let api: KeeperDB;
@@ -75,7 +75,7 @@ describe('Note CRUD', () => {
       expect(fetched?.body).toBe('test');
       expect(fetched?.id).toBe(created.id);
       // Negative case: invalid ID returns null
-      const result = await api.getNote('nonexistent');
+      const result = await api.getNote(toNoteId('nonexistent'));
       expect(result).toBe(null);
     });
   });
@@ -148,7 +148,7 @@ describe('Note CRUD', () => {
     });
 
     it('throws for nonexistent note id', async () => {
-      await expect(api.updateNote({ id: 'nonexistent', body: 'test' })).rejects.toThrow(
+      await expect(api.updateNote({ id: toNoteId('nonexistent'), body: 'test' })).rejects.toThrow(
         'Note not found: nonexistent',
       );
     });
@@ -224,7 +224,7 @@ describe('Note CRUD', () => {
       const note2 = await api.createNote({ body: 'delete me' });
 
       // Mix valid and invalid IDs
-      await api.deleteNotes([note2.id, 'nonexistent-id']);
+      await api.deleteNotes([note2.id, toNoteId('nonexistent-id')]);
 
       const remaining = await api.getAllNotes();
       expect(remaining).toHaveLength(1);
@@ -235,7 +235,7 @@ describe('Note CRUD', () => {
     it('handles array of all invalid IDs without error', async () => {
       const note = await api.createNote({ body: 'survivor' });
 
-      await api.deleteNotes(['fake-1', 'fake-2', 'fake-3']);
+      await api.deleteNotes([toNoteId('fake-1'), toNoteId('fake-2'), toNoteId('fake-3')]);
 
       const notes = await api.getAllNotes();
       expect(notes).toHaveLength(1);

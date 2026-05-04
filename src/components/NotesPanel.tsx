@@ -7,7 +7,7 @@ import { QuickAdd } from './QuickAdd.tsx';
 import { SearchBar } from './SearchBar.tsx';
 import type { FilterType } from './Sidebar.tsx';
 import type { NoteCommands } from './note-commands.ts';
-import type { CreateNoteInput, NoteWithTags } from '../db/types.ts';
+import type { CreateNoteInput, NoteId, NoteWithTags } from '../db/types.ts';
 import type { useDB } from '../hooks/useDB.ts';
 
 interface NotesPanelProps {
@@ -26,8 +26,8 @@ interface NotesPanelProps {
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   displayedNotes: NoteWithTags[];
-  selectedNoteIds: Set<string>;
-  setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  selectedNoteIds: Set<NoteId>;
+  setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
   autoApplyActiveTag: boolean;
   linkPreviewDisplayEnabled: boolean;
   showSettings: boolean;
@@ -81,7 +81,7 @@ export function NotesPanel({
     showSettings,
   });
 
-  const handleBulkSelect = useCallback((ids: Set<string>) => {
+  const handleBulkSelect = useCallback((ids: Set<NoteId>) => {
     setSelectedNoteIds(ids);
   }, [setSelectedNoteIds]);
 
@@ -93,7 +93,7 @@ export function NotesPanel({
   const noteCommands = useMemo<NoteCommands>(() => ({
     update: updateNote,
     delete: isTrashView
-      ? async (id: string) => {
+      ? async (id: NoteId) => {
           if (!window.confirm('Permanently delete this note? This cannot be undone.')) return false;
           await deleteNote(id);
           return true;

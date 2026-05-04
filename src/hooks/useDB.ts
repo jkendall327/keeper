@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect, use } from 'react';
 import { getDB } from '../db/db-client.ts';
-import type { NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput } from '../db/types.ts';
+import type { NoteId, NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput } from '../db/types.ts';
 
 const initialLoad: Promise<[NoteWithTags[], Tag[]]> = Promise.all([
   getDB().getAllNotes(),
@@ -50,22 +50,22 @@ export function useDB() {
 
   const createNote = useCallback((input: CreateNoteInput) => mutateWithResult(() => getDB().createNote(input)), [mutateWithResult]);
   const updateNote = useCallback((input: UpdateNoteInput) => mutate(() => getDB().updateNote(input)), [mutate]);
-  const deleteNote = useCallback((id: string) => mutate(() => getDB().deleteNote(id)), [mutate]);
-  const deleteNotes = useCallback((ids: string[]) => mutate(() => getDB().deleteNotes(ids)), [mutate]);
-  const archiveNotes = useCallback((ids: string[]) => mutate(() => getDB().archiveNotes(ids)), [mutate]);
-  const togglePinNote = useCallback((id: string) => mutate(() => getDB().togglePinNote(id)), [mutate]);
-  const addTag = useCallback((noteId: string, tagName: string) => mutate(() => getDB().addTag(noteId, tagName)), [mutate]);
-  const removeTag = useCallback((noteId: string, tagName: string) => mutate(() => getDB().removeTag(noteId, tagName)), [mutate]);
+  const deleteNote = useCallback((id: NoteId) => mutate(() => getDB().deleteNote(id)), [mutate]);
+  const deleteNotes = useCallback((ids: NoteId[]) => mutate(() => getDB().deleteNotes(ids)), [mutate]);
+  const archiveNotes = useCallback((ids: NoteId[]) => mutate(() => getDB().archiveNotes(ids)), [mutate]);
+  const togglePinNote = useCallback((id: NoteId) => mutate(() => getDB().togglePinNote(id)), [mutate]);
+  const addTag = useCallback((noteId: NoteId, tagName: string) => mutate(() => getDB().addTag(noteId, tagName)), [mutate]);
+  const removeTag = useCallback((noteId: NoteId, tagName: string) => mutate(() => getDB().removeTag(noteId, tagName)), [mutate]);
   const renameTag = useCallback((oldName: string, newName: string) => mutate(() => getDB().renameTag(oldName, newName)), [mutate]);
   const updateTagIcon = useCallback((tagId: number, icon: string | null) => mutate(() => getDB().updateTagIcon(tagId, icon)), [mutate]);
   const deleteTag = useCallback((tagId: number) => mutate(() => getDB().deleteTag(tagId)), [mutate]);
-  const trashNote = useCallback((id: string) => mutate(() => getDB().trashNote(id)), [mutate]);
-  const trashNotes = useCallback((ids: string[]) => mutate(() => getDB().trashNotes(ids)), [mutate]);
-  const restoreNote = useCallback((id: string) => mutate(() => getDB().restoreNote(id)), [mutate]);
-  const restoreNotes = useCallback((ids: string[]) => mutate(() => getDB().restoreNotes(ids)), [mutate]);
-  const addTagToNotes = useCallback((noteIds: string[], tagName: string) => mutate(() => getDB().addTagToNotes(noteIds, tagName)), [mutate]);
-  const removeTagFromNotes = useCallback((noteIds: string[], tagName: string) => mutate(() => getDB().removeTagFromNotes(noteIds, tagName)), [mutate]);
-  const toggleArchiveNote = useCallback((id: string) => mutate(() => getDB().toggleArchiveNote(id)), [mutate]);
+  const trashNote = useCallback((id: NoteId) => mutate(() => getDB().trashNote(id)), [mutate]);
+  const trashNotes = useCallback((ids: NoteId[]) => mutate(() => getDB().trashNotes(ids)), [mutate]);
+  const restoreNote = useCallback((id: NoteId) => mutate(() => getDB().restoreNote(id)), [mutate]);
+  const restoreNotes = useCallback((ids: NoteId[]) => mutate(() => getDB().restoreNotes(ids)), [mutate]);
+  const addTagToNotes = useCallback((noteIds: NoteId[], tagName: string) => mutate(() => getDB().addTagToNotes(noteIds, tagName)), [mutate]);
+  const removeTagFromNotes = useCallback((noteIds: NoteId[], tagName: string) => mutate(() => getDB().removeTagFromNotes(noteIds, tagName)), [mutate]);
+  const toggleArchiveNote = useCallback((id: NoteId) => mutate(() => getDB().toggleArchiveNote(id)), [mutate]);
   const createAutoTagRule = useCallback((input: Parameters<ReturnType<typeof getDB>['createAutoTagRule']>[0]) => mutate(() => getDB().createAutoTagRule(input)), [mutate]);
   const updateAutoTagRule = useCallback((input: Parameters<ReturnType<typeof getDB>['updateAutoTagRule']>[0]) => mutate(() => getDB().updateAutoTagRule(input)), [mutate]);
   const deleteAutoTagRule = useCallback((id: number) => mutate(() => getDB().deleteAutoTagRule(id)), [mutate]);

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestDb } from './test-db.ts';
 import { createKeeperDB } from '../db-impl.ts';
-import type { KeeperDB } from '../types.ts';
+import { toNoteId, type KeeperDB } from '../types.ts';
 
 describe('Smart Views', () => {
   let api: KeeperDB;
@@ -23,7 +23,7 @@ describe('Smart Views', () => {
       const note1 = await api.createNote({ body: 'untagged' });
       const note2 = await api.createNote({ body: 'also untagged' });
       await api.createNote({ body: 'tagged' });
-      await api.addTag('test-id-3', 'tag1');
+      await api.addTag(toNoteId('test-id-3'), 'tag1');
 
       const untagged = await api.getUntaggedNotes();
       expect(untagged.map((n) => n.id)).toEqual([note2.id, note1.id]);

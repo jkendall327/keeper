@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestDb } from './test-db.ts';
 import { createKeeperDB } from '../db-impl.ts';
-import type { KeeperDB } from '../types.ts';
+import type { KeeperDB, NoteId } from '../types.ts';
 import * as fc from 'fast-check';
 
 describe('CRUD Invariants (Property-Based)', () => {
@@ -90,7 +90,7 @@ describe('CRUD Invariants (Property-Based)', () => {
             now: () => '2025-01-15 12:00:00',
           });
 
-          const ids: string[] = [];
+          const ids: NoteId[] = [];
           for (const op of ops) {
             if (op === 'create') {
               const n = await api.createNote({ body: 'x' });
@@ -194,7 +194,7 @@ describe('CRUD Invariants (Property-Based)', () => {
             now: () => '2025-01-15 12:00:00',
           });
 
-          const notes: string[] = [];
+          const notes: NoteId[] = [];
           for (let i = 0; i < noteCount; i++) {
             const n = await api.createNote({ body: `note ${String(i)}` });
             await api.addTag(n.id, oldName);

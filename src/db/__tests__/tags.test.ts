@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestDb } from './test-db.ts';
 import { createKeeperDB } from '../db-impl.ts';
-import type { KeeperDB } from '../types.ts';
+import { toNoteId, type KeeperDB } from '../types.ts';
 
 describe('Tags', () => {
   let api: KeeperDB;
@@ -63,7 +63,7 @@ describe('Tags', () => {
     });
 
     it('throws for nonexistent note', async () => {
-      await expect(api.addTag('nonexistent', 'tag')).rejects.toThrow('Note not found');
+      await expect(api.addTag(toNoteId('nonexistent'), 'tag')).rejects.toThrow('Note not found');
     });
   });
 
@@ -101,7 +101,7 @@ describe('Tags', () => {
     });
 
     it('throws for nonexistent note', async () => {
-      await expect(api.removeTag('nonexistent', 'tag')).rejects.toThrow('Note not found');
+      await expect(api.removeTag(toNoteId('nonexistent'), 'tag')).rejects.toThrow('Note not found');
     });
   });
 

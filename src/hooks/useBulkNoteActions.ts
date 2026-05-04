@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { NoteWithTags, Tag } from '../db/types.ts';
+import type { NoteId, NoteWithTags, Tag } from '../db/types.ts';
 import type { useDB } from './useDB.ts';
 
 type DB = ReturnType<typeof useDB>;
@@ -23,7 +23,7 @@ export function useBulkNoteActions({
   runAutoTagRules,
   trashNotes,
 }: UseBulkNoteActionsOptions) {
-  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
+  const [selectedNoteIds, setSelectedNoteIds] = useState<Set<NoteId>>(new Set());
   const [autoTagStatus, setAutoTagStatus] = useState('');
 
   const displayedNoteIds = useMemo(() => displayedNotes.map((note) => note.id), [displayedNotes]);

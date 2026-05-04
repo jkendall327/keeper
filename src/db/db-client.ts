@@ -13,6 +13,7 @@ import type {
   AppSettings,
   UpdateAppSettingsInput,
   LinkPreview,
+  NoteId,
 } from "./types.ts";
 
 // ── HTTP helpers ─────────────────────────────────────────────
@@ -56,57 +57,57 @@ const db: KeeperDB = {
 
   getAllNotes: () => fetchJson<NoteWithTags[]>("/api/notes"),
 
-  getNote: (id: string) => fetchNullable<NoteWithTags>(`/api/notes/${id}`),
+  getNote: (id: NoteId) => fetchNullable<NoteWithTags>(`/api/notes/${id}`),
 
   updateNote: (input: UpdateNoteInput) =>
     fetchJson<NoteWithTags>(`/api/notes/${input.id}`, jsonOpts("PUT", input)),
 
-  deleteNote: (id: string) =>
+  deleteNote: (id: NoteId) =>
     fetchVoid(`/api/notes/${id}`, { method: "DELETE" }),
 
-  deleteNotes: (ids: string[]) =>
+  deleteNotes: (ids: NoteId[]) =>
     fetchVoid("/api/notes/delete", jsonOpts("POST", { ids })),
 
-  archiveNotes: (ids: string[]) =>
+  archiveNotes: (ids: NoteId[]) =>
     fetchVoid("/api/notes/archive", jsonOpts("POST", { ids })),
 
-  trashNote: (id: string) =>
+  trashNote: (id: NoteId) =>
     fetchVoid(`/api/notes/${id}/trash`, { method: "POST" }),
 
-  trashNotes: (ids: string[]) =>
+  trashNotes: (ids: NoteId[]) =>
     fetchVoid("/api/notes/trash", jsonOpts("POST", { ids })),
 
-  restoreNote: (id: string) =>
+  restoreNote: (id: NoteId) =>
     fetchVoid(`/api/notes/${id}/restore`, { method: "POST" }),
 
-  restoreNotes: (ids: string[]) =>
+  restoreNotes: (ids: NoteId[]) =>
     fetchVoid("/api/notes/restore", jsonOpts("POST", { ids })),
 
-  togglePinNote: (id: string) =>
+  togglePinNote: (id: NoteId) =>
     fetchJson<NoteWithTags>(`/api/notes/${id}/pin`, { method: "POST" }),
 
-  toggleArchiveNote: (id: string) =>
+  toggleArchiveNote: (id: NoteId) =>
     fetchJson<NoteWithTags>(`/api/notes/${id}/archive`, { method: "POST" }),
 
   // Tags
   getAllTags: () => fetchJson<Tag[]>("/api/tags"),
 
-  addTag: (noteId: string, tagName: string) =>
+  addTag: (noteId: NoteId, tagName: string) =>
     fetchJson<NoteWithTags>(
       `/api/notes/${noteId}/tags`,
       jsonOpts("POST", { name: tagName }),
     ),
 
-  removeTag: (noteId: string, tagName: string) =>
+  removeTag: (noteId: NoteId, tagName: string) =>
     fetchJson<NoteWithTags>(
       `/api/notes/${noteId}/tags/${encodeURIComponent(tagName)}`,
       { method: "DELETE" },
     ),
 
-  addTagToNotes: (noteIds: string[], tagName: string) =>
+  addTagToNotes: (noteIds: NoteId[], tagName: string) =>
     fetchVoid("/api/notes/tags/add", jsonOpts("POST", { noteIds, tagName })),
 
-  removeTagFromNotes: (noteIds: string[], tagName: string) =>
+  removeTagFromNotes: (noteIds: NoteId[], tagName: string) =>
     fetchVoid("/api/notes/tags/remove", jsonOpts("POST", { noteIds, tagName })),
 
   renameTag: (oldName: string, newName: string) =>
@@ -175,7 +176,7 @@ const db: KeeperDB = {
   deleteMedia: (id: string) =>
     fetchVoid(`/api/media/${id}`, { method: "DELETE" }),
 
-  getMediaForNote: (noteId: string) =>
+  getMediaForNote: (noteId: NoteId) =>
     fetchJson<Media[]>(`/api/notes/${noteId}/media`),
 
   getLinkPreview: (url: string) =>

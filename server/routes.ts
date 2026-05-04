@@ -6,6 +6,7 @@ import type {
   UpdateAppSettingsInput,
   UpdateNoteInput,
 } from "../src/db/types.ts";
+import { toNoteId, toNoteIds } from "../src/db/types.ts";
 import { bufferToArrayBuffer, type MediaHandler } from "./media-handler.ts";
 import { truncateExtensionTitle } from "../src/utils/extension-title.ts";
 import { createEventBroadcaster } from "./events.ts";
@@ -48,7 +49,7 @@ export function registerRoutes(
   app.get<{ Params: { id: string } }>(
     "/api/notes/:id",
     async (req, reply) => {
-      const note = await db.getNote(req.params.id);
+      const note = await db.getNote(toNoteId(req.params.id));
       if (note === null) {
         return reply.code(404).send({ error: "Not found" });
       }
@@ -59,7 +60,7 @@ export function registerRoutes(
   app.put<{ Params: { id: string }; Body: Omit<UpdateNoteInput, "id"> }>(
     "/api/notes/:id",
     async (req) => {
-      const note = await db.updateNote({ ...req.body, id: req.params.id });
+      const note = await db.updateNote({ ...req.body, id: toNoteId(req.params.id) });
       queueLinkPreview(note.body);
       return note;
     },
@@ -68,7 +69,7 @@ export function registerRoutes(
   app.delete<{ Params: { id: string } }>(
     "/api/notes/:id",
     async (req) => {
-      await db.deleteNote(req.params.id);
+      await db.deleteNote(toNoteId(req.params.id));
       return {};
     },
   );
@@ -76,7 +77,7 @@ export function registerRoutes(
   app.post<{ Body: { ids: string[] } }>(
     "/api/notes/delete",
     async (req) => {
-      await db.deleteNotes(req.body.ids);
+      await db.deleteNotes(toNoteIds(req.body.ids));
       return {};
     },
   );
@@ -84,7 +85,7 @@ export function registerRoutes(
   app.post<{ Body: { ids: string[] } }>(
     "/api/notes/archive",
     async (req) => {
-      await db.archiveNotes(req.body.ids);
+      await db.archiveNotes(toNoteIds(req.body.ids));
       return {};
     },
   );
@@ -92,7 +93,7 @@ export function registerRoutes(
   app.post<{ Params: { id: string } }>(
     "/api/notes/:id/trash",
     async (req) => {
-      await db.trashNote(req.params.id);
+      await db.trashNote(toNoteId(req.params.id));
       return {};
     },
   );
@@ -100,7 +101,7 @@ export function registerRoutes(
   app.post<{ Body: { ids: string[] } }>(
     "/api/notes/trash",
     async (req) => {
-      await db.trashNotes(req.body.ids);
+      await db.trashNotes(toNoteIds(req.body.ids));
       return {};
     },
   );
@@ -108,7 +109,7 @@ export function registerRoutes(
   app.post<{ Params: { id: string } }>(
     "/api/notes/:id/restore",
     async (req) => {
-      await db.restoreNote(req.params.id);
+      await db.restoreNote(toNoteId(req.params.id));
       return {};
     },
   );
@@ -116,7 +117,7 @@ export function registerRoutes(
   app.post<{ Body: { ids: string[] } }>(
     "/api/notes/restore",
     async (req) => {
-      await db.restoreNotes(req.body.ids);
+      await db.restoreNotes(toNoteIds(req.body.ids));
       return {};
     },
   );
@@ -124,14 +125,14 @@ export function registerRoutes(
   app.post<{ Params: { id: string } }>(
     "/api/notes/:id/pin",
     async (req) => {
-      return db.togglePinNote(req.params.id);
+      return db.togglePinNote(toNoteId(req.params.id));
     },
   );
 
   app.post<{ Params: { id: string } }>(
     "/api/notes/:id/archive",
     async (req) => {
-      return db.toggleArchiveNote(req.params.id);
+      return db.toggleArchiveNote(toNoteId(req.params.id));
     },
   );
 
@@ -144,21 +145,21 @@ export function registerRoutes(
   app.post<{ Params: { noteId: string }; Body: { name: string } }>(
     "/api/notes/:noteId/tags",
     async (req) => {
-      return db.addTag(req.params.noteId, req.body.name);
+      return db.addTag(toNoteId(req.params.noteId), req.body.name);
     },
   );
 
   app.delete<{ Params: { noteId: string; tagName: string } }>(
     "/api/notes/:noteId/tags/:tagName",
     async (req) => {
-      return db.removeTag(req.params.noteId, req.params.tagName);
+      return db.removeTag(toNoteId(req.params.noteId), req.params.tagName);
     },
   );
 
   app.post<{ Body: { noteIds: string[]; tagName: string } }>(
     "/api/notes/tags/add",
     async (req) => {
-      await db.addTagToNotes(req.body.noteIds, req.body.tagName);
+      await db.addTagToNotes(toNoteIds(req.body.noteIds), req.body.tagName);
       return {};
     },
   );
@@ -166,7 +167,7 @@ export function registerRoutes(
   app.post<{ Body: { noteIds: string[]; tagName: string } }>(
     "/api/notes/tags/remove",
     async (req) => {
-      await db.removeTagFromNotes(req.body.noteIds, req.body.tagName);
+      await db.removeTagFromNotes(toNoteIds(req.body.noteIds), req.body.tagName);
       return {};
     },
   );
@@ -337,7 +338,7 @@ export function registerRoutes(
     if (fileBuffer === undefined) throw new Error("No file uploaded");
 
     return media.storeMedia({
-      noteId,
+      noteId: toNoteId(noteId),
       mimeType,
       data: bufferToArrayBuffer(fileBuffer),
     });
@@ -368,7 +369,7 @@ export function registerRoutes(
   app.get<{ Params: { noteId: string } }>(
     "/api/notes/:noteId/media",
     async (req) => {
-      return db.getMediaForNote(req.params.noteId);
+      return db.getMediaForNote(toNoteId(req.params.noteId));
     },
   );
 }

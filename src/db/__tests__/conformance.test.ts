@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createTestDb } from "./test-db.ts";
 import { createKeeperDB } from "../db-impl.ts";
 import { createMockDB } from "../../__tests__/mock-db.ts";
-import type { KeeperDB } from "../types.ts";
+import { toNoteId, type KeeperDB } from "../types.ts";
 
 /**
  * Conformance tests: run identical operations against both mock DB and real
@@ -31,7 +31,7 @@ describe("Mock ↔ Real DB conformance: updateTagIcon", () => {
     // Identical operations on both DBs
     for (const db of [realDb, mockDb]) {
       await db.createNote({ body: "test" });
-      await db.addTag("n1", "work");
+      await db.addTag(toNoteId("n1"), "work");
     }
 
     const realTags = await realDb.getAllTags();
@@ -58,7 +58,7 @@ describe("Mock ↔ Real DB conformance: updateTagIcon", () => {
   it("updateTagIcon(null) after star → getAllTags returns icon:null in both", async () => {
     for (const db of [realDb, mockDb]) {
       await db.createNote({ body: "test" });
-      await db.addTag("n1", "work");
+      await db.addTag(toNoteId("n1"), "work");
     }
 
     const realTagId = (await realDb.getAllTags())[0]?.id;
@@ -84,7 +84,7 @@ describe("Mock ↔ Real DB conformance: updateTagIcon", () => {
   it("updateTagIcon(briefcase) → getNote has tag.icon:briefcase in both", async () => {
     for (const db of [realDb, mockDb]) {
       await db.createNote({ body: "test" });
-      await db.addTag("n1", "work");
+      await db.addTag(toNoteId("n1"), "work");
     }
 
     const realTagId = (await realDb.getAllTags())[0]?.id;
@@ -96,8 +96,8 @@ describe("Mock ↔ Real DB conformance: updateTagIcon", () => {
     await realDb.updateTagIcon(realTagId, "briefcase");
     await mockDb.updateTagIcon(mockTagId, "briefcase");
 
-    const realNote = await realDb.getNote("n1");
-    const mockNote = await mockDb.getNote("n1");
+    const realNote = await realDb.getNote(toNoteId("n1"));
+    const mockNote = await mockDb.getNote(toNoteId("n1"));
 
     if (realNote === null || mockNote === null) {
       throw new Error("Expected note to exist in both DBs");
@@ -112,8 +112,8 @@ describe("Mock ↔ Real DB conformance: updateTagIcon", () => {
     for (const db of [realDb, mockDb]) {
       await db.createNote({ body: "first" });
       await db.createNote({ body: "second" });
-      await db.addTag("n1", "shared");
-      await db.addTag("n2", "shared");
+      await db.addTag(toNoteId("n1"), "shared");
+      await db.addTag(toNoteId("n2"), "shared");
     }
 
     const realTagId = (await realDb.getAllTags())[0]?.id;
@@ -125,10 +125,10 @@ describe("Mock ↔ Real DB conformance: updateTagIcon", () => {
     await realDb.updateTagIcon(realTagId, "folder");
     await mockDb.updateTagIcon(mockTagId, "folder");
 
-    const realNote1 = await realDb.getNote("n1");
-    const realNote2 = await realDb.getNote("n2");
-    const mockNote1 = await mockDb.getNote("n1");
-    const mockNote2 = await mockDb.getNote("n2");
+    const realNote1 = await realDb.getNote(toNoteId("n1"));
+    const realNote2 = await realDb.getNote(toNoteId("n2"));
+    const mockNote1 = await mockDb.getNote(toNoteId("n1"));
+    const mockNote2 = await mockDb.getNote(toNoteId("n2"));
 
     if (
       realNote1 === null ||
@@ -155,7 +155,7 @@ describe("Mock ↔ Real DB conformance: updateTagIcon", () => {
   it("updateTagIcon then renameTag → icon preserved in both", async () => {
     for (const db of [realDb, mockDb]) {
       await db.createNote({ body: "test" });
-      await db.addTag("n1", "old");
+      await db.addTag(toNoteId("n1"), "old");
     }
 
     const realTagId = (await realDb.getAllTags())[0]?.id;
@@ -185,7 +185,7 @@ describe("Mock ↔ Real DB conformance: updateTagIcon", () => {
     // Create a real tag so we can verify it's not corrupted
     for (const db of [realDb, mockDb]) {
       await db.createNote({ body: "test" });
-      await db.addTag("n1", "work");
+      await db.addTag(toNoteId("n1"), "work");
     }
 
     const realTagId = (await realDb.getAllTags())[0]?.id;

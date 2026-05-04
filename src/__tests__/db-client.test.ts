@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { getDB } from "../db/db-client.ts";
+import { toNoteId } from "../db/types.ts";
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -22,18 +23,20 @@ describe("KeeperDB HTTP client contract", () => {
   it("uses the expected note routes", async () => {
     const fetchMock = mockFetch([]);
     const db = getDB();
+    const n1 = toNoteId("n1");
+    const n2 = toNoteId("n2");
 
     await db.getAllNotes();
-    await db.getNote("n1");
+    await db.getNote(n1);
     await db.createNote({ body: "new" });
-    await db.updateNote({ id: "n1", body: "changed" });
-    await db.deleteNote("n1");
-    await db.deleteNotes(["n1", "n2"]);
-    await db.archiveNotes(["n1"]);
-    await db.trashNote("n1");
-    await db.trashNotes(["n1"]);
-    await db.restoreNote("n1");
-    await db.restoreNotes(["n1"]);
+    await db.updateNote({ id: n1, body: "changed" });
+    await db.deleteNote(n1);
+    await db.deleteNotes([n1, n2]);
+    await db.archiveNotes([n1]);
+    await db.trashNote(n1);
+    await db.trashNotes([n1]);
+    await db.restoreNote(n1);
+    await db.restoreNotes([n1]);
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/notes", undefined);
     expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/notes/n1");
@@ -51,12 +54,13 @@ describe("KeeperDB HTTP client contract", () => {
   it("uses the expected tag and view routes", async () => {
     const fetchMock = mockFetch([]);
     const db = getDB();
+    const n1 = toNoteId("n1");
 
     await db.getAllTags();
-    await db.addTag("n1", "work");
-    await db.removeTag("n1", "needs encoding");
-    await db.addTagToNotes(["n1"], "bulk");
-    await db.removeTagFromNotes(["n1"], "bulk");
+    await db.addTag(n1, "work");
+    await db.removeTag(n1, "needs encoding");
+    await db.addTagToNotes([n1], "bulk");
+    await db.removeTagFromNotes([n1], "bulk");
     await db.renameTag("old", "new");
     await db.updateTagIcon(7, "star");
     await db.deleteTag(7);
@@ -87,7 +91,7 @@ describe("KeeperDB HTTP client contract", () => {
     const notFound = vi.fn((..._args: Parameters<typeof fetch>) =>
       Promise.resolve(jsonResponse({ error: "missing" }, 404)));
     globalThis.fetch = notFound as unknown as typeof fetch;
-    await expect(getDB().getNote("missing")).resolves.toBeNull();
+    await expect(getDB().getNote(toNoteId("missing"))).resolves.toBeNull();
 
     const broken = vi.fn((..._args: Parameters<typeof fetch>) =>
       Promise.resolve(jsonResponse({ error: "bad" }, 500)));

@@ -1,7 +1,19 @@
 // ── Data types ──────────────────────────────────────────────
 
+declare const noteIdBrand: unique symbol;
+
+export type NoteId = string & { readonly [noteIdBrand]: true };
+
+export function toNoteId(value: string): NoteId {
+  return value as NoteId;
+}
+
+export function toNoteIds(values: string[]): NoteId[] {
+  return values.map(toNoteId);
+}
+
 export interface Note {
-  id: string;
+  id: NoteId;
   title: string;
   body: string;
   has_links: boolean;
@@ -19,13 +31,13 @@ export interface Tag {
 }
 
 export interface NoteTag {
-  note_id: string;
+  note_id: NoteId;
   tag_id: number;
 }
 
 export interface Media {
   id: string;
-  note_id: string;
+  note_id: NoteId;
   mime_type: string;
   filename: string;
   created_at: string;
@@ -104,13 +116,13 @@ export interface CreateNoteInput {
 }
 
 export interface UpdateNoteInput {
-  id: string;
+  id: NoteId;
   title?: string;
   body?: string;
 }
 
 export interface StoreMediaInput {
-  noteId: string;
+  noteId: NoteId;
   mimeType: string;
   data: ArrayBuffer;
 }
@@ -120,20 +132,20 @@ export interface StoreMediaInput {
 export interface KeeperDB {
   // Notes CRUD
   createNote(input: CreateNoteInput): Promise<NoteWithTags>;
-  getNote(id: string): Promise<NoteWithTags | null>;
+  getNote(id: NoteId): Promise<NoteWithTags | null>;
   getAllNotes(): Promise<NoteWithTags[]>;
   updateNote(input: UpdateNoteInput): Promise<NoteWithTags>;
-  deleteNote(id: string): Promise<void>;
-  deleteNotes(ids: string[]): Promise<void>;
-  archiveNotes(ids: string[]): Promise<void>;
-  togglePinNote(id: string): Promise<NoteWithTags>;
-  toggleArchiveNote(id: string): Promise<NoteWithTags>;
+  deleteNote(id: NoteId): Promise<void>;
+  deleteNotes(ids: NoteId[]): Promise<void>;
+  archiveNotes(ids: NoteId[]): Promise<void>;
+  togglePinNote(id: NoteId): Promise<NoteWithTags>;
+  toggleArchiveNote(id: NoteId): Promise<NoteWithTags>;
 
   // Tags
-  addTag(noteId: string, tagName: string): Promise<NoteWithTags>;
-  removeTag(noteId: string, tagName: string): Promise<NoteWithTags>;
-  addTagToNotes(noteIds: string[], tagName: string): Promise<void>;
-  removeTagFromNotes(noteIds: string[], tagName: string): Promise<void>;
+  addTag(noteId: NoteId, tagName: string): Promise<NoteWithTags>;
+  removeTag(noteId: NoteId, tagName: string): Promise<NoteWithTags>;
+  addTagToNotes(noteIds: NoteId[], tagName: string): Promise<void>;
+  removeTagFromNotes(noteIds: NoteId[], tagName: string): Promise<void>;
   renameTag(oldName: string, newName: string): Promise<void>;
   updateTagIcon(tagId: number, icon: string | null): Promise<void>;
   deleteTag(tagId: number): Promise<void>;
@@ -143,10 +155,10 @@ export interface KeeperDB {
   search(query: string): Promise<SearchResult[]>;
 
   // Trash
-  trashNote(id: string): Promise<void>;
-  trashNotes(ids: string[]): Promise<void>;
-  restoreNote(id: string): Promise<void>;
-  restoreNotes(ids: string[]): Promise<void>;
+  trashNote(id: NoteId): Promise<void>;
+  trashNotes(ids: NoteId[]): Promise<void>;
+  restoreNote(id: NoteId): Promise<void>;
+  restoreNotes(ids: NoteId[]): Promise<void>;
   getTrashedNotes(): Promise<NoteWithTags[]>;
 
   // Smart views
@@ -170,7 +182,7 @@ export interface KeeperDB {
   storeMedia(input: StoreMediaInput): Promise<Media>;
   getMedia(id: string): Promise<ArrayBuffer | null>;
   deleteMedia(id: string): Promise<void>;
-  getMediaForNote(noteId: string): Promise<Media[]>;
+  getMediaForNote(noteId: NoteId): Promise<Media[]>;
 
   // Link previews
   getLinkPreview(url: string): Promise<LinkPreview | null>;

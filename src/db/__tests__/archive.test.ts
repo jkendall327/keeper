@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestDb } from './test-db.ts';
 import { createKeeperDB } from '../db-impl.ts';
-import type { KeeperDB } from '../types.ts';
+import { toNoteId, type KeeperDB } from '../types.ts';
 
 describe('Note archiving', () => {
   let api: KeeperDB;
@@ -120,7 +120,7 @@ describe('Note archiving', () => {
   });
 
   it('should throw error when toggling archive on non-existent note', async () => {
-    await expect(api.toggleArchiveNote('non-existent-id')).rejects.toThrow('Note not found');
+    await expect(api.toggleArchiveNote(toNoteId('non-existent-id'))).rejects.toThrow('Note not found');
   });
 
   describe('archiveNotes (batch)', () => {

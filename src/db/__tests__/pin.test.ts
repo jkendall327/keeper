@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestDb } from './test-db.ts';
 import { createKeeperDB } from '../db-impl.ts';
-import type { KeeperDB } from '../types.ts';
+import { toNoteId, type KeeperDB } from '../types.ts';
 
 describe('Note pinning', () => {
   let api: KeeperDB;
@@ -158,6 +158,6 @@ describe('Note pinning', () => {
   });
 
   it('should throw error when toggling pin on non-existent note', async () => {
-    await expect(api.togglePinNote('non-existent-id')).rejects.toThrow('Note not found');
+    await expect(api.togglePinNote(toNoteId('non-existent-id'))).rejects.toThrow('Note not found');
   });
 });

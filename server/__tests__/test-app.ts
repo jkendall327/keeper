@@ -3,7 +3,7 @@ import fastifyMultipart from "@fastify/multipart";
 import { registerRoutes } from "../routes.ts";
 import { createKeeperDB } from "../../src/db/db-impl.ts";
 import { createTestDb } from "../../src/db/__tests__/test-db.ts";
-import type { KeeperDB, Media, StoreMediaInput } from "../../src/db/types.ts";
+import type { KeeperDB, Media, NoteId, StoreMediaInput } from "../../src/db/types.ts";
 import type { SqliteDb } from "../../src/db/sqlite-db.ts";
 import type { MediaHandler } from "../media-handler.ts";
 import type { FastifyInstance } from "fastify";
@@ -62,7 +62,7 @@ export async function createTestApp(): Promise<TestApp> {
       return Promise.resolve();
     },
 
-    async deleteNoteWithMedia(noteId: string): Promise<void> {
+    async deleteNoteWithMedia(noteId: NoteId): Promise<void> {
       const rows = await db.getMediaForNote(noteId);
       for (const row of rows) {
         buffers.delete(row.id);

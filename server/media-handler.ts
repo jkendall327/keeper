@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
-import type { Media, StoreMediaInput } from "../src/db/types.ts";
+import type { Media, NoteId, StoreMediaInput } from "../src/db/types.ts";
 import type { SqliteDb } from "../src/db/sqlite-db.ts";
 
 function mimeToExt(mime: string): string {
@@ -24,7 +24,7 @@ export interface MediaHandler {
     id: string,
   ): Promise<{ buffer: Buffer; mimeType: string } | null>;
   deleteMedia(id: string): Promise<void>;
-  deleteNoteWithMedia(noteId: string): Promise<void>;
+  deleteNoteWithMedia(noteId: NoteId): Promise<void>;
 }
 
 export function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
@@ -36,7 +36,7 @@ export function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
 export async function createMediaHandler(
   mediaDir: string,
   db: SqliteDb,
-  baseDeleteNote: (id: string) => Promise<void>,
+  baseDeleteNote: (id: NoteId) => Promise<void>,
 ): Promise<MediaHandler> {
   await mkdir(mediaDir, { recursive: true });
 
@@ -96,7 +96,7 @@ export async function createMediaHandler(
       db.run("DELETE FROM media WHERE id = ?", [id]);
     },
 
-    async deleteNoteWithMedia(noteId: string) {
+    async deleteNoteWithMedia(noteId: NoteId) {
       const rows = db.query(
         "SELECT id, mime_type FROM media WHERE note_id = ?",
         [noteId],

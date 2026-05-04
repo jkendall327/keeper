@@ -1,5 +1,5 @@
 import { extractUrls } from '../db/url-detect';
-import { DEFAULT_EXTENSION_TITLE_MAX_LENGTH } from '../db/types';
+import { DEFAULT_EXTENSION_TITLE_MAX_LENGTH, toNoteId } from '../db/types';
 import type {
   AutoTagRule,
   AutoTagRuleInput,
@@ -7,6 +7,7 @@ import type {
   AppSettings,
   KeeperDB,
   LinkPreview,
+  NoteId,
   NoteWithTags,
   Tag,
   CreateNoteInput,
@@ -29,7 +30,7 @@ export function createMockDB(): MockDB {
   let noteId = 1;
   let tagId = 1;
   let ruleId = 1;
-  const notes = new Map<string, NoteWithTags>();
+  const notes = new Map<NoteId, NoteWithTags>();
   const tags = new Map<number, Tag>();
   const rules = new Map<number, AutoTagRule>();
   const linkPreviews = new Map<string, LinkPreview>();
@@ -40,7 +41,7 @@ export function createMockDB(): MockDB {
     linkPreviewDisplayEnabled: true,
   };
 
-  const generateId = () => `n${String(noteId++)}`;
+  const generateId = () => toNoteId(`n${String(noteId++)}`);
   const generateTagId = () => tagId++;
   const now = () => new Date().toISOString();
   const hasUrl = (text: string) => /https?:\/\//.test(text);
@@ -100,7 +101,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve(note);
     },
 
-    async getNote(id: string): Promise<NoteWithTags | null> {
+    async getNote(id: NoteId): Promise<NoteWithTags | null> {
       return Promise.resolve(notes.get(id) ?? null);
     },
 
@@ -131,19 +132,19 @@ export function createMockDB(): MockDB {
       return Promise.resolve(updated);
     },
 
-    async deleteNote(id: string): Promise<void> {
+    async deleteNote(id: NoteId): Promise<void> {
       notes.delete(id);
       return Promise.resolve();
     },
 
-    async deleteNotes(ids: string[]): Promise<void> {
+    async deleteNotes(ids: NoteId[]): Promise<void> {
       for (const id of ids) {
         notes.delete(id);
       }
       return Promise.resolve();
     },
 
-    async trashNote(id: string): Promise<void> {
+    async trashNote(id: NoteId): Promise<void> {
       const note = notes.get(id);
       if (note !== undefined) {
         notes.set(id, { ...note, trashed: true });
@@ -151,7 +152,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve();
     },
 
-    async trashNotes(ids: string[]): Promise<void> {
+    async trashNotes(ids: NoteId[]): Promise<void> {
       for (const id of ids) {
         const note = notes.get(id);
         if (note !== undefined) {
@@ -161,7 +162,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve();
     },
 
-    async restoreNote(id: string): Promise<void> {
+    async restoreNote(id: NoteId): Promise<void> {
       const note = notes.get(id);
       if (note !== undefined) {
         notes.set(id, { ...note, trashed: false });
@@ -177,7 +178,7 @@ export function createMockDB(): MockDB {
       );
     },
 
-    async archiveNotes(ids: string[]): Promise<void> {
+    async archiveNotes(ids: NoteId[]): Promise<void> {
       for (const id of ids) {
         const note = notes.get(id);
         if (note !== undefined) {
@@ -187,7 +188,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve();
     },
 
-    async togglePinNote(id: string): Promise<NoteWithTags> {
+    async togglePinNote(id: NoteId): Promise<NoteWithTags> {
       const note = notes.get(id);
       if (note === undefined) throw new Error(`Note ${id} not found`);
 
@@ -200,7 +201,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve(updated);
     },
 
-    async toggleArchiveNote(id: string): Promise<NoteWithTags> {
+    async toggleArchiveNote(id: NoteId): Promise<NoteWithTags> {
       const note = notes.get(id);
       if (note === undefined) throw new Error(`Note ${id} not found`);
 
@@ -213,7 +214,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve(updated);
     },
 
-    async addTag(noteId: string, tagName: string): Promise<NoteWithTags> {
+    async addTag(noteId: NoteId, tagName: string): Promise<NoteWithTags> {
       const note = notes.get(noteId);
       if (note === undefined) throw new Error(`Note ${noteId} not found`);
 
@@ -227,7 +228,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve(note);
     },
 
-    async removeTag(noteId: string, tagName: string): Promise<NoteWithTags> {
+    async removeTag(noteId: NoteId, tagName: string): Promise<NoteWithTags> {
       const note = notes.get(noteId);
       if (note === undefined) throw new Error(`Note ${noteId} not found`);
 
@@ -235,7 +236,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve(note);
     },
 
-    async addTagToNotes(noteIds: string[], tagName: string): Promise<void> {
+    async addTagToNotes(noteIds: NoteId[], tagName: string): Promise<void> {
       const tag = getOrCreateTag(tagName);
       for (const noteId of noteIds) {
         const note = notes.get(noteId);
@@ -246,7 +247,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve();
     },
 
-    async removeTagFromNotes(noteIds: string[], tagName: string): Promise<void> {
+    async removeTagFromNotes(noteIds: NoteId[], tagName: string): Promise<void> {
       for (const noteId of noteIds) {
         const note = notes.get(noteId);
         if (note !== undefined) {
@@ -256,7 +257,7 @@ export function createMockDB(): MockDB {
       return Promise.resolve();
     },
 
-    async restoreNotes(ids: string[]): Promise<void> {
+    async restoreNotes(ids: NoteId[]): Promise<void> {
       for (const id of ids) {
         const note = notes.get(id);
         if (note !== undefined) {

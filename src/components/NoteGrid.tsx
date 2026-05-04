@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import type { NoteWithTags, Tag } from '../db/types.ts';
+import { toNoteId, type NoteId, type NoteWithTags, type Tag } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 import type { NoteCommands } from './note-commands.ts';
 
@@ -8,8 +8,8 @@ interface NoteGridProps {
   allTags: Tag[];
   onSelect: (note: NoteWithTags) => void;
   noteCommands: NoteCommands;
-  selectedNoteIds: Set<string>;
-  onBulkSelect: (ids: Set<string>) => void;
+  selectedNoteIds: Set<NoteId>;
+  onBulkSelect: (ids: Set<NoteId>) => void;
   onClearSelection: () => void;
   showLinkPreviews: boolean;
   isTrashView?: boolean;
@@ -104,7 +104,7 @@ export function NoteGrid({
         const selRight = Math.max(drag.startX, drag.currentX);
         const selBottom = Math.max(drag.startY, drag.currentY);
 
-        const matched = new Set<string>();
+        const matched = new Set<NoteId>();
         const cards = wrapper.querySelectorAll<HTMLElement>('[data-note-id]');
         for (const card of cards) {
           const cardRect = card.getBoundingClientRect();
@@ -116,7 +116,7 @@ export function NoteGrid({
           };
           if (selLeft < cardRel.right && selRight > cardRel.left && selTop < cardRel.bottom && selBottom > cardRel.top) {
             const id = card.getAttribute('data-note-id');
-            if (id !== null) matched.add(id);
+            if (id !== null) matched.add(toNoteId(id));
           }
         }
         if (matched.size > 0) {
@@ -135,7 +135,7 @@ export function NoteGrid({
     };
   }, [onBulkSelect, onClearSelection]);
 
-  const lastClickedRef = useRef<string | null>(null);
+  const lastClickedRef = useRef<NoteId | null>(null);
 
   if (notes.length === 0) {
     return null;

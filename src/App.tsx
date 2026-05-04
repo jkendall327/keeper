@@ -13,7 +13,7 @@ import { NotesPanel } from './components/NotesPanel.tsx';
 import { Sidebar, type FilterType } from './components/Sidebar.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
 import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
-import type { NoteWithTags } from './db/types.ts';
+import type { NoteId, NoteWithTags } from './db/types.ts';
 
 interface AppContentProps {
   allTags: ReturnType<typeof useDB>['allTags'];
@@ -36,8 +36,8 @@ interface AppContentProps {
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   displayedNotes: NoteWithTags[];
   extensionNoteCreatedCount: number;
-  selectedNoteIds: Set<string>;
-  setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  selectedNoteIds: Set<NoteId>;
+  setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
   sidebarOpen: boolean;
   onSidebarClose: () => void;
   isMobile: boolean;

@@ -1,5 +1,6 @@
 import type { SqliteDb, SqlRow } from "./sqlite-db.ts";
 import { SCHEMA_SQL } from "./schema.ts";
+import { toNoteId } from "./types.ts";
 import { containsUrl, extractSingleUrl, extractUrls } from "./url-detect.ts";
 import type {
   AutoTagRule,
@@ -10,6 +11,7 @@ import type {
   LinkPreview,
   LinkPreviewStatus,
   Note,
+  NoteId,
   NoteWithTags,
   Tag,
   Media,
@@ -111,17 +113,25 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     return quotedWords.join(" ");
   }
 
+  function rowString(row: SqlRow, key: string): string {
+    const value = row[key];
+    if (typeof value !== "string") {
+      throw new Error(`Expected ${key} to be a string`);
+    }
+    return value;
+  }
+
   function rowToNote(row: SqlRow): Note {
     return {
-      id: row["id"] as string,
-      title: row["title"] as string,
-      body: row["body"] as string,
+      id: toNoteId(rowString(row, "id")),
+      title: rowString(row, "title"),
+      body: rowString(row, "body"),
       has_links: row["has_links"] === 1,
       pinned: row["pinned"] === 1,
       archived: row["archived"] === 1,
       trashed: row["trashed"] === 1,
-      created_at: row["created_at"] as string,
-      updated_at: row["updated_at"] as string,
+      created_at: rowString(row, "created_at"),
+      updated_at: rowString(row, "updated_at"),
     };
   }
 
@@ -133,7 +143,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     };
   }
 
-  function getTagsForNote(noteId: string): Tag[] {
+  function getTagsForNote(noteId: NoteId): Tag[] {
     const rows = db.query(
       `SELECT t.id, t.name, t.icon FROM tags t
        JOIN note_tags nt ON nt.tag_id = t.id
@@ -257,9 +267,9 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
        WHERE nt.note_id IN (${placeholders})`,
       ids,
     );
-    const tagMap = new Map<string, Tag[]>();
+    const tagMap = new Map<NoteId, Tag[]>();
     for (const r of rows) {
-      const noteId = r["note_id"] as string;
+      const noteId = toNoteId(rowString(r, "note_id"));
       const tag = rowToTag(r);
       const list = tagMap.get(noteId);
       if (list !== undefined) list.push(tag);
@@ -299,7 +309,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
   const api: KeeperDB = {
     createNote(input: CreateNoteInput): Promise<NoteWithTags> {
-      const id = generateId();
+      const id = toNoteId(generateId());
       const title = input.title ?? "";
       const body = input.body;
       const hasLinks = containsUrl(body) ? 1 : 0;
@@ -324,7 +334,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       }));
     },
 
-    getNote(id: string): Promise<NoteWithTags | null> {
+    getNote(id: NoteId): Promise<NoteWithTags | null> {
       const rows = db.query("SELECT * FROM notes WHERE id = ?", [id]);
       const row = rows[0];
       if (row === undefined) return Promise.resolve(null);
@@ -340,7 +350,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     async updateNote(input: UpdateNoteInput): Promise<NoteWithTags> {
       const existing = await api.getNote(input.id);
-      if (existing === null) throw new Error(`Note not found: ${input.id}`);
+      if (existing === null) throw new Error(`Note not found: ${String(input.id)}`);
 
       const title = input.title ?? existing.title;
       const body = input.body ?? existing.body;
@@ -362,19 +372,19 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       });
     },
 
-    deleteNote(id: string): Promise<void> {
+    deleteNote(id: NoteId): Promise<void> {
       db.run("DELETE FROM notes WHERE id = ?", [id]);
       return Promise.resolve();
     },
 
-    deleteNotes(ids: string[]): Promise<void> {
+    deleteNotes(ids: NoteId[]): Promise<void> {
       if (ids.length === 0) return Promise.resolve();
       const placeholders = ids.map(() => "?").join(",");
       db.run(`DELETE FROM notes WHERE id IN (${placeholders})`, ids);
       return Promise.resolve();
     },
 
-    archiveNotes(ids: string[]): Promise<void> {
+    archiveNotes(ids: NoteId[]): Promise<void> {
       if (ids.length === 0) return Promise.resolve();
       const placeholders = ids.map(() => "?").join(",");
       db.run(
@@ -384,12 +394,12 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return Promise.resolve();
     },
 
-    trashNote(id: string): Promise<void> {
+    trashNote(id: NoteId): Promise<void> {
       db.run("UPDATE notes SET trashed = 1 WHERE id = ?", [id]);
       return Promise.resolve();
     },
 
-    trashNotes(ids: string[]): Promise<void> {
+    trashNotes(ids: NoteId[]): Promise<void> {
       if (ids.length === 0) return Promise.resolve();
       const placeholders = ids.map(() => "?").join(",");
       db.run(
@@ -399,12 +409,12 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return Promise.resolve();
     },
 
-    restoreNote(id: string): Promise<void> {
+    restoreNote(id: NoteId): Promise<void> {
       db.run("UPDATE notes SET trashed = 0 WHERE id = ?", [id]);
       return Promise.resolve();
     },
 
-    restoreNotes(ids: string[]): Promise<void> {
+    restoreNotes(ids: NoteId[]): Promise<void> {
       if (ids.length === 0) return Promise.resolve();
       const placeholders = ids.map(() => "?").join(",");
       db.run(
@@ -421,9 +431,9 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },
 
-    async togglePinNote(id: string): Promise<NoteWithTags> {
+    async togglePinNote(id: NoteId): Promise<NoteWithTags> {
       const existing = await api.getNote(id);
-      if (existing === null) throw new Error(`Note not found: ${id}`);
+      if (existing === null) throw new Error(`Note not found: ${String(id)}`);
 
       const newPinned = existing.pinned ? 0 : 1;
       db.run("UPDATE notes SET pinned = ? WHERE id = ?", [newPinned, id]);
@@ -431,9 +441,9 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return { ...existing, pinned: !existing.pinned };
     },
 
-    async toggleArchiveNote(id: string): Promise<NoteWithTags> {
+    async toggleArchiveNote(id: NoteId): Promise<NoteWithTags> {
       const existing = await api.getNote(id);
-      if (existing === null) throw new Error(`Note not found: ${id}`);
+      if (existing === null) throw new Error(`Note not found: ${String(id)}`);
 
       const newArchived = existing.archived ? 0 : 1;
       db.run("UPDATE notes SET archived = ? WHERE id = ?", [newArchived, id]);
@@ -441,10 +451,10 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return { ...existing, archived: !existing.archived };
     },
 
-    async addTag(noteId: string, tagName: string): Promise<NoteWithTags> {
+    async addTag(noteId: NoteId, tagName: string): Promise<NoteWithTags> {
       // Check if note exists first to give a better error message
       const existing = await api.getNote(noteId);
-      if (existing === null) throw new Error(`Note not found: ${noteId}`);
+      if (existing === null) throw new Error(`Note not found: ${String(noteId)}`);
 
       db.run("INSERT OR IGNORE INTO tags (name) VALUES (?)", [tagName]);
 
@@ -465,9 +475,9 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return { ...existing, tags: getTagsForNote(noteId) };
     },
 
-    async removeTag(noteId: string, tagName: string): Promise<NoteWithTags> {
+    async removeTag(noteId: NoteId, tagName: string): Promise<NoteWithTags> {
       const existing = await api.getNote(noteId);
-      if (existing === null) throw new Error(`Note not found: ${noteId}`);
+      if (existing === null) throw new Error(`Note not found: ${String(noteId)}`);
 
       db.run(
         `DELETE FROM note_tags WHERE note_id = ? AND tag_id = (
@@ -480,7 +490,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return { ...existing, tags: getTagsForNote(noteId) };
     },
 
-    addTagToNotes(noteIds: string[], tagName: string): Promise<void> {
+    addTagToNotes(noteIds: NoteId[], tagName: string): Promise<void> {
       if (noteIds.length === 0) return Promise.resolve();
 
       const tagId = ensureTag(tagName);
@@ -494,7 +504,7 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       return Promise.resolve();
     },
 
-    removeTagFromNotes(noteIds: string[], tagName: string): Promise<void> {
+    removeTagFromNotes(noteIds: NoteId[], tagName: string): Promise<void> {
       if (noteIds.length === 0) return Promise.resolve();
       const placeholders = noteIds.map(() => "?").join(",");
       db.run(
@@ -800,17 +810,17 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       );
     },
 
-    getMediaForNote(noteId: string): Promise<Media[]> {
+    getMediaForNote(noteId: NoteId): Promise<Media[]> {
       const rows = db.query(
         "SELECT * FROM media WHERE note_id = ? ORDER BY created_at",
         [noteId],
       );
       return Promise.resolve(rows.map((r) => ({
         id: r["id"] as string,
-        note_id: r["note_id"] as string,
-        mime_type: r["mime_type"] as string,
-        filename: r["filename"] as string,
-        created_at: r["created_at"] as string,
+        note_id: toNoteId(rowString(r, "note_id")),
+        mime_type: rowString(r, "mime_type"),
+        filename: rowString(r, "filename"),
+        created_at: rowString(r, "created_at"),
       })));
     },
 

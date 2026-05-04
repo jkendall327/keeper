@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestDb } from '../db/__tests__/test-db.ts';
 import { createKeeperDB } from '../db/db-impl.ts';
-import type { KeeperDB } from '../db/types.ts';
+import { toNoteId, type KeeperDB } from '../db/types.ts';
 import { executeTool } from '../llm/tools.ts';
 
 describe('Tool executor', () => {
@@ -77,7 +77,7 @@ describe('Tool executor', () => {
     const result = await executeTool(db, { name: 'update_note', args: { id: 'test-id-1', body: 'Updated' } });
     expect(result.result).toContain('Note updated');
     expect(result.result).toContain('Updated');
-    const note = await db.getNote('test-id-1');
+    const note = await db.getNote(toNoteId('test-id-1'));
     expect(note?.body).toBe('Updated');
   });
 
@@ -87,7 +87,7 @@ describe('Tool executor', () => {
     expect(result.needsConfirmation).toBe(true);
     expect(result.result).toContain('Are you sure');
     // Note should still exist
-    const note = await db.getNote('test-id-1');
+    const note = await db.getNote(toNoteId('test-id-1'));
     expect(note?.body).toBe('To delete');
   });
 
@@ -112,21 +112,21 @@ describe('Tool executor', () => {
     await db.createNote({ body: 'Test' });
     const result = await executeTool(db, { name: 'add_tag', args: { note_id: 'test-id-1', tag_name: 'important' } });
     expect(result.result).toContain('Tag "important" added');
-    const note = await db.getNote('test-id-1');
+    const note = await db.getNote(toNoteId('test-id-1'));
     expect(note?.tags[0]?.name).toBe('important');
   });
 
   it('remove_tag removes a tag from a note', async () => {
     await db.createNote({ body: 'Test' });
-    await db.addTag('test-id-1', 'remove-me');
+    await db.addTag(toNoteId('test-id-1'), 'remove-me');
     // Prove tag exists before removal
-    const before = await db.getNote('test-id-1');
+    const before = await db.getNote(toNoteId('test-id-1'));
     expect(before?.tags).toHaveLength(1);
     expect(before?.tags[0]?.name).toBe('remove-me');
 
     const result = await executeTool(db, { name: 'remove_tag', args: { note_id: 'test-id-1', tag_name: 'remove-me' } });
     expect(result.result).toContain('Tag "remove-me" removed');
-    const after = await db.getNote('test-id-1');
+    const after = await db.getNote(toNoteId('test-id-1'));
     expect(after?.tags).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ name: 'remove-me' })]),
     );
@@ -134,8 +134,8 @@ describe('Tool executor', () => {
 
   it('list_tags returns all tags', async () => {
     await db.createNote({ body: 'Test' });
-    await db.addTag('test-id-1', 'alpha');
-    await db.addTag('test-id-1', 'beta');
+    await db.addTag(toNoteId('test-id-1'), 'alpha');
+    await db.addTag(toNoteId('test-id-1'), 'beta');
     const result = await executeTool(db, { name: 'list_tags', args: {} });
     expect(result.result).toContain('alpha');
     expect(result.result).toContain('beta');
@@ -145,7 +145,7 @@ describe('Tool executor', () => {
     await db.createNote({ body: 'Test' });
     const result = await executeTool(db, { name: 'toggle_pin', args: { id: 'test-id-1' } });
     expect(result.result).toContain('pinned');
-    const note = await db.getNote('test-id-1');
+    const note = await db.getNote(toNoteId('test-id-1'));
     expect(note?.pinned).toBe(true);
   });
 
@@ -153,7 +153,7 @@ describe('Tool executor', () => {
     await db.createNote({ body: 'Test' });
     const result = await executeTool(db, { name: 'toggle_archive', args: { id: 'test-id-1' } });
     expect(result.result).toContain('archived');
-    const note = await db.getNote('test-id-1');
+    const note = await db.getNote(toNoteId('test-id-1'));
     expect(note?.archived).toBe(true);
   });
 
@@ -172,7 +172,7 @@ describe('Tool executor', () => {
   it('get_notes_for_tag returns notes with the specified tag', async () => {
     await db.createNote({ body: 'Tagged note' });
     await db.createNote({ body: 'Untagged note' });
-    await db.addTag('test-id-1', 'work');
+    await db.addTag(toNoteId('test-id-1'), 'work');
     const result = await executeTool(db, { name: 'get_notes_for_tag', args: { tag_name: 'work' } });
     expect(result.result).toContain('Tagged note');
     expect(result.result).not.toContain('Untagged note');
@@ -192,7 +192,7 @@ describe('Tool executor', () => {
   it('get_untagged_notes returns only untagged notes', async () => {
     await db.createNote({ body: 'Has tag' });
     await db.createNote({ body: 'No tag' });
-    await db.addTag('test-id-1', 'labeled');
+    await db.addTag(toNoteId('test-id-1'), 'labeled');
     const result = await executeTool(db, { name: 'get_untagged_notes', args: {} });
     expect(result.result).toContain('No tag');
     expect(result.result).not.toContain('Has tag');
@@ -200,7 +200,7 @@ describe('Tool executor', () => {
 
   it('get_untagged_notes returns empty message when all notes tagged', async () => {
     await db.createNote({ body: 'Tagged' });
-    await db.addTag('test-id-1', 'something');
+    await db.addTag(toNoteId('test-id-1'), 'something');
     const result = await executeTool(db, { name: 'get_untagged_notes', args: {} });
     expect(result.result).toBe('No untagged notes found.');
   });

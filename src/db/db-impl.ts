@@ -557,7 +557,9 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     getLinkedNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
-        "SELECT * FROM notes WHERE has_links = 1 AND archived = 0 AND trashed = 0 ORDER BY pinned DESC, updated_at DESC",
+        `SELECT * FROM notes
+         WHERE has_links = 1 AND trashed = 0
+         ORDER BY archived ASC, pinned DESC, updated_at DESC`,
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },

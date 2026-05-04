@@ -3,6 +3,7 @@ import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { useDisplayedNotes } from './hooks/useDisplayedNotes.ts';
 import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
+import { useExtensionBadge } from './hooks/useExtensionBadge.ts';
 import { AppHeader } from './components/AppHeader.tsx';
 import { QuickAdd } from './components/QuickAdd.tsx';
 import { NoteGrid } from './components/NoteGrid.tsx';
@@ -16,7 +17,7 @@ import { Icon } from './components/Icon.tsx';
 import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
 import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
-import type { AppSettings, CreateNoteInput, NoteWithTags } from './db/types.ts';
+import type { CreateNoteInput, NoteWithTags } from './db/types.ts';
 
 function useIsMobile() {
   const query = useMemo(() => window.matchMedia('(max-width: 768px)'), []);
@@ -108,62 +109,12 @@ function AppContent({
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [autoApplyActiveTag, setAutoApplyActiveTagState] = useState(getAutoApplyActiveTag);
-  const [extensionBadgeEnabled, setExtensionBadgeEnabled] = useState(true);
-  const [linkPreviewFetchEnabled, setLinkPreviewFetchEnabled] = useState(true);
-  const [linkPreviewDisplayEnabled, setLinkPreviewDisplayEnabled] = useState(true);
-  const [unseenExtensionNoteCount, setUnseenExtensionNoteCount] = useState(0);
-  const previousExtensionNoteCreatedCount = useRef(extensionNoteCreatedCount);
-  const titleBase = useRef(document.title);
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadSettings = async () => {
-      const settings = await getDB().getAppSettings();
-      if (cancelled) return;
-      setExtensionBadgeEnabled(settings.extensionBadgeEnabled);
-      if (!settings.extensionBadgeEnabled) setUnseenExtensionNoteCount(0);
-      setLinkPreviewFetchEnabled(settings.linkPreviewFetchEnabled);
-      setLinkPreviewDisplayEnabled(settings.linkPreviewDisplayEnabled);
-    };
-    void loadSettings();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  useEffect(() => {
-    const clearIfFocused = () => {
-      if (document.visibilityState === 'visible' && document.hasFocus()) {
-        setUnseenExtensionNoteCount(0);
-      }
-    };
-    window.addEventListener('focus', clearIfFocused);
-    document.addEventListener('visibilitychange', clearIfFocused);
-    clearIfFocused();
-    return () => {
-      window.removeEventListener('focus', clearIfFocused);
-      document.removeEventListener('visibilitychange', clearIfFocused);
-    };
-  }, []);
-
-  useEffect(() => {
-    const previous = previousExtensionNoteCreatedCount.current;
-    previousExtensionNoteCreatedCount.current = extensionNoteCreatedCount;
-    const delta = extensionNoteCreatedCount - previous;
-    if (delta <= 0 || !extensionBadgeEnabled) return;
-    if (document.visibilityState === 'visible' && document.hasFocus()) return;
-    setUnseenExtensionNoteCount((count) => count + delta);
-  }, [extensionBadgeEnabled, extensionNoteCreatedCount]);
-
-  useEffect(() => {
-    if (!extensionBadgeEnabled) {
-      document.title = titleBase.current;
-      return;
-    }
-    document.title = unseenExtensionNoteCount > 0
-      ? `(${String(unseenExtensionNoteCount)}) ${titleBase.current}`
-      : titleBase.current;
-  }, [extensionBadgeEnabled, unseenExtensionNoteCount]);
+  const {
+    extensionBadgeEnabled,
+    linkPreviewDisplayEnabled,
+    linkPreviewFetchEnabled,
+    onAppSettingsChange,
+  } = useExtensionBadge(extensionNoteCreatedCount);
 
   // Keep selectedNote in sync with latest data from displayed notes
   // (using displayedNotes so archived notes are findable in archive view)
@@ -218,13 +169,6 @@ function AppContent({
   const handleAutoApplyActiveTagChange = useCallback((enabled: boolean) => {
     setAutoApplyActiveTag(enabled);
     setAutoApplyActiveTagState(enabled);
-  }, []);
-
-  const handleAppSettingsChange = useCallback((settings: AppSettings) => {
-    setExtensionBadgeEnabled(settings.extensionBadgeEnabled);
-    if (!settings.extensionBadgeEnabled) setUnseenExtensionNoteCount(0);
-    setLinkPreviewFetchEnabled(settings.linkPreviewFetchEnabled);
-    setLinkPreviewDisplayEnabled(settings.linkPreviewDisplayEnabled);
   }, []);
 
   return (
@@ -362,7 +306,7 @@ function AppContent({
           extensionBadgeEnabled={extensionBadgeEnabled}
           linkPreviewFetchEnabled={linkPreviewFetchEnabled}
           linkPreviewDisplayEnabled={linkPreviewDisplayEnabled}
-          onAppSettingsChange={handleAppSettingsChange}
+          onAppSettingsChange={onAppSettingsChange}
         />
       )}
     </div>

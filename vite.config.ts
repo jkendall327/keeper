@@ -13,7 +13,6 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
     babel({
       presets: [reactCompilerPreset()],
     }) as PluginOption,

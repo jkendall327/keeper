@@ -1,20 +1,26 @@
 # Keeper
 
+![](img/main-ui.png)
+
 Shamelessly vibecoded replacement for Google Keep.
 
 Made because Keep has too many features I don't care about and no good functionality for exporting data.
 
-Only intended for single-user use, i.e. me. So no promises it will be of any value to anyone else.
+Only intended for single-user use, i.e. me.
+
+So no promises it will be of any value to you!
 
 ## Does it actually work?
 
-To a degree. The basic CRUD flows are all in place for notes.
+Yeah. I have started running it in earnest and it's quite smooth (better than Google Keep for my workflows).
 
-It doesn't have a properly responsive interface yet, so it's not particularly usable on mobile.
+I've made some attempts to get the UI responsive for mobile usage, but it's not been a focus so far.
 
 I'm trying to get it working as a PWA for mobile usage but not had any success so far.
 
-There is also a browser extension in this repo for sending content to the app; it works pretty well.
+There is also a browser extension in this repo for sending content to the app; it works without issue.
+
+![](img/extension.png)
 
 ## Running as a service
 

@@ -1,23 +1,18 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
-import type { NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
+import type { NoteWithTags, Tag } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
+import type { NoteCommands } from './note-commands.ts';
 
 interface NoteGridProps {
   notes: NoteWithTags[];
   allTags: Tag[];
   onSelect: (note: NoteWithTags) => void;
-  onDelete: (id: string) => Promise<void>;
-  onTogglePin: (id: string) => Promise<void>;
-  onToggleArchive: (id: string) => Promise<void>;
-  onUpdateNote: (input: UpdateNoteInput) => Promise<void>;
-  onAddTag: (noteId: string, tagName: string) => Promise<void>;
-  onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
+  noteCommands: NoteCommands;
   selectedNoteIds: Set<string>;
   onBulkSelect: (ids: Set<string>) => void;
   onClearSelection: () => void;
   showLinkPreviews: boolean;
   isTrashView?: boolean;
-  onRestore?: (id: string) => Promise<void>;
 }
 
 interface DragState {
@@ -30,9 +25,8 @@ interface DragState {
 const DRAG_THRESHOLD = 5;
 
 export function NoteGrid({
-  notes, allTags, onSelect, onDelete, onTogglePin, onToggleArchive,
-  onUpdateNote, onAddTag, onRemoveTag, selectedNoteIds, onBulkSelect, onClearSelection,
-  showLinkPreviews, isTrashView, onRestore,
+  notes, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
+  showLinkPreviews, isTrashView,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -233,16 +227,10 @@ export function NoteGrid({
           allTags={allTags}
           onSelect={handleNoteClick}
           onLongPress={handleLongPress}
-          onDelete={onDelete}
-          onTogglePin={onTogglePin}
-          onToggleArchive={onToggleArchive}
-          onUpdate={onUpdateNote}
-          onAddTag={onAddTag}
-          onRemoveTag={onRemoveTag}
+          noteCommands={noteCommands}
           isSelected={selectedNoteIds.has(note.id)}
           showLinkPreviews={showLinkPreviews}
           {...(isTrashView !== undefined ? { isTrashView } : {})}
-          {...(onRestore !== undefined ? { onRestore } : {})}
         />
       ))}
     </div>

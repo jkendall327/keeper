@@ -1,17 +1,15 @@
 import { useCallback, useState } from 'react';
 import type { NoteWithTags } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
+import type { NoteCommands } from './note-commands.ts';
 
 interface NoteActionsProps {
   note: NoteWithTags;
   className: string;
   copyText?: string;
   includePin?: boolean;
-  onTogglePin: (id: string) => Promise<void>;
-  onToggleArchive: (id: string) => Promise<void>;
-  onDelete: (id: string) => Promise<unknown>;
+  noteCommands: NoteCommands;
   isTrashView?: boolean;
-  onRestore?: (id: string) => Promise<void>;
   onBeforeArchive?: () => Promise<void>;
   onBeforePin?: () => Promise<void>;
   onAfterArchive?: () => void;
@@ -23,11 +21,8 @@ export function NoteActions({
   className,
   copyText,
   includePin = false,
-  onTogglePin,
-  onToggleArchive,
-  onDelete,
+  noteCommands,
   isTrashView,
-  onRestore,
   onBeforeArchive,
   onBeforePin,
   onAfterArchive,
@@ -47,24 +42,20 @@ export function NoteActions({
 
   const handleArchive = useCallback(async () => {
     await onBeforeArchive?.();
-    if (isTrashView === true) {
-      await onRestore?.(note.id);
-    } else {
-      await onToggleArchive(note.id);
-    }
+    await noteCommands.archiveOrRestore(note.id);
     onAfterArchive?.();
-  }, [isTrashView, note.id, onAfterArchive, onBeforeArchive, onRestore, onToggleArchive]);
+  }, [note.id, noteCommands, onAfterArchive, onBeforeArchive]);
 
   const handleDelete = useCallback(async () => {
-    const result = await onDelete(note.id);
+    const result = await noteCommands.delete(note.id);
     if (result === false) return;
     onAfterDelete?.();
-  }, [note.id, onAfterDelete, onDelete]);
+  }, [note.id, noteCommands, onAfterDelete]);
 
   const handlePin = useCallback(async () => {
     await onBeforePin?.();
-    await onTogglePin(note.id);
-  }, [note.id, onBeforePin, onTogglePin]);
+    await noteCommands.togglePin(note.id);
+  }, [note.id, noteCommands, onBeforePin]);
 
   return (
     <div className={className}>

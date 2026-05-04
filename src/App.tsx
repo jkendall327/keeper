@@ -18,6 +18,7 @@ import { getLLMClient, getApiKey } from './llm/client.ts';
 import { getDB } from './db/db-client.ts';
 import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
 import type { CreateNoteInput, NoteWithTags } from './db/types.ts';
+import type { NoteCommands } from './components/note-commands.ts';
 
 function useIsMobile() {
   const query = useMemo(() => window.matchMedia('(max-width: 768px)'), []);
@@ -158,6 +159,32 @@ function AppContent({
   const activeTag = activeFilter.type === 'tag'
     ? allTags.find((tag) => tag.id === activeFilter.tagId)
     : undefined;
+  const isTrashView = activeFilter.type === 'trash';
+
+  const noteCommands = useMemo<NoteCommands>(() => ({
+    update: updateNote,
+    delete: isTrashView
+      ? async (id: string) => {
+          if (!window.confirm('Permanently delete this note? This cannot be undone.')) return false;
+          await deleteNote(id);
+          return true;
+        }
+      : trashNote,
+    togglePin: togglePinNote,
+    archiveOrRestore: isTrashView ? restoreNote : toggleArchiveNote,
+    addTag,
+    removeTag,
+  }), [
+    addTag,
+    deleteNote,
+    isTrashView,
+    removeTag,
+    restoreNote,
+    toggleArchiveNote,
+    togglePinNote,
+    trashNote,
+    updateNote,
+  ]);
 
   const handleCreateNote = useCallback(async (input: CreateNoteInput) => {
     const note = await createNote(input);
@@ -254,23 +281,12 @@ function AppContent({
               notes={displayedNotes}
               allTags={allTags}
               onSelect={setSelectedNote}
-              onDelete={activeFilter.type === 'trash'
-                ? async (id: string) => {
-                    if (!window.confirm('Permanently delete this note? This cannot be undone.')) return;
-                    await deleteNote(id);
-                  }
-                : trashNote}
-              onTogglePin={togglePinNote}
-              onToggleArchive={toggleArchiveNote}
-              onUpdateNote={updateNote}
-              onAddTag={addTag}
-              onRemoveTag={removeTag}
+              noteCommands={noteCommands}
               selectedNoteIds={selectedNoteIds}
               onBulkSelect={handleBulkSelect}
               onClearSelection={clearSelection}
               showLinkPreviews={linkPreviewDisplayEnabled}
-              isTrashView={activeFilter.type === 'trash'}
-              onRestore={restoreNote}
+              isTrashView={isTrashView}
             />
           </>
         )}
@@ -279,21 +295,9 @@ function AppContent({
         <NoteModal
           note={currentNote}
           allTags={allTags}
-          onUpdate={updateNote}
-          onDelete={activeFilter.type === 'trash'
-            ? async (id: string) => {
-                if (!window.confirm('Permanently delete this note? This cannot be undone.')) return false;
-                await deleteNote(id);
-                return true;
-              }
-            : trashNote}
-          onTogglePin={togglePinNote}
-          onToggleArchive={toggleArchiveNote}
-          onAddTag={addTag}
-          onRemoveTag={removeTag}
+          noteCommands={noteCommands}
           showLinkPreviews={linkPreviewDisplayEnabled}
-          isTrashView={activeFilter.type === 'trash'}
-          onRestore={restoreNote}
+          isTrashView={isTrashView}
           onClose={() => { setSelectedNote(null); }}
         />
       )}

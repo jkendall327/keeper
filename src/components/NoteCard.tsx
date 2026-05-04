@@ -1,10 +1,11 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { tagDisplayIcon, type NoteWithTags, type Tag, type UpdateNoteInput } from '../db/types.ts';
+import { tagDisplayIcon, type NoteWithTags, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { NoteActions } from './NoteActions.tsx';
 import { TagApplier } from './TagApplier.tsx';
 import { getImageUrl } from '../utils/image-url.ts';
+import type { NoteCommands } from './note-commands.ts';
 
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
@@ -14,19 +15,13 @@ interface NoteCardProps {
   allTags: Tag[];
   onSelect: (note: NoteWithTags, e?: React.MouseEvent) => void;
   onLongPress: (note: NoteWithTags) => void;
-  onDelete: (id: string) => Promise<void>;
-  onTogglePin: (id: string) => Promise<void>;
-  onToggleArchive: (id: string) => Promise<void>;
-  onUpdate: (input: UpdateNoteInput) => Promise<void>;
-  onAddTag: (noteId: string, tagName: string) => Promise<void>;
-  onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
+  noteCommands: NoteCommands;
   isSelected?: boolean;
   showLinkPreviews: boolean;
   isTrashView?: boolean;
-  onRestore?: (id: string) => Promise<void>;
 }
 
-export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTogglePin, onToggleArchive, onUpdate, onAddTag, onRemoveTag, isSelected, showLinkPreviews, isTrashView, onRestore }: NoteCardProps) {
+export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, isSelected, showLinkPreviews, isTrashView }: NoteCardProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
   const [showTagApplier, setShowTagApplier] = useState(false);
@@ -80,7 +75,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
   };
 
   const handleCheckboxToggle = (newBody: string) => {
-    void onUpdate({ id: note.id, body: newBody });
+    void noteCommands.update({ id: note.id, body: newBody });
   };
 
   return (
@@ -125,7 +120,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
           className="note-card-pin"
           onClick={(e) => {
             e.stopPropagation();
-            void onTogglePin(note.id);
+            void noteCommands.togglePin(note.id);
           }}
           aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
           title={note.pinned ? 'Unpin note' : 'Pin note'}
@@ -189,8 +184,8 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
               noteIds={[note.id]}
               appliedTags={note.tags}
               allTags={allTags}
-              onAddTag={(_, name) => onAddTag(note.id, name)}
-              onRemoveTag={(_, name) => onRemoveTag(note.id, name)}
+              onAddTag={(_, name) => noteCommands.addTag(note.id, name)}
+              onRemoveTag={(_, name) => noteCommands.removeTag(note.id, name)}
               onClose={closeTagApplier}
               anchorRef={tagBtnRef}
             />
@@ -198,11 +193,8 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
           <NoteActions
             note={note}
             className="note-card-actions-inline"
-            onTogglePin={onTogglePin}
-            onToggleArchive={onToggleArchive}
-            onDelete={onDelete}
+            noteCommands={noteCommands}
             {...(isTrashView !== undefined ? { isTrashView } : {})}
-            {...(onRestore !== undefined ? { onRestore } : {})}
           />
         </div>
       </div>

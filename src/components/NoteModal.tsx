@@ -1,38 +1,27 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { tagDisplayIcon, type NoteWithTags, type Tag, type UpdateNoteInput } from '../db/types.ts';
+import { tagDisplayIcon, type NoteWithTags, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { NoteActions } from './NoteActions.tsx';
 import { getDB } from '../db/db-client.ts';
 import { getImageUrl } from '../utils/image-url.ts';
+import type { NoteCommands } from './note-commands.ts';
 
 interface NoteModalProps {
   note: NoteWithTags;
   allTags: Tag[];
-  onUpdate: (input: UpdateNoteInput) => Promise<void>;
-  onDelete: (id: string) => Promise<unknown>;
-  onTogglePin: (id: string) => Promise<void>;
-  onToggleArchive: (id: string) => Promise<void>;
-  onAddTag: (noteId: string, tagName: string) => Promise<void>;
-  onRemoveTag: (noteId: string, tagName: string) => Promise<void>;
+  noteCommands: NoteCommands;
   showLinkPreviews: boolean;
   isTrashView?: boolean;
-  onRestore?: (id: string) => Promise<void>;
   onClose: () => void;
 }
 
 export function NoteModal({
   note,
   allTags,
-  onUpdate,
-  onDelete,
-  onTogglePin,
-  onToggleArchive,
-  onAddTag,
-  onRemoveTag,
+  noteCommands,
   showLinkPreviews,
   isTrashView,
-  onRestore,
   onClose,
 }: NoteModalProps) {
   const [title, setTitle] = useState(note.title);
@@ -70,7 +59,7 @@ export function NoteModal({
 
   const handleCheckboxToggle = (newBody: string) => {
     setBody(newBody);
-    void onUpdate({ id: note.id, body: newBody });
+    void noteCommands.update({ id: note.id, body: newBody });
   };
 
   const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
@@ -209,19 +198,19 @@ export function NoteModal({
   const saveNonEmptyChanges = useCallback(async () => {
     const trimmedBody = body.trimEnd();
     if (trimmedBody.trim() !== '' && (title !== note.title || trimmedBody !== note.body)) {
-      await onUpdate({ id: note.id, title, body: trimmedBody });
+      await noteCommands.update({ id: note.id, title, body: trimmedBody });
     }
-  }, [body, title, note, onUpdate]);
+  }, [body, title, note, noteCommands]);
 
   const saveAndClose = useCallback(async () => {
     const trimmedBody = body.trimEnd();
     if (trimmedBody.trim() === '') {
-      await onDelete(note.id);
+      await noteCommands.delete(note.id);
     } else {
       await saveNonEmptyChanges();
     }
     onClose();
-  }, [body, note.id, onClose, onDelete, saveNonEmptyChanges]);
+  }, [body, note.id, noteCommands, onClose, saveNonEmptyChanges]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -238,7 +227,7 @@ export function NoteModal({
   const handleAddTag = async (name: string) => {
     const trimmed = name.trim();
     if (trimmed === '' || noteTagNames.has(trimmed)) return;
-    await onAddTag(note.id, trimmed);
+    await noteCommands.addTag(note.id, trimmed);
     setTagInput('');
     setShowSuggestions(false);
   };
@@ -385,7 +374,7 @@ export function NoteModal({
                 {tag.name}
                 <button
                   className="modal-tag-remove"
-                  onClick={() => { void onRemoveTag(note.id, tag.name); }}
+                  onClick={() => { void noteCommands.removeTag(note.id, tag.name); }}
                   aria-label={`Remove tag ${tag.name}`}
                 >
                   <Icon name="close" size={14} />
@@ -435,15 +424,12 @@ export function NoteModal({
             className="modal-note-actions"
             copyText={body}
             includePin
-            onTogglePin={onTogglePin}
-            onToggleArchive={onToggleArchive}
-            onDelete={onDelete}
+            noteCommands={noteCommands}
             onBeforeArchive={saveNonEmptyChanges}
             onBeforePin={saveNonEmptyChanges}
             onAfterArchive={onClose}
             onAfterDelete={onClose}
             {...(isTrashView !== undefined ? { isTrashView } : {})}
-            {...(onRestore !== undefined ? { onRestore } : {})}
           />
         </div>
       </div>

@@ -1,0 +1,157 @@
+/* ── Note Card ─────────────────────────────────────────── */
+
+.note-card {
+  position: relative;
+  break-inside: avoid;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  border: 1px solid rgba(128, 128, 128, 0.2);
+  border-radius: 8px;
+  background: #2a2a2a;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.note-card:hover {
+  border-color: rgba(128, 128, 128, 0.6);
+}
+
+.note-card-pinned {
+  background: #2a2a32;
+}
+
+.note-card-actions-top {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.note-card:hover .note-card-actions-top {
+  opacity: 1;
+}
+
+.note-card-actions-bottom {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.note-card-actions-inline {
+  display: flex;
+  gap: 4px;
+}
+
+.note-card:hover .note-card-actions-bottom,
+.note-card-tag-open .note-card-actions-bottom {
+  opacity: 1;
+}
+
+.note-card-pin,
+.note-card-copy,
+.note-card-archive,
+.note-card-delete,
+.note-card-tag-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 4px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  line-height: 1;
+  opacity: 0.5;
+  display: flex;
+  align-items: center;
+}
+
+.note-card-pin .material-symbols-outlined,
+.note-card-copy .material-symbols-outlined,
+.note-card-archive .material-symbols-outlined,
+.note-card-delete .material-symbols-outlined,
+.note-card-tag-btn .material-symbols-outlined {
+  font-size: 20px;
+}
+
+.icon-filled {
+  font-variation-settings: 'FILL' 1;
+}
+
+.note-card-pin:hover,
+.note-card-copy:hover,
+.note-card-archive:hover,
+.note-card-delete:hover,
+.note-card-tag-btn:hover {
+  opacity: 1;
+}
+
+
+.note-card-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  padding-right: 32px;
+}
+
+.note-card-body {
+  margin: 0;
+  word-break: break-word;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 10;
+  overflow: hidden;
+  padding-right: 32px;
+}
+
+.note-card-body-text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.note-card-truncation {
+  display: block;
+  font-size: 0.8rem;
+  opacity: 0.4;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.note-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.note-card-time {
+  font-size: 0.75rem;
+  opacity: 0.5;
+}
+
+/* ── Note Card tags ───────────────────────────────────── */
+
+.note-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.note-card-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(100, 108, 255, 0.15);
+  color: #646cff;
+}
+
+/* ── Tag Applier popover ─────────────────────────────── */

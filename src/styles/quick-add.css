@@ -1,0 +1,27 @@
+/* ── Quick Add ─────────────────────────────────────────── */
+
+.quick-add {
+  margin: 16px 0 32px;
+}
+
+.quick-add-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  resize: none;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.quick-add-input:focus {
+  border-color: #646cff;
+}
+
+/* ── Note Grid (CSS columns masonry) ──────────────────── */

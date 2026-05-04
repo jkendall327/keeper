@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import type { LLMClient } from '@motioneffector/llm';
 import { markdown } from '@motioneffector/markdown';
 import { useChatLoop, type ChatMessage } from '../llm/useChatLoop.ts';
@@ -145,24 +145,24 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading, streaming]);
 
-  const handleModelChange = useCallback((modelId: string) => {
+  const handleModelChange = (modelId: string) => {
     client.setModel(modelId);
     setSelectedModel(modelId);
-  }, [client]);
+  };
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = () => {
     const trimmed = input.trim();
     if (trimmed === '' || loading) return;
     setInput('');
     void send(trimmed);
-  }, [input, loading, send]);
+  };
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
     }
-  }, [handleSubmit]);
+  };
 
   return (
     <div className="chat-view">

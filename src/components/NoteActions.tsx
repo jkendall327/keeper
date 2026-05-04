@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import type { NoteWithTags } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import type { NoteCommands } from './note-commands.ts';
@@ -30,7 +30,7 @@ export function NoteActions({
 }: NoteActionsProps) {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = useCallback(async () => {
+  const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(copyText ?? note.body);
       setCopied(true);
@@ -38,24 +38,24 @@ export function NoteActions({
     } catch (err) {
       console.error('Failed to copy note:', err);
     }
-  }, [copyText, note.body]);
+  };
 
-  const handleArchive = useCallback(async () => {
+  const handleArchive = async () => {
     await onBeforeArchive?.();
     await noteCommands.archiveOrRestore(note.id);
     onAfterArchive?.();
-  }, [note.id, noteCommands, onAfterArchive, onBeforeArchive]);
+  };
 
-  const handleDelete = useCallback(async () => {
+  const handleDelete = async () => {
     const result = await noteCommands.delete(note.id);
     if (result === false) return;
     onAfterDelete?.();
-  }, [note.id, noteCommands, onAfterDelete]);
+  };
 
-  const handlePin = useCallback(async () => {
+  const handlePin = async () => {
     await onBeforePin?.();
     await noteCommands.togglePin(note.id);
-  }, [note.id, noteCommands, onBeforePin]);
+  };
 
   return (
     <div className={className}>

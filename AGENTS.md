@@ -2,6 +2,14 @@
 
 Read SPEC.md if you need to understand the project and its goals.
 
+## Style
+
+We are using React Compiler, so avoid `useMemo`/`useCallback` if deemed appropriate.
+
+We are moving towards CSS Modules; any new component styling should use modules.
+
+`npm run build` will generate strongly-typed interfaces for the CSS modules in `.d.ts` files.
+
 ## Build
 
 `npm run dev` — starts dev server (requires COOP/COEP headers, configured in vite.config.ts)

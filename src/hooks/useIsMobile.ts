@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 export function useIsMobile() {
-  const query = useMemo(() => window.matchMedia('(max-width: 768px)'), []);
+  const [query] = useState(() => window.matchMedia('(max-width: 768px)'));
   const [isMobile, setIsMobile] = useState(query.matches);
 
   useEffect(() => {

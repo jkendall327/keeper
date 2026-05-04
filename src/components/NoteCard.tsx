@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { tagDisplayIcon, type NoteWithTags, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
@@ -26,7 +26,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
   const [isTruncated, setIsTruncated] = useState(false);
   const [showTagApplier, setShowTagApplier] = useState(false);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
-  const closeTagApplier = useCallback(() => { setShowTagApplier(false); }, []);
+  const closeTagApplier = () => { setShowTagApplier(false); };
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);

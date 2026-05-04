@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { toNoteId, type NoteId, type NoteWithTags, type Tag } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 import type { NoteCommands } from './note-commands.ts';
@@ -33,7 +33,7 @@ export function NoteGrid({
   const isDraggingRef = useRef(false);
   const [selRect, setSelRect] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = (e: React.MouseEvent) => {
     // Only left button, and not on a note card or interactive element
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
@@ -52,7 +52,7 @@ export function NoteGrid({
       currentY: wy,
     };
     isDraggingRef.current = false;
-  }, []);
+  };
 
   // Attach mousemove / mouseup on document so the selection rectangle
   // keeps tracking even when the pointer leaves the note grid wrapper.

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Icon } from './Icon.tsx';
 import { getRecentIcons, saveRecentIcon } from './recent-icons.ts';
 
@@ -43,11 +43,10 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
   const popoverRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
-  const filtered = useMemo(() => {
-    if (search.trim() === '') return ICON_LIST;
-    const q = search.trim().toLowerCase();
-    return ICON_LIST.filter((name) => name.includes(q));
-  }, [search]);
+  const searchQuery = search.trim().toLowerCase();
+  const filtered = searchQuery === ''
+    ? ICON_LIST
+    : ICON_LIST.filter((name) => name.includes(searchQuery));
 
   useEffect(() => {
     searchRef.current?.focus();

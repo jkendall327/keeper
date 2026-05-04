@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState } from 'react';
 import type { NoteWithTags } from '../db/types.ts';
 import { extractUrls } from '../db/url-detect.ts';
 
@@ -17,23 +17,18 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
   const [separator, setSeparator] = useState<'\n' | '\n\n'>('\n');
   const [exportCompleted, setExportCompleted] = useState(false);
 
-  const textOutput = useMemo(
-    () => notes.map((n) => n.body).join(separator),
-    [notes, separator],
-  );
+  const textOutput = notes.map((n) => n.body).join(separator);
 
-  const urlOutput = useMemo(() => {
-    const allUrls = notes.flatMap((n) => extractUrls(n.body));
-    const unique = [...new Set(allUrls)];
-    if (sorted) unique.sort();
-    return unique.join('\n');
-  }, [notes, sorted]);
+  const allUrls = notes.flatMap((n) => extractUrls(n.body));
+  const uniqueUrls = [...new Set(allUrls)];
+  if (sorted) uniqueUrls.sort();
+  const urlOutput = uniqueUrls.join('\n');
 
   const output = mode === 'text' ? textOutput : urlOutput;
 
   const [copyFailed, setCopyFailed] = useState(false);
 
-  const handleCopy = useCallback(async () => {
+  const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(output);
       setCopied(true);
@@ -44,9 +39,9 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
       setCopyFailed(true);
       setTimeout(() => { setCopyFailed(false); }, 2000);
     }
-  }, [output]);
+  };
 
-  const handleDownload = useCallback(() => {
+  const handleDownload = () => {
     const blob = new Blob([output], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -55,12 +50,12 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
     a.click();
     URL.revokeObjectURL(url);
     setExportCompleted(true);
-  }, [output, mode]);
+  };
 
-  const handleBurn = useCallback(() => {
+  const handleBurn = () => {
     onClose();
     onDelete();
-  }, [onDelete, onClose]);
+  };
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>

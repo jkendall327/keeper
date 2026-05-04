@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { tagDisplayIcon, type NoteId, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
@@ -75,11 +75,11 @@ export function TagApplier({
     return () => { document.removeEventListener('keydown', handleKey); };
   }, [onClose]);
 
-  const appliedSet = useMemo(() => new Set(appliedTags.map((t) => t.name.toLowerCase())), [appliedTags]);
-  const indeterminateSet = useMemo(() => new Set((indeterminateTags ?? []).map((t) => t.name.toLowerCase())), [indeterminateTags]);
+  const appliedSet = new Set(appliedTags.map((t) => t.name.toLowerCase()));
+  const indeterminateSet = new Set((indeterminateTags ?? []).map((t) => t.name.toLowerCase()));
 
-  const isApplied = useCallback((tagName: string) => appliedSet.has(tagName.toLowerCase()), [appliedSet]);
-  const isIndeterminate = useCallback((tagName: string) => indeterminateSet.has(tagName.toLowerCase()), [indeterminateSet]);
+  const isApplied = (tagName: string) => appliedSet.has(tagName.toLowerCase());
+  const isIndeterminate = (tagName: string) => indeterminateSet.has(tagName.toLowerCase());
 
   const handleToggleTag = async (tagName: string) => {
     // Indeterminate or unchecked → apply to all; fully applied → remove from all

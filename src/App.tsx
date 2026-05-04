@@ -1,4 +1,4 @@
-import { Suspense, useState, useCallback } from 'react';
+import { Suspense, useState } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { useDisplayedNotes } from './hooks/useDisplayedNotes.ts';
@@ -79,10 +79,10 @@ function AppContent({
     onAppSettingsChange,
   } = useExtensionBadge(extensionNoteCreatedCount);
 
-  const handleAutoApplyActiveTagChange = useCallback((enabled: boolean) => {
+  const handleAutoApplyActiveTagChange = (enabled: boolean) => {
     setAutoApplyActiveTag(enabled);
     setAutoApplyActiveTagState(enabled);
-  }, []);
+  };
 
   return (
     <div className="app-layout">
@@ -213,7 +213,7 @@ function App() {
   const { handleBulkDelete, selectedNoteIds, selectedNotes, setSelectedNoteIds } = bulkActions;
   useWebShareTarget({ createNote: createSharedNote });
 
-  const handleSidebarClose = useCallback(() => { setSidebarOpen(false); }, []);
+  const handleSidebarClose = () => { setSidebarOpen(false); };
 
   return (
     <div className="app">

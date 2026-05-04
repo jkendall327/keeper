@@ -15,14 +15,14 @@
     "start": "npm run build && npm run server"
   },
   "dependencies": {
-    "@fastify/multipart": "^9.4.0",
+    "@fastify/multipart": "^10.0.0",
     "@fastify/static": "^9.0.0",
     "@motioneffector/llm": "^1.0.1",
     "@motioneffector/markdown": "^1.0.1",
-    "better-sqlite3": "^12.6.2",
+    "better-sqlite3": "^12.9.0",
     "fastify": "^5.7.4",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0"
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

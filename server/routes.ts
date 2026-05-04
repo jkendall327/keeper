@@ -8,60 +8,23 @@ import type {
 } from "../src/db/types.ts";
 import { bufferToArrayBuffer, type MediaHandler } from "./media-handler.ts";
 import { truncateExtensionTitle } from "../src/utils/extension-title.ts";
-import { extractSingleUrl } from "../src/db/url-detect.ts";
-import { fetchOgImage } from "./link-preview.ts";
+import { createEventBroadcaster } from "./events.ts";
+import { createLinkPreviewQueue } from "./link-preview-queue.ts";
 
 export function registerRoutes(
   app: FastifyInstance,
   db: KeeperDB,
   media: MediaHandler,
 ): void {
-  // ── SSE (Server-Sent Events) ─────────────
-
-  const sseClients = new Set<FastifyReply>();
-
-  function broadcast(event: string) {
-    for (const client of sseClients) {
-      client.raw.write(`event: ${event}\ndata: {}\n\n`);
-    }
-  }
-
-  function queueLinkPreview(body: string) {
-    const url = extractSingleUrl(body);
-    if (url === null) return;
-
-    void (async () => {
-      try {
-        const settings = await db.getAppSettings();
-        if (!settings.linkPreviewFetchEnabled) return;
-        const existing = await db.getLinkPreview(url);
-        if (existing !== null) return;
-        const result = await fetchOgImage(url);
-        await db.upsertLinkPreview({
-          url,
-          image_url: result.imageUrl,
-          status: result.status,
-        });
-        if (result.status === "found") broadcast("refresh");
-      } catch (error) {
-        app.log.warn({ error, url }, "Failed to fetch link preview");
-      }
-    })();
-  }
-
-  app.get("/api/events", (_req, reply) => {
-    reply.raw.writeHead(200, {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    });
-    reply.raw.write("\n");
-    sseClients.add(reply);
-    reply.raw.on("close", () => {
-      sseClients.delete(reply);
-    });
-    // Don't call reply.send() — we keep the connection open
+  const { broadcast, registerEventRoutes } = createEventBroadcaster();
+  const queueLinkPreview = createLinkPreviewQueue({
+    db,
+    log: app.log,
+    broadcast,
   });
+
+  registerEventRoutes(app);
+
 
   // ── Notes ──────────────────────────────────
 

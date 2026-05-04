@@ -153,6 +153,10 @@
   color: #646cff;
 }
 
+.modal-tag-chip-pending {
+  border: 1px dashed rgba(100, 108, 255, 0.45);
+}
+
 .modal-tag-remove {
   background: none;
   border: none;

@@ -28,15 +28,21 @@ export function NoteModal({
   const [body, setBody] = useState(note.body);
   const [tagInput, setTagInput] = useState('');
   const tagInputValueRef = useRef(tagInput);
+  const [pendingTagNames, setPendingTagNames] = useState<string[]>([]);
+  const pendingTagNamesRef = useRef<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const tagInputRef = useRef<HTMLInputElement>(null);
+  const tagBlurTimeoutRef = useRef<number | null>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const bodyHistoryRef = useRef<string[]>([note.body]);
   const bodyHistoryIndexRef = useRef(0);
   const bodyNextCheckpointRef = useRef(false);
 
-  const noteTagNames = new Set(note.tags.map((t) => t.name));
+  const noteTagNames = new Set([
+    ...note.tags.map((t) => t.name),
+    ...pendingTagNames,
+  ]);
 
   const suggestions =
     tagInput.trim() === ''
@@ -202,15 +208,48 @@ export function NoteModal({
     }
   }, [body, title, note, noteCommands]);
 
+  const prospectiveTagNames = useCallback(() => {
+    const names = [...pendingTagNamesRef.current];
+    const trimmedInput = tagInputValueRef.current.trim();
+    if (
+      trimmedInput !== '' &&
+      !note.tags.some((tag) => tag.name === trimmedInput) &&
+      !names.includes(trimmedInput)
+    ) {
+      names.push(trimmedInput);
+    }
+    return names;
+  }, [note.tags]);
+
+  const persistProspectiveTags = useCallback(async () => {
+    if (tagBlurTimeoutRef.current !== null) {
+      window.clearTimeout(tagBlurTimeoutRef.current);
+      tagBlurTimeoutRef.current = null;
+    }
+    const tagNames = prospectiveTagNames();
+    pendingTagNamesRef.current = [];
+    setPendingTagNames([]);
+    setTagInput('');
+    tagInputValueRef.current = '';
+    for (const tagName of tagNames) {
+      await noteCommands.addTag(note.id, tagName);
+    }
+  }, [note.id, noteCommands, prospectiveTagNames]);
+
   const saveAndClose = useCallback(async () => {
+    if (tagBlurTimeoutRef.current !== null) {
+      window.clearTimeout(tagBlurTimeoutRef.current);
+      tagBlurTimeoutRef.current = null;
+    }
     const trimmedBody = body.trimEnd();
     if (trimmedBody.trim() === '') {
       await noteCommands.delete(note.id);
     } else {
       await saveNonEmptyChanges();
+      await persistProspectiveTags();
     }
     onClose();
-  }, [body, note.id, noteCommands, onClose, saveNonEmptyChanges]);
+  }, [body, note.id, noteCommands, onClose, persistProspectiveTags, saveNonEmptyChanges]);
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -224,18 +263,29 @@ export function NoteModal({
     }
   };
 
-  const handleAddTag = async (name: string) => {
+  const handleStageTag = (name: string) => {
     const trimmed = name.trim();
-    if (trimmed === '' || noteTagNames.has(trimmed)) return;
-    await noteCommands.addTag(note.id, trimmed);
+    if (
+      trimmed === '' ||
+      note.tags.some((tag) => tag.name === trimmed) ||
+      pendingTagNamesRef.current.includes(trimmed)
+    ) return;
+    pendingTagNamesRef.current = [...pendingTagNamesRef.current, trimmed];
+    setPendingTagNames(pendingTagNamesRef.current);
     setTagInput('');
+    tagInputValueRef.current = '';
     setShowSuggestions(false);
+  };
+
+  const handleRemovePendingTag = (name: string) => {
+    pendingTagNamesRef.current = pendingTagNamesRef.current.filter((tagName) => tagName !== name);
+    setPendingTagNames(pendingTagNamesRef.current);
   };
 
   const handleTagKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      void handleAddTag(tagInput);
+      handleStageTag(tagInput);
     }
   };
 
@@ -257,6 +307,12 @@ export function NoteModal({
       textarea.setSelectionRange(len, len);
     } else {
       panelRef.current?.focus();
+    }
+  }, []);
+
+  useEffect(() => () => {
+    if (tagBlurTimeoutRef.current !== null) {
+      window.clearTimeout(tagBlurTimeoutRef.current);
     }
   }, []);
 
@@ -383,6 +439,22 @@ export function NoteModal({
                 </button>
               </span>
             ))}
+            {pendingTagNames.map((tagName) => (
+              <span key={`pending-${tagName}`} className="modal-tag-chip modal-tag-chip-pending">
+                <Icon
+                  name={tagDisplayIcon(allTags.find((tag) => tag.name === tagName) ?? { id: -1, name: tagName, icon: null })}
+                  size={14}
+                />
+                {tagName}
+                <button
+                  className="modal-tag-remove"
+                  onClick={() => { handleRemovePendingTag(tagName); }}
+                  aria-label={`Remove tag ${tagName}`}
+                >
+                  <Icon name="close" size={14} />
+                </button>
+              </span>
+            ))}
           </div>
           <div className="modal-tag-input-wrapper">
             <input
@@ -399,9 +471,10 @@ export function NoteModal({
               onFocus={() => { setShowSuggestions(true); }}
               onBlur={() => {
                 // Delay to allow click on suggestion
-                setTimeout(() => {
-                  void handleAddTag(tagInputValueRef.current);
+                tagBlurTimeoutRef.current = window.setTimeout(() => {
+                  handleStageTag(tagInputValueRef.current);
                   setShowSuggestions(false);
+                  tagBlurTimeoutRef.current = null;
                 }, 150);
               }}
               onKeyDown={handleTagKeyDown}
@@ -413,7 +486,7 @@ export function NoteModal({
                     key={tag.id}
                     className="modal-tag-suggestion"
                     onMouseDown={(e) => { e.preventDefault(); }}
-                    onClick={() => { void handleAddTag(tag.name); }}
+                    onClick={() => { handleStageTag(tag.name); }}
                   >
                     {tag.name}
                   </li>
@@ -427,7 +500,10 @@ export function NoteModal({
             copyText={body}
             includePin
             noteCommands={noteCommands}
-            onBeforeArchive={saveNonEmptyChanges}
+            onBeforeArchive={async () => {
+              await saveNonEmptyChanges();
+              await persistProspectiveTags();
+            }}
             onBeforePin={saveNonEmptyChanges}
             onAfterArchive={onClose}
             onAfterDelete={onClose}

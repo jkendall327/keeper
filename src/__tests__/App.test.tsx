@@ -144,6 +144,36 @@ describe('App Integration Tests', () => {
     });
   });
 
+  it('stages a new tag on blur and creates it when the note modal closes', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Prospective tag note');
+    await user.keyboard('{Enter}');
+
+    await user.click(await screen.findByText('Prospective tag note'));
+
+    const tagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.type(tagInput, 'halfway');
+    await user.click(screen.getByPlaceholderText('Note'));
+
+    expect(await screen.findByLabelText('Remove tag halfway')).toBeInTheDocument();
+    await expect(mockDB.getAllTags()).resolves.toEqual([]);
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('Add tag...')).not.toBeInTheDocument();
+    });
+
+    await expect(mockDB.getAllTags()).resolves.toMatchObject([
+      { name: 'halfway' },
+    ]);
+    const notes = await mockDB.getAllNotes();
+    expect(notes.find((note) => note.body === 'Prospective tag note')?.tags.map((tag) => tag.name)).toEqual(['halfway']);
+  });
+
   it('deletes a note', async () => {
     const user = userEvent.setup();
     await renderApp();
@@ -798,6 +828,9 @@ describe('App Integration Tests', () => {
     const tagInput = await screen.findByPlaceholderText('Add tag...');
     await user.type(tagInput, 'foo');
     await user.keyboard('{Enter}');
+
+    expect(screen.getByLabelText('Remove tag foo')).toBeInTheDocument();
+    await user.keyboard('{Escape}');
 
     await waitFor(() => {
       expect(document.querySelector('.modal-panel')).not.toBeInTheDocument();

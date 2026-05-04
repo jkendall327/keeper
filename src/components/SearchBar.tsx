@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
 import { Icon } from './Icon.tsx';
+import styles from './SearchBar.module.css';
 
 interface SearchBarProps {
   value: string;
@@ -9,11 +10,11 @@ interface SearchBarProps {
 export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
   function SearchBar({ value, onChange }, ref) {
     return (
-      <div className="search-bar">
+      <div className={styles.bar}>
         <input
           ref={ref}
           type="text"
-          className="search-bar-input"
+          className={styles.barInput}
           placeholder="Search notes... (Ctrl+/)"
           aria-label="Search notes"
           value={value}
@@ -27,7 +28,7 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
         />
         {value !== '' && (
           <button
-            className="search-bar-clear"
+            className={styles.clear}
             onClick={() => { onChange(''); }}
             aria-label="Clear search"
           >

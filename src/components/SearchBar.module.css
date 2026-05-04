@@ -1,0 +1,41 @@
+.bar {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.barInput {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 10px 36px 10px 16px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    border: 1px solid rgba(128, 128, 128, 0.3);
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.barInput:focus {
+    border-color: #646cff;
+}
+
+.clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: rgba(128, 128, 128, 0.6);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 2px 6px;
+    line-height: 1;
+    border-radius: 4px;
+}
+
+.clear:hover {
+    color: inherit;
+}

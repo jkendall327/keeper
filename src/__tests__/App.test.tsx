@@ -1303,7 +1303,7 @@ describe('App Integration Tests', () => {
     });
 
     // Switch back to Notes (all) - welcome should reappear
-    const notesBtn = screen.getByText('All Notes');
+    const notesBtn = screen.getByText('Inbox');
     await user.click(notesBtn);
     await waitFor(() => {
       expect(screen.getByText('No notes yet')).toBeInTheDocument();
@@ -1790,7 +1790,7 @@ describe('App Integration Tests', () => {
       await user.click(chatBtn);
 
       // Switch back to Notes
-      const notesBtn = screen.getByText('All Notes');
+      const notesBtn = screen.getByText('Inbox');
       await user.click(notesBtn);
 
       // Note should be visible again

@@ -58,7 +58,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
           className={`sidebar-tab ${isActive({ type: 'all' }) ? 'sidebar-tab-active' : ''}`}
           onClick={() => { onFilterChange({ type: 'all' }); }}
         >
-          <Icon name="notes" size={18} /> All Notes
+          <Icon name="notes" size={18} /> Inbox
         </button>
 
         {tags.map((tag) => (

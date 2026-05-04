@@ -8,6 +8,14 @@
   "background": {
     "service_worker": "background.js"
   },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Ctrl+Space",
+        "mac": "MacCtrl+Space"
+      }
+    }
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

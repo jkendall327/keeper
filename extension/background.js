@@ -135,6 +135,23 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
       });
     return true;
   }
+
+  if (msg.type === "save-quick-note") {
+    const body = typeof msg.body === "string" ? msg.body.trim() : "";
+    if (!body) {
+      sendResponse({ ok: false, error: "Note is empty" });
+      return false;
+    }
+
+    saveNote({ body })
+      .then(() => sendResponse({ ok: true }))
+      .catch(async (err) => {
+        const message = err.message || String(err);
+        await storeError(message);
+        sendResponse({ ok: false, error: message });
+      });
+    return true;
+  }
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {

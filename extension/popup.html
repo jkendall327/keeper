@@ -19,13 +19,19 @@
       margin-bottom: 4px;
       font-weight: 500;
     }
-    input {
+    input,
+    textarea {
       width: 100%;
       padding: 6px 8px;
       border: 1px solid #ccc;
       border-radius: 4px;
       font-size: 13px;
       box-sizing: border-box;
+      font-family: inherit;
+    }
+    textarea {
+      min-height: 72px;
+      resize: vertical;
     }
     button {
       margin-top: 8px;
@@ -42,10 +48,20 @@
       cursor: not-allowed;
       opacity: 0.55;
     }
+    .quick-note,
+    .settings,
     .tab-actions {
       margin-top: 14px;
       border-top: 1px solid #e5e5e5;
       padding-top: 12px;
+    }
+    .quick-note {
+      margin-top: 0;
+      border-top: 0;
+      padding-top: 0;
+    }
+    .quick-note button {
+      width: 100%;
     }
     .tab-actions h3 {
       margin: 0 0 6px;
@@ -99,9 +115,16 @@
 </head>
 <body>
   <h2>Keeper</h2>
-  <label for="serverUrl">Server URL</label>
-  <input type="url" id="serverUrl" placeholder="http://localhost:3001">
-  <button id="save">Save</button>
+  <div class="quick-note">
+    <label for="quickNote">Quick note</label>
+    <textarea id="quickNote" placeholder="Type a note"></textarea>
+    <button id="sendQuickNote" type="button">Send to Keeper</button>
+  </div>
+  <div class="settings">
+    <label for="serverUrl">Server URL</label>
+    <input type="url" id="serverUrl" placeholder="http://localhost:3001">
+    <button id="save">Save</button>
+  </div>
   <div class="tab-actions">
     <h3>Save open tabs</h3>
     <button id="saveRightInclusive" type="button">Current tab and tabs to the right</button>

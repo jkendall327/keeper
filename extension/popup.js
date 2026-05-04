@@ -1,5 +1,7 @@
 const DEFAULT_SERVER_URL = "http://localhost:3001";
 
+const quickNoteInput = document.getElementById("quickNote");
+const sendQuickNoteBtn = document.getElementById("sendQuickNote");
 const serverUrlInput = document.getElementById("serverUrl");
 const saveBtn = document.getElementById("save");
 const saveRightInclusiveBtn = document.getElementById("saveRightInclusive");
@@ -28,9 +30,22 @@ function saveRightwardTabs(includeCurrent) {
   });
 }
 
+function saveQuickNote(body) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: "save-quick-note", body }, (response) => {
+      resolve(response ?? { ok: false, error: chrome.runtime.lastError?.message || "No response" });
+    });
+  });
+}
+
 function setTabActionBusy(busy) {
   saveRightInclusiveBtn.disabled = busy;
   saveRightExclusiveBtn.disabled = busy;
+}
+
+function setQuickNoteBusy(busy) {
+  quickNoteInput.disabled = busy;
+  sendQuickNoteBtn.disabled = busy;
 }
 
 function formatTime(ts) {
@@ -79,6 +94,7 @@ chrome.storage.sync.get({ serverUrl: DEFAULT_SERVER_URL }, (result) => {
 chrome.storage.local.get("recentErrors", (result) => {
   renderErrors(result.recentErrors);
 });
+quickNoteInput.focus();
 
 saveBtn.addEventListener("click", async () => {
   const url = serverUrlInput.value.trim();
@@ -117,6 +133,47 @@ async function handleSaveRightwardTabs(includeCurrent) {
     setTabActionBusy(false);
   }
 }
+
+async function handleSaveQuickNote() {
+  const body = quickNoteInput.value.trim();
+  if (!body) {
+    showStatus("Note is empty", false);
+    quickNoteInput.focus();
+    return;
+  }
+
+  setQuickNoteBusy(true);
+  showStatus("Sending note to Keeper...", true);
+
+  let shouldRefocus = false;
+  try {
+    const result = await saveQuickNote(body);
+    if (result.ok) {
+      quickNoteInput.value = "";
+      showStatus("Sent note to Keeper", true);
+      shouldRefocus = true;
+    } else {
+      showStatus(result.error || "Could not send note", false);
+      chrome.storage.local.get("recentErrors", (stored) => {
+        renderErrors(stored.recentErrors);
+      });
+      shouldRefocus = true;
+    }
+  } finally {
+    setQuickNoteBusy(false);
+    if (shouldRefocus) quickNoteInput.focus();
+  }
+}
+
+sendQuickNoteBtn.addEventListener("click", () => {
+  handleSaveQuickNote();
+});
+
+quickNoteInput.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey) return;
+  event.preventDefault();
+  handleSaveQuickNote();
+});
 
 saveRightInclusiveBtn.addEventListener("click", () => {
   handleSaveRightwardTabs(true);

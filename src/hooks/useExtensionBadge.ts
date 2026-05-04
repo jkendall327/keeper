@@ -1,79 +1,64 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { getDB } from '../db/db-client.ts';
-import { DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT, type AppSettings } from '../db/types.ts';
+import { useEffect, useRef } from 'react';
 
-export function useExtensionBadge(extensionNoteCreatedCount: number) {
-  const [extensionBadgeEnabled, setExtensionBadgeEnabled] = useState(true);
-  const [linkPreviewFetchEnabled, setLinkPreviewFetchEnabled] = useState(true);
-  const [linkPreviewDisplayEnabled, setLinkPreviewDisplayEnabled] = useState(true);
-  const [popularTagSuggestionsEnabled, setPopularTagSuggestionsEnabled] = useState(true);
-  const [popularTagSuggestionLimit, setPopularTagSuggestionLimit] = useState(DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT);
-  const [unseenExtensionNoteCount, setUnseenExtensionNoteCount] = useState(0);
-  const previousExtensionNoteCreatedCount = useRef(extensionNoteCreatedCount);
+interface UseExtensionBadgeOptions {
+  enabled: boolean;
+  extensionNoteCreatedCount: number;
+}
+
+export function useExtensionBadge({
+  enabled,
+  extensionNoteCreatedCount,
+}: UseExtensionBadgeOptions) {
   const titleBase = useRef(document.title);
-
-  const applyAppSettings = useCallback((settings: AppSettings) => {
-    setExtensionBadgeEnabled(settings.extensionBadgeEnabled);
-    if (!settings.extensionBadgeEnabled) setUnseenExtensionNoteCount(0);
-    setLinkPreviewFetchEnabled(settings.linkPreviewFetchEnabled);
-    setLinkPreviewDisplayEnabled(settings.linkPreviewDisplayEnabled);
-    setPopularTagSuggestionsEnabled(settings.popularTagSuggestionsEnabled);
-    setPopularTagSuggestionLimit(settings.popularTagSuggestionLimit);
-  }, []);
+  const enabledRef = useRef(enabled);
+  const currentCountRef = useRef(extensionNoteCreatedCount);
+  const previousCountRef = useRef(extensionNoteCreatedCount);
+  const unseenCountRef = useRef(0);
 
   useEffect(() => {
-    let cancelled = false;
-    const loadSettings = async () => {
-      const settings = await getDB().getAppSettings();
-      if (cancelled) return;
-      applyAppSettings(settings);
+    const updateTitle = () => {
+      if (!enabledRef.current || unseenCountRef.current === 0) {
+        document.title = titleBase.current;
+        return;
+      }
+      document.title = `(${String(unseenCountRef.current)}) ${titleBase.current}`;
     };
-    void loadSettings();
-    return () => {
-      cancelled = true;
-    };
-  }, [applyAppSettings]);
+
+    enabledRef.current = enabled;
+    currentCountRef.current = extensionNoteCreatedCount;
+
+    if (!enabled) {
+      unseenCountRef.current = 0;
+      previousCountRef.current = extensionNoteCreatedCount;
+      updateTitle();
+      return;
+    }
+
+    const delta = extensionNoteCreatedCount - previousCountRef.current;
+    previousCountRef.current = extensionNoteCreatedCount;
+
+    if (document.visibilityState === 'visible' && document.hasFocus()) {
+      unseenCountRef.current = 0;
+    } else if (delta > 0) {
+      unseenCountRef.current += delta;
+    }
+
+    updateTitle();
+  }, [enabled, extensionNoteCreatedCount]);
 
   useEffect(() => {
     const clearIfFocused = () => {
-      if (document.visibilityState === 'visible' && document.hasFocus()) {
-        setUnseenExtensionNoteCount(0);
-      }
+      if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+      unseenCountRef.current = 0;
+      previousCountRef.current = currentCountRef.current;
+      document.title = titleBase.current;
     };
+
     window.addEventListener('focus', clearIfFocused);
     document.addEventListener('visibilitychange', clearIfFocused);
-    clearIfFocused();
     return () => {
       window.removeEventListener('focus', clearIfFocused);
       document.removeEventListener('visibilitychange', clearIfFocused);
     };
   }, []);
-
-  useEffect(() => {
-    const previous = previousExtensionNoteCreatedCount.current;
-    previousExtensionNoteCreatedCount.current = extensionNoteCreatedCount;
-    const delta = extensionNoteCreatedCount - previous;
-    if (delta <= 0 || !extensionBadgeEnabled) return;
-    if (document.visibilityState === 'visible' && document.hasFocus()) return;
-    setUnseenExtensionNoteCount((count) => count + delta);
-  }, [extensionBadgeEnabled, extensionNoteCreatedCount]);
-
-  useEffect(() => {
-    if (!extensionBadgeEnabled) {
-      document.title = titleBase.current;
-      return;
-    }
-    document.title = unseenExtensionNoteCount > 0
-      ? `(${String(unseenExtensionNoteCount)}) ${titleBase.current}`
-      : titleBase.current;
-  }, [extensionBadgeEnabled, unseenExtensionNoteCount]);
-
-  return {
-    extensionBadgeEnabled,
-    linkPreviewDisplayEnabled,
-    linkPreviewFetchEnabled,
-    popularTagSuggestionsEnabled,
-    popularTagSuggestionLimit,
-    onAppSettingsChange: applyAppSettings,
-  };
 }

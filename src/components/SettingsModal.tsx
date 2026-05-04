@@ -3,7 +3,6 @@ import { Icon } from './Icon.tsx';
 import { getApiKey, setApiKey, clearApiKey, isLLMConfigured } from '../llm/client.ts';
 import { getDB } from '../db/db-client.ts';
 import {
-  DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
   MAX_EXTENSION_TITLE_MAX_LENGTH,
   MAX_POPULAR_TAG_SUGGESTION_LIMIT,
   MIN_EXTENSION_TITLE_MAX_LENGTH,
@@ -26,6 +25,7 @@ interface SettingsModalProps {
   onClose: () => void;
   autoApplyActiveTag: boolean;
   onAutoApplyActiveTagChange: (enabled: boolean) => void;
+  extensionTitleMaxLength: number;
   extensionBadgeEnabled: boolean;
   linkPreviewFetchEnabled: boolean;
   linkPreviewDisplayEnabled: boolean;
@@ -39,6 +39,7 @@ export function SettingsModal({
   onClose,
   autoApplyActiveTag,
   onAutoApplyActiveTagChange,
+  extensionTitleMaxLength: savedExtensionTitleMaxLength,
   extensionBadgeEnabled,
   linkPreviewFetchEnabled,
   linkPreviewDisplayEnabled,
@@ -59,7 +60,7 @@ export function SettingsModal({
   const [tagNames, setTagNames] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [ruleError, setRuleError] = useState('');
-  const [extensionTitleMaxLength, setExtensionTitleMaxLength] = useState(String(DEFAULT_EXTENSION_TITLE_MAX_LENGTH));
+  const [extensionTitleMaxLength, setExtensionTitleMaxLength] = useState(String(savedExtensionTitleMaxLength));
   const [extensionTitleSaved, setExtensionTitleSaved] = useState(false);
   const [extensionTitleError, setExtensionTitleError] = useState('');
   const [popularTagLimitDraft, setPopularTagLimitDraft] = useState(String(popularTagSuggestionLimit));
@@ -117,22 +118,6 @@ export function SettingsModal({
       cancelled = true;
     };
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadSettings = async () => {
-      const settings = await getDB().getAppSettings();
-      if (!cancelled) {
-        setExtensionTitleMaxLength(String(settings.extensionTitleMaxLength));
-        setPopularTagLimitDraft(String(settings.popularTagSuggestionLimit));
-        onAppSettingsChange(settings);
-      }
-    };
-    void loadSettings();
-    return () => {
-      cancelled = true;
-    };
-  }, [onAppSettingsChange]);
 
   const handleSave = useCallback(() => {
     if (key.trim() === '') return;
@@ -208,12 +193,13 @@ export function SettingsModal({
       const normalized = normalizeExtensionTitleMaxLength(Number(extensionTitleMaxLength));
       const settings = await getDB().updateAppSettings({ extensionTitleMaxLength: normalized });
       setExtensionTitleMaxLength(String(settings.extensionTitleMaxLength));
+      onAppSettingsChange(settings);
       setExtensionTitleSaved(true);
       setTimeout(() => { setExtensionTitleSaved(false); }, 1500);
     } catch (error) {
       setExtensionTitleError(error instanceof Error ? error.message : 'Unable to save setting');
     }
-  }, [extensionTitleMaxLength]);
+  }, [extensionTitleMaxLength, onAppSettingsChange]);
 
   const saveBooleanSetting = useCallback(async (
     setting: 'extensionBadgeEnabled' | 'linkPreviewFetchEnabled' | 'linkPreviewDisplayEnabled' | 'popularTagSuggestionsEnabled',

@@ -1,6 +1,7 @@
 import { Suspense, useState } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
+import { useAppSettings } from './hooks/useAppSettings.ts';
 import { useDisplayedNotes } from './hooks/useDisplayedNotes.ts';
 import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
 import { useExtensionBadge } from './hooks/useExtensionBadge.ts';
@@ -78,14 +79,11 @@ function AppContent({
 }: AppContentProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [autoApplyActiveTag, setAutoApplyActiveTagState] = useState(getAutoApplyActiveTag);
-  const {
-    extensionBadgeEnabled,
-    linkPreviewDisplayEnabled,
-    linkPreviewFetchEnabled,
-    popularTagSuggestionLimit,
-    popularTagSuggestionsEnabled,
-    onAppSettingsChange,
-  } = useExtensionBadge(extensionNoteCreatedCount);
+  const { appSettings, appSettingsLoaded, onAppSettingsChange } = useAppSettings();
+  useExtensionBadge({
+    enabled: appSettings.extensionBadgeEnabled,
+    extensionNoteCreatedCount,
+  });
 
   const handleAutoApplyActiveTagChange = (enabled: boolean) => {
     setAutoApplyActiveTag(enabled);
@@ -155,24 +153,25 @@ function AppContent({
             selectedNoteIds={selectedNoteIds}
             setSelectedNoteIds={setSelectedNoteIds}
             autoApplyActiveTag={autoApplyActiveTag}
-            linkPreviewDisplayEnabled={linkPreviewDisplayEnabled}
-            popularTagSuggestionsEnabled={popularTagSuggestionsEnabled}
-            popularTagSuggestionLimit={popularTagSuggestionLimit}
+            linkPreviewDisplayEnabled={appSettings.linkPreviewDisplayEnabled}
+            popularTagSuggestionsEnabled={appSettings.popularTagSuggestionsEnabled}
+            popularTagSuggestionLimit={appSettings.popularTagSuggestionLimit}
             showSettings={showSettings}
           />
         )}
       </div>
-      {showSettings && (
+      {showSettings && appSettingsLoaded && (
         <SettingsModal
           allTags={allTags}
           onClose={() => { setShowSettings(false); }}
           autoApplyActiveTag={autoApplyActiveTag}
           onAutoApplyActiveTagChange={handleAutoApplyActiveTagChange}
-          extensionBadgeEnabled={extensionBadgeEnabled}
-          linkPreviewFetchEnabled={linkPreviewFetchEnabled}
-          linkPreviewDisplayEnabled={linkPreviewDisplayEnabled}
-          popularTagSuggestionsEnabled={popularTagSuggestionsEnabled}
-          popularTagSuggestionLimit={popularTagSuggestionLimit}
+          extensionTitleMaxLength={appSettings.extensionTitleMaxLength}
+          extensionBadgeEnabled={appSettings.extensionBadgeEnabled}
+          linkPreviewFetchEnabled={appSettings.linkPreviewFetchEnabled}
+          linkPreviewDisplayEnabled={appSettings.linkPreviewDisplayEnabled}
+          popularTagSuggestionsEnabled={appSettings.popularTagSuggestionsEnabled}
+          popularTagSuggestionLimit={appSettings.popularTagSuggestionLimit}
           onAppSettingsChange={onAppSettingsChange}
         />
       )}

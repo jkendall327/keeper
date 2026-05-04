@@ -219,7 +219,7 @@ export function SettingsModal({
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={styles['settings-modal']}>
+      <div className={styles.modal}>
         <div className={styles['settings-header']}>
           <h2>Settings</h2>
           <button className={styles['settings-close-btn']} onClick={onClose} aria-label="Close settings">

@@ -1,0 +1,32 @@
+declare const styles: {
+  readonly "autotag-chip": string;
+  readonly "autotag-chip-input": string;
+  readonly "autotag-rule-actions": string;
+  readonly "autotag-rule-list": string;
+  readonly "autotag-rule-main": string;
+  readonly "autotag-rule-row": string;
+  readonly "autotag-rule-tags": string;
+  readonly "autotag-tag-input-wrapper": string;
+  readonly "modal": string;
+  readonly "settings-clear-btn": string;
+  readonly "settings-close-btn": string;
+  readonly "settings-error": string;
+  readonly "settings-header": string;
+  readonly "settings-hint": string;
+  readonly "settings-key-actions": string;
+  readonly "settings-key-input": string;
+  readonly "settings-key-row": string;
+  readonly "settings-label": string;
+  readonly "settings-modal": string;
+  readonly "settings-save-btn": string;
+  readonly "settings-section": string;
+  readonly "settings-status": string;
+  readonly "settings-status-none": string;
+  readonly "settings-status-ok": string;
+  readonly "settings-tab": string;
+  readonly "settings-tab-active": string;
+  readonly "settings-tabs": string;
+  readonly "settings-toggle-row": string;
+};
+export = styles;
+

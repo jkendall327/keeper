@@ -1,5 +1,3 @@
-'use no memo';
-
 const IMAGE_EXTENSIONS = /\.(png|jpe?g|gif|webp|svg|avif|bmp|ico)(\?[^\s]*)?$/i;
 const URL_PATTERN = /^https?:\/\/\S+$/;
 

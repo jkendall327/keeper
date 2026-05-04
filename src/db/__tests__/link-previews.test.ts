@@ -64,18 +64,24 @@ describe('Link previews', () => {
       extensionBadgeEnabled: true,
       linkPreviewFetchEnabled: true,
       linkPreviewDisplayEnabled: true,
+      popularTagSuggestionsEnabled: true,
+      popularTagSuggestionLimit: 5,
     });
 
     await api.updateAppSettings({
       extensionBadgeEnabled: false,
       linkPreviewFetchEnabled: false,
       linkPreviewDisplayEnabled: false,
+      popularTagSuggestionsEnabled: false,
+      popularTagSuggestionLimit: 7,
     });
 
     await expect(api.getAppSettings()).resolves.toMatchObject({
       extensionBadgeEnabled: false,
       linkPreviewFetchEnabled: false,
       linkPreviewDisplayEnabled: false,
+      popularTagSuggestionsEnabled: false,
+      popularTagSuggestionLimit: 7,
     });
   });
 });

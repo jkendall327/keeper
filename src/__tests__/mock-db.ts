@@ -1,5 +1,10 @@
 import { extractUrls } from '../db/url-detect';
-import { DEFAULT_EXTENSION_TITLE_MAX_LENGTH, toNoteId } from '../db/types';
+import {
+  DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
+  DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT,
+  normalizePopularTagSuggestionLimit,
+  toNoteId,
+} from '../db/types';
 import type {
   AutoTagRule,
   AutoTagRuleInput,
@@ -39,6 +44,8 @@ export function createMockDB(): MockDB {
     extensionBadgeEnabled: true,
     linkPreviewFetchEnabled: true,
     linkPreviewDisplayEnabled: true,
+    popularTagSuggestionsEnabled: true,
+    popularTagSuggestionLimit: DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT,
   };
 
   const generateId = () => toNoteId(`n${String(noteId++)}`);
@@ -59,6 +66,8 @@ export function createMockDB(): MockDB {
       extensionBadgeEnabled: true,
       linkPreviewFetchEnabled: true,
       linkPreviewDisplayEnabled: true,
+      popularTagSuggestionsEnabled: true,
+      popularTagSuggestionLimit: DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT,
     };
   };
 
@@ -441,6 +450,10 @@ export function createMockDB(): MockDB {
         extensionBadgeEnabled: input.extensionBadgeEnabled ?? appSettings.extensionBadgeEnabled,
         linkPreviewFetchEnabled: input.linkPreviewFetchEnabled ?? appSettings.linkPreviewFetchEnabled,
         linkPreviewDisplayEnabled: input.linkPreviewDisplayEnabled ?? appSettings.linkPreviewDisplayEnabled,
+        popularTagSuggestionsEnabled: input.popularTagSuggestionsEnabled ?? appSettings.popularTagSuggestionsEnabled,
+        popularTagSuggestionLimit: input.popularTagSuggestionLimit === undefined
+          ? appSettings.popularTagSuggestionLimit
+          : normalizePopularTagSuggestionLimit(input.popularTagSuggestionLimit),
       };
       return Promise.resolve(appSettings);
     },

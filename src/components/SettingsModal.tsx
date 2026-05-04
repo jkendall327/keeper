@@ -5,7 +5,10 @@ import { getDB } from '../db/db-client.ts';
 import {
   DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
   MAX_EXTENSION_TITLE_MAX_LENGTH,
+  MAX_POPULAR_TAG_SUGGESTION_LIMIT,
   MIN_EXTENSION_TITLE_MAX_LENGTH,
+  MIN_POPULAR_TAG_SUGGESTION_LIMIT,
+  normalizePopularTagSuggestionLimit,
   type AppSettings,
   type AutoTagRule,
   type Tag,
@@ -26,6 +29,8 @@ interface SettingsModalProps {
   extensionBadgeEnabled: boolean;
   linkPreviewFetchEnabled: boolean;
   linkPreviewDisplayEnabled: boolean;
+  popularTagSuggestionsEnabled: boolean;
+  popularTagSuggestionLimit: number;
   onAppSettingsChange: (settings: AppSettings) => void;
 }
 
@@ -37,6 +42,8 @@ export function SettingsModal({
   extensionBadgeEnabled,
   linkPreviewFetchEnabled,
   linkPreviewDisplayEnabled,
+  popularTagSuggestionsEnabled,
+  popularTagSuggestionLimit,
   onAppSettingsChange,
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<'api' | 'notes' | 'autotag' | 'link-previews'>('api');
@@ -55,6 +62,9 @@ export function SettingsModal({
   const [extensionTitleMaxLength, setExtensionTitleMaxLength] = useState(String(DEFAULT_EXTENSION_TITLE_MAX_LENGTH));
   const [extensionTitleSaved, setExtensionTitleSaved] = useState(false);
   const [extensionTitleError, setExtensionTitleError] = useState('');
+  const [popularTagLimitDraft, setPopularTagLimitDraft] = useState(String(popularTagSuggestionLimit));
+  const [popularTagLimitSaved, setPopularTagLimitSaved] = useState(false);
+  const [popularTagLimitError, setPopularTagLimitError] = useState('');
   const [settingsError, setSettingsError] = useState('');
 
   const normalizedPattern = pattern.trim();
@@ -114,6 +124,7 @@ export function SettingsModal({
       const settings = await getDB().getAppSettings();
       if (!cancelled) {
         setExtensionTitleMaxLength(String(settings.extensionTitleMaxLength));
+        setPopularTagLimitDraft(String(settings.popularTagSuggestionLimit));
         onAppSettingsChange(settings);
       }
     };
@@ -205,7 +216,7 @@ export function SettingsModal({
   }, [extensionTitleMaxLength]);
 
   const saveBooleanSetting = useCallback(async (
-    setting: 'extensionBadgeEnabled' | 'linkPreviewFetchEnabled' | 'linkPreviewDisplayEnabled',
+    setting: 'extensionBadgeEnabled' | 'linkPreviewFetchEnabled' | 'linkPreviewDisplayEnabled' | 'popularTagSuggestionsEnabled',
     enabled: boolean,
   ) => {
     setSettingsError('');
@@ -216,6 +227,20 @@ export function SettingsModal({
       setSettingsError(error instanceof Error ? error.message : 'Unable to save setting');
     }
   }, [onAppSettingsChange]);
+
+  const savePopularTagSuggestionLimit = useCallback(async () => {
+    setPopularTagLimitError('');
+    try {
+      const normalized = normalizePopularTagSuggestionLimit(Number(popularTagLimitDraft));
+      const settings = await getDB().updateAppSettings({ popularTagSuggestionLimit: normalized });
+      setPopularTagLimitDraft(String(settings.popularTagSuggestionLimit));
+      onAppSettingsChange(settings);
+      setPopularTagLimitSaved(true);
+      setTimeout(() => { setPopularTagLimitSaved(false); }, 1500);
+    } catch (error) {
+      setPopularTagLimitError(error instanceof Error ? error.message : 'Unable to save setting');
+    }
+  }, [onAppSettingsChange, popularTagLimitDraft]);
 
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -310,6 +335,50 @@ export function SettingsModal({
                 <span className={styles.hint}>Notes saved from the browser extension add to the count until this tab is focused.</span>
               </span>
             </label>
+            <label className={styles.toggleRow} htmlFor="popular-tag-suggestions-enabled">
+              <input
+                id="popular-tag-suggestions-enabled"
+                type="checkbox"
+                checked={popularTagSuggestionsEnabled}
+                onChange={(e) => { void saveBooleanSetting('popularTagSuggestionsEnabled', e.target.checked); }}
+              />
+              <span>
+                <span className={styles.label}>Suggest popular tags in empty tag fields</span>
+                <span className={styles.hint}>When a note tag field is focused, show the most-used tags before you type.</span>
+              </span>
+            </label>
+            <label className={styles.label} htmlFor="popular-tag-suggestion-limit">
+              Popular tag suggestions
+            </label>
+            <p className={styles.hint}>
+              Number of popular tags to show in an empty note tag field.
+            </p>
+            <div className={styles.keyRow}>
+              <input
+                id="popular-tag-suggestion-limit"
+                type="number"
+                min={MIN_POPULAR_TAG_SUGGESTION_LIMIT}
+                max={MAX_POPULAR_TAG_SUGGESTION_LIMIT}
+                className={styles.keyInput}
+                value={popularTagLimitDraft}
+                onChange={(e) => {
+                  setPopularTagLimitDraft(e.target.value);
+                  setPopularTagLimitSaved(false);
+                  setPopularTagLimitError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    void savePopularTagSuggestionLimit();
+                  }
+                }}
+              />
+            </div>
+            {popularTagLimitError !== '' && <p className={styles.error}>{popularTagLimitError}</p>}
+            <div className={styles.keyActions}>
+              <button className={styles.saveBtn} onClick={() => { void savePopularTagSuggestionLimit(); }}>
+                {popularTagLimitSaved ? 'Saved!' : 'Save'}
+              </button>
+            </div>
             <label className={styles.label} htmlFor="extension-title-max-length">
               Extension title length
             </label>

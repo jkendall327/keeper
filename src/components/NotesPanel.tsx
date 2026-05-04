@@ -12,6 +12,7 @@ import type { useDB } from '../hooks/useDB.ts';
 
 interface NotesPanelProps {
   allTags: ReturnType<typeof useDB>['allTags'];
+  notes: NoteWithTags[];
   createNote: ReturnType<typeof useDB>['createNote'];
   updateNote: ReturnType<typeof useDB>['updateNote'];
   deleteNote: ReturnType<typeof useDB>['deleteNote'];
@@ -30,11 +31,14 @@ interface NotesPanelProps {
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
   autoApplyActiveTag: boolean;
   linkPreviewDisplayEnabled: boolean;
+  popularTagSuggestionsEnabled: boolean;
+  popularTagSuggestionLimit: number;
   showSettings: boolean;
 }
 
 export function NotesPanel({
   allTags,
+  notes,
   createNote,
   updateNote,
   deleteNote,
@@ -53,6 +57,8 @@ export function NotesPanel({
   setSelectedNoteIds,
   autoApplyActiveTag,
   linkPreviewDisplayEnabled,
+  popularTagSuggestionsEnabled,
+  popularTagSuggestionLimit,
   showSettings,
 }: NotesPanelProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -155,8 +161,11 @@ export function NotesPanel({
         <NoteModal
           note={currentNote}
           allTags={allTags}
+          allNotes={notes}
           noteCommands={noteCommands}
           showLinkPreviews={linkPreviewDisplayEnabled}
+          popularTagSuggestionsEnabled={popularTagSuggestionsEnabled}
+          popularTagSuggestionLimit={popularTagSuggestionLimit}
           isTrashView={isTrashView}
           onClose={() => { setSelectedNote(null); }}
         />

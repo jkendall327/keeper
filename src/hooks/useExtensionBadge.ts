@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getDB } from '../db/db-client.ts';
-import type { AppSettings } from '../db/types.ts';
+import { DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT, type AppSettings } from '../db/types.ts';
 
 export function useExtensionBadge(extensionNoteCreatedCount: number) {
   const [extensionBadgeEnabled, setExtensionBadgeEnabled] = useState(true);
   const [linkPreviewFetchEnabled, setLinkPreviewFetchEnabled] = useState(true);
   const [linkPreviewDisplayEnabled, setLinkPreviewDisplayEnabled] = useState(true);
+  const [popularTagSuggestionsEnabled, setPopularTagSuggestionsEnabled] = useState(true);
+  const [popularTagSuggestionLimit, setPopularTagSuggestionLimit] = useState(DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT);
   const [unseenExtensionNoteCount, setUnseenExtensionNoteCount] = useState(0);
   const previousExtensionNoteCreatedCount = useRef(extensionNoteCreatedCount);
   const titleBase = useRef(document.title);
@@ -15,6 +17,8 @@ export function useExtensionBadge(extensionNoteCreatedCount: number) {
     if (!settings.extensionBadgeEnabled) setUnseenExtensionNoteCount(0);
     setLinkPreviewFetchEnabled(settings.linkPreviewFetchEnabled);
     setLinkPreviewDisplayEnabled(settings.linkPreviewDisplayEnabled);
+    setPopularTagSuggestionsEnabled(settings.popularTagSuggestionsEnabled);
+    setPopularTagSuggestionLimit(settings.popularTagSuggestionLimit);
   }, []);
 
   useEffect(() => {
@@ -68,6 +72,8 @@ export function useExtensionBadge(extensionNoteCreatedCount: number) {
     extensionBadgeEnabled,
     linkPreviewDisplayEnabled,
     linkPreviewFetchEnabled,
+    popularTagSuggestionsEnabled,
+    popularTagSuggestionLimit,
     onAppSettingsChange: applyAppSettings,
   };
 }

@@ -17,6 +17,7 @@ import type { NoteId, NoteWithTags } from './db/types.ts';
 
 interface AppContentProps {
   allTags: ReturnType<typeof useDB>['allTags'];
+  notes: ReturnType<typeof useDB>['notes'];
   refresh: ReturnType<typeof useDB>['refresh'];
   createNote: ReturnType<typeof useDB>['createNote'];
   updateNote: ReturnType<typeof useDB>['updateNote'];
@@ -49,6 +50,7 @@ function filterKey(filter: FilterType) {
 
 function AppContent({
   allTags,
+  notes,
   refresh,
   createNote,
   updateNote,
@@ -80,6 +82,8 @@ function AppContent({
     extensionBadgeEnabled,
     linkPreviewDisplayEnabled,
     linkPreviewFetchEnabled,
+    popularTagSuggestionLimit,
+    popularTagSuggestionsEnabled,
     onAppSettingsChange,
   } = useExtensionBadge(extensionNoteCreatedCount);
 
@@ -133,6 +137,7 @@ function AppContent({
           <NotesPanel
             key={filterKey(activeFilter)}
             allTags={allTags}
+            notes={notes}
             createNote={createNote}
             updateNote={updateNote}
             deleteNote={deleteNote}
@@ -151,6 +156,8 @@ function AppContent({
             setSelectedNoteIds={setSelectedNoteIds}
             autoApplyActiveTag={autoApplyActiveTag}
             linkPreviewDisplayEnabled={linkPreviewDisplayEnabled}
+            popularTagSuggestionsEnabled={popularTagSuggestionsEnabled}
+            popularTagSuggestionLimit={popularTagSuggestionLimit}
             showSettings={showSettings}
           />
         )}
@@ -164,6 +171,8 @@ function AppContent({
           extensionBadgeEnabled={extensionBadgeEnabled}
           linkPreviewFetchEnabled={linkPreviewFetchEnabled}
           linkPreviewDisplayEnabled={linkPreviewDisplayEnabled}
+          popularTagSuggestionsEnabled={popularTagSuggestionsEnabled}
+          popularTagSuggestionLimit={popularTagSuggestionLimit}
           onAppSettingsChange={onAppSettingsChange}
         />
       )}
@@ -237,6 +246,7 @@ function App() {
         <Suspense fallback={<p className="loading">Loading...</p>}>
           <AppContent
             allTags={db.allTags}
+            notes={db.notes}
             refresh={db.refresh}
             createNote={db.createNote}
             updateNote={db.updateNote}

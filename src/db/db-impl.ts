@@ -1,6 +1,10 @@
 import type { SqliteDb, SqlRow } from "./sqlite-db.ts";
 import { migrate } from "./migrations.ts";
-import { toNoteId } from "./types.ts";
+import {
+  DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT,
+  normalizePopularTagSuggestionLimit,
+  toNoteId,
+} from "./types.ts";
 import { containsUrl, extractSingleUrl, extractUrls } from "./url-detect.ts";
 import type {
   AutoTagRule,
@@ -639,19 +643,31 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
 
     getAppSettings(): Promise<AppSettings> {
       const rows = db.query(
-        "SELECT key, value FROM app_settings WHERE key IN (?, ?, ?, ?)",
-        ["extensionTitleMaxLength", "extensionBadgeEnabled", "linkPreviewFetchEnabled", "linkPreviewDisplayEnabled"],
+        "SELECT key, value FROM app_settings WHERE key IN (?, ?, ?, ?, ?, ?)",
+        [
+          "extensionTitleMaxLength",
+          "extensionBadgeEnabled",
+          "linkPreviewFetchEnabled",
+          "linkPreviewDisplayEnabled",
+          "popularTagSuggestionsEnabled",
+          "popularTagSuggestionLimit",
+        ],
       );
       const values = new Map<string, string>();
       for (const row of rows) {
         values.set(row["key"] as string, row["value"] as string);
       }
       const extensionTitleMaxLength = parseExtensionTitleMaxLength(values.get("extensionTitleMaxLength"));
+      const popularTagSuggestionLimitValue = values.get("popularTagSuggestionLimit");
       return Promise.resolve({
         extensionTitleMaxLength,
         extensionBadgeEnabled: values.get("extensionBadgeEnabled") !== "false",
         linkPreviewFetchEnabled: values.get("linkPreviewFetchEnabled") !== "false",
         linkPreviewDisplayEnabled: values.get("linkPreviewDisplayEnabled") !== "false",
+        popularTagSuggestionsEnabled: values.get("popularTagSuggestionsEnabled") !== "false",
+        popularTagSuggestionLimit: popularTagSuggestionLimitValue === undefined
+          ? DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT
+          : normalizePopularTagSuggestionLimit(Number(popularTagSuggestionLimitValue)),
       });
     },
 
@@ -663,6 +679,10 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
       const extensionBadgeEnabled = input.extensionBadgeEnabled ?? current.extensionBadgeEnabled;
       const linkPreviewFetchEnabled = input.linkPreviewFetchEnabled ?? current.linkPreviewFetchEnabled;
       const linkPreviewDisplayEnabled = input.linkPreviewDisplayEnabled ?? current.linkPreviewDisplayEnabled;
+      const popularTagSuggestionsEnabled = input.popularTagSuggestionsEnabled ?? current.popularTagSuggestionsEnabled;
+      const popularTagSuggestionLimit = input.popularTagSuggestionLimit === undefined
+        ? current.popularTagSuggestionLimit
+        : normalizePopularTagSuggestionLimit(input.popularTagSuggestionLimit);
       db.run(
         `INSERT INTO app_settings (key, value, updated_at)
          VALUES (?, ?, ?)
@@ -687,7 +707,26 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
          ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
         ["linkPreviewDisplayEnabled", String(linkPreviewDisplayEnabled), now()],
       );
-      return { extensionTitleMaxLength, extensionBadgeEnabled, linkPreviewFetchEnabled, linkPreviewDisplayEnabled };
+      db.run(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        ["popularTagSuggestionsEnabled", String(popularTagSuggestionsEnabled), now()],
+      );
+      db.run(
+        `INSERT INTO app_settings (key, value, updated_at)
+         VALUES (?, ?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at`,
+        ["popularTagSuggestionLimit", String(popularTagSuggestionLimit), now()],
+      );
+      return {
+        extensionTitleMaxLength,
+        extensionBadgeEnabled,
+        linkPreviewFetchEnabled,
+        linkPreviewDisplayEnabled,
+        popularTagSuggestionsEnabled,
+        popularTagSuggestionLimit,
+      };
     },
 
     async runAutoTagRules(): Promise<AutoTagRunResult> {

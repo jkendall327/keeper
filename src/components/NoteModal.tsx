@@ -10,8 +10,11 @@ import type { NoteCommands } from './note-commands.ts';
 interface NoteModalProps {
   note: NoteWithTags;
   allTags: Tag[];
+  allNotes: NoteWithTags[];
   noteCommands: NoteCommands;
   showLinkPreviews: boolean;
+  popularTagSuggestionsEnabled: boolean;
+  popularTagSuggestionLimit: number;
   isTrashView?: boolean;
   onClose: () => void;
 }
@@ -19,8 +22,11 @@ interface NoteModalProps {
 export function NoteModal({
   note,
   allTags,
+  allNotes,
   noteCommands,
   showLinkPreviews,
+  popularTagSuggestionsEnabled,
+  popularTagSuggestionLimit,
   isTrashView,
   onClose,
 }: NoteModalProps) {
@@ -44,13 +50,30 @@ export function NoteModal({
     ...pendingTagNames,
   ]);
 
+  const tagNoteCounts = new Map<number, number>();
+  for (const currentNote of allNotes) {
+    for (const tag of currentNote.tags) {
+      tagNoteCounts.set(tag.id, (tagNoteCounts.get(tag.id) ?? 0) + 1);
+    }
+  }
+
+  const trimmedTagInput = tagInput.trim();
   const suggestions =
-    tagInput.trim() === ''
-      ? []
+    trimmedTagInput === ''
+      ? popularTagSuggestionsEnabled
+        ? [...allTags]
+            .filter((tag) => !noteTagNames.has(tag.name) && (tagNoteCounts.get(tag.id) ?? 0) > 0)
+            .sort((a, b) => {
+              const countDiff = (tagNoteCounts.get(b.id) ?? 0) - (tagNoteCounts.get(a.id) ?? 0);
+              if (countDiff !== 0) return countDiff;
+              return a.name.localeCompare(b.name);
+            })
+            .slice(0, popularTagSuggestionLimit)
+        : []
       : allTags
           .filter(
             (t) =>
-              t.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+              t.name.toLowerCase().includes(trimmedTagInput.toLowerCase()) &&
               !noteTagNames.has(t.name),
           )
           .slice(0, 8);
@@ -486,7 +509,10 @@ export function NoteModal({
                     key={tag.id}
                     className="modal-tag-suggestion"
                     onMouseDown={(e) => { e.preventDefault(); }}
-                    onClick={() => { handleStageTag(tag.name); }}
+                    onClick={() => {
+                      handleStageTag(tag.name);
+                      tagInputRef.current?.blur();
+                    }}
                   >
                     {tag.name}
                   </li>

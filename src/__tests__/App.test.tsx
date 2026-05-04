@@ -174,6 +174,103 @@ describe('App Integration Tests', () => {
     expect(notes.find((note) => note.body === 'Prospective tag note')?.tags.map((tag) => tag.name)).toEqual(['halfway']);
   });
 
+  it('suggests popular tags in an empty note tag input until typing filters suggestions', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    for (const [body, tags] of [
+      ['Work source 1', ['work', 'later']],
+      ['Work source 2', ['work']],
+      ['Alpha source', ['alpha']],
+    ] as const) {
+      await user.type(input, body);
+      await user.keyboard('{Enter}');
+      await user.click(await screen.findByText(body));
+      const tagInput = await screen.findByPlaceholderText('Add tag...');
+      for (const tag of tags) {
+        await user.type(tagInput, tag);
+        await user.keyboard('{Enter}');
+      }
+      await user.click(screen.getByLabelText('Close note'));
+      await waitFor(() => {
+        expect(screen.queryByPlaceholderText('Add tag...')).not.toBeInTheDocument();
+      });
+    }
+
+    await user.click(screen.getByLabelText('Open settings'));
+    await user.click(screen.getByRole('tab', { name: 'Notes' }));
+    const limitInput = screen.getByLabelText('Popular tag suggestions');
+    await user.clear(limitInput);
+    await user.type(limitInput, '2');
+    await user.click(within(limitInput.closest('div')?.nextElementSibling as HTMLElement).getByText('Save'));
+    await waitFor(async () => {
+      await expect(mockDB.getAppSettings()).resolves.toMatchObject({ popularTagSuggestionLimit: 2 });
+    });
+    await user.click(screen.getByLabelText('Close settings'));
+
+    await user.type(input, 'Target note');
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByText('Target note'));
+    const targetTagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.click(targetTagInput);
+
+    const popularSuggestions = await waitFor(() => Array.from(
+      document.querySelectorAll<HTMLElement>('.modal-tag-suggestion'),
+    ).map((element) => element.textContent));
+    expect(popularSuggestions).toEqual(['work', 'alpha']);
+
+    await user.type(targetTagInput, 'la');
+    await waitFor(() => {
+      const filteredSuggestions = Array.from(
+        document.querySelectorAll<HTMLElement>('.modal-tag-suggestion'),
+      ).map((element) => element.textContent);
+      expect(filteredSuggestions).toEqual(['later']);
+    });
+
+    await user.clear(targetTagInput);
+    const workSuggestion = await waitFor(() => {
+      const suggestion = Array.from(document.querySelectorAll<HTMLElement>('.modal-tag-suggestion')).find(
+        (element) => element.textContent === 'work',
+      );
+      if (suggestion === undefined) throw new Error('work suggestion not found');
+      return suggestion;
+    });
+    await user.click(workSuggestion);
+
+    expect(await screen.findByLabelText('Remove tag work')).toBeInTheDocument();
+    expect(document.activeElement).not.toBe(targetTagInput);
+
+    await user.click(screen.getByLabelText('Close note'));
+    await waitFor(() => {
+      expect(screen.queryByPlaceholderText('Add tag...')).not.toBeInTheDocument();
+    });
+
+    await user.click(screen.getByLabelText('Open settings'));
+    await user.click(screen.getByRole('tab', { name: 'Notes' }));
+    await user.click(screen.getByRole('checkbox', { name: /Suggest popular tags in empty tag fields/ }));
+    await waitFor(async () => {
+      await expect(mockDB.getAppSettings()).resolves.toMatchObject({ popularTagSuggestionsEnabled: false });
+    });
+    await user.click(screen.getByLabelText('Close settings'));
+
+    await user.type(input, 'Suggestions disabled note');
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByText('Suggestions disabled note'));
+    const disabledTagInput = await screen.findByPlaceholderText('Add tag...');
+    await user.click(disabledTagInput);
+
+    expect(document.querySelectorAll('.modal-tag-suggestion')).toHaveLength(0);
+
+    await user.type(disabledTagInput, 'alp');
+    await waitFor(() => {
+      const filteredSuggestions = Array.from(
+        document.querySelectorAll<HTMLElement>('.modal-tag-suggestion'),
+      ).map((element) => element.textContent);
+      expect(filteredSuggestions).toEqual(['alpha']);
+    });
+  });
+
   it('deletes a note', async () => {
     const user = userEvent.setup();
     await renderApp();

@@ -93,12 +93,29 @@ export interface AutoTagRunResult {
 export const DEFAULT_EXTENSION_TITLE_MAX_LENGTH = 120;
 export const MIN_EXTENSION_TITLE_MAX_LENGTH = 4;
 export const MAX_EXTENSION_TITLE_MAX_LENGTH = 500;
+export const DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT = 5;
+export const MIN_POPULAR_TAG_SUGGESTION_LIMIT = 1;
+export const MAX_POPULAR_TAG_SUGGESTION_LIMIT = 50;
+
+export function normalizePopularTagSuggestionLimit(value: number): number {
+  if (!Number.isFinite(value) || !Number.isInteger(value)) {
+    throw new Error("Popular tag suggestion count must be a whole number");
+  }
+  if (value < MIN_POPULAR_TAG_SUGGESTION_LIMIT || value > MAX_POPULAR_TAG_SUGGESTION_LIMIT) {
+    throw new Error(
+      `Popular tag suggestion count must be between ${String(MIN_POPULAR_TAG_SUGGESTION_LIMIT)} and ${String(MAX_POPULAR_TAG_SUGGESTION_LIMIT)}`,
+    );
+  }
+  return value;
+}
 
 export interface AppSettings {
   extensionTitleMaxLength: number;
   extensionBadgeEnabled: boolean;
   linkPreviewFetchEnabled: boolean;
   linkPreviewDisplayEnabled: boolean;
+  popularTagSuggestionsEnabled: boolean;
+  popularTagSuggestionLimit: number;
 }
 
 export interface UpdateAppSettingsInput {
@@ -106,6 +123,8 @@ export interface UpdateAppSettingsInput {
   extensionBadgeEnabled?: boolean;
   linkPreviewFetchEnabled?: boolean;
   linkPreviewDisplayEnabled?: boolean;
+  popularTagSuggestionsEnabled?: boolean;
+  popularTagSuggestionLimit?: number;
 }
 
 // ── Input types ─────────────────────────────────────────────

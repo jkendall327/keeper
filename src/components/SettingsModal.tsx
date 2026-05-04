@@ -13,6 +13,7 @@ import {
 import { normalizeExtensionTitleMaxLength } from '../utils/extension-title.ts';
 import styles from './SettingsModal.module.css';
 
+// TODO: clsx?
 function cx(...classes: (string | false | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
@@ -72,12 +73,12 @@ export function SettingsModal({
     tagDraft.trim() === ''
       ? []
       : allTags
-          .filter(
-            (tag) =>
-              tag.name.toLowerCase().includes(tagDraft.trim().toLowerCase()) &&
-              !selectedTagNames.has(tag.name),
-          )
-          .slice(0, 8);
+        .filter(
+          (tag) =>
+            tag.name.toLowerCase().includes(tagDraft.trim().toLowerCase()) &&
+            !selectedTagNames.has(tag.name),
+        )
+        .slice(0, 8);
 
   const loadRules = useCallback(async () => {
     setRulesLoading(true);

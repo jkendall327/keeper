@@ -1,27 +1,19 @@
-import { Suspense, useState, useCallback, useRef, useMemo } from 'react';
+import { Suspense, useState, useCallback } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
 import { useDisplayedNotes } from './hooks/useDisplayedNotes.ts';
 import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
 import { useExtensionBadge } from './hooks/useExtensionBadge.ts';
 import { useIsMobile } from './hooks/useIsMobile.ts';
-import { useQuickCaptureShortcut, useSearchFocusShortcut } from './hooks/useAppShortcuts.ts';
 import { useWebShareTarget } from './hooks/useWebShareTarget.ts';
 import { AppHeader } from './components/AppHeader.tsx';
-import { QuickAdd } from './components/QuickAdd.tsx';
-import { NoteGrid } from './components/NoteGrid.tsx';
-import { NoteModal } from './components/NoteModal.tsx';
+import { ChatPanel } from './components/ChatPanel.tsx';
 import { ExportModal } from './components/ExportModal.tsx';
-import { SearchBar } from './components/SearchBar.tsx';
+import { NotesPanel } from './components/NotesPanel.tsx';
 import { Sidebar, type FilterType } from './components/Sidebar.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
-import { ChatView } from './components/ChatView.tsx';
-import { Icon } from './components/Icon.tsx';
-import { getLLMClient, getApiKey } from './llm/client.ts';
-import { getDB } from './db/db-client.ts';
 import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
-import type { CreateNoteInput, NoteWithTags } from './db/types.ts';
-import type { NoteCommands } from './components/note-commands.ts';
+import type { NoteWithTags } from './db/types.ts';
 
 interface AppContentProps {
   allTags: ReturnType<typeof useDB>['allTags'];
@@ -78,11 +70,6 @@ function AppContent({
   onSidebarClose,
   isMobile,
 }: AppContentProps) {
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const quickAddRef = useRef<HTMLTextAreaElement>(null);
-  useSearchFocusShortcut(searchInputRef);
-
-  const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [autoApplyActiveTag, setAutoApplyActiveTagState] = useState(getAutoApplyActiveTag);
   const {
@@ -91,67 +78,6 @@ function AppContent({
     linkPreviewFetchEnabled,
     onAppSettingsChange,
   } = useExtensionBadge(extensionNoteCreatedCount);
-
-  // Keep selectedNote in sync with latest data from displayed notes
-  // (using displayedNotes so archived notes are findable in archive view)
-  const currentNote = selectedNote !== null
-    ? displayedNotes.find((n) => n.id === selectedNote.id) ?? null
-    : null;
-
-  const clearSelection = useCallback(() => {
-    setSelectedNoteIds(new Set());
-  }, [setSelectedNoteIds]);
-
-  useQuickCaptureShortcut({
-    clearSelection,
-    quickAddRef,
-    searchInputRef,
-    selectedNote,
-    setActiveFilter,
-    setSearchQuery,
-    showSettings,
-  });
-
-  const handleBulkSelect = useCallback((ids: Set<string>) => {
-    setSelectedNoteIds(ids);
-  }, [setSelectedNoteIds]);
-
-  const activeTag = activeFilter.type === 'tag'
-    ? allTags.find((tag) => tag.id === activeFilter.tagId)
-    : undefined;
-  const isTrashView = activeFilter.type === 'trash';
-
-  const noteCommands = useMemo<NoteCommands>(() => ({
-    update: updateNote,
-    delete: isTrashView
-      ? async (id: string) => {
-          if (!window.confirm('Permanently delete this note? This cannot be undone.')) return false;
-          await deleteNote(id);
-          return true;
-        }
-      : trashNote,
-    togglePin: togglePinNote,
-    archiveOrRestore: isTrashView ? restoreNote : toggleArchiveNote,
-    addTag,
-    removeTag,
-  }), [
-    addTag,
-    deleteNote,
-    isTrashView,
-    removeTag,
-    restoreNote,
-    toggleArchiveNote,
-    togglePinNote,
-    trashNote,
-    updateNote,
-  ]);
-
-  const handleCreateNote = useCallback(async (input: CreateNoteInput) => {
-    const note = await createNote(input);
-    if (autoApplyActiveTag && activeTag !== undefined) {
-      await addTag(note.id, activeTag.name);
-    }
-  }, [activeTag, addTag, autoApplyActiveTag, createNote]);
 
   const handleAutoApplyActiveTagChange = useCallback((enabled: boolean) => {
     setAutoApplyActiveTag(enabled);
@@ -198,69 +124,32 @@ function AppContent({
       />
       <div className="app-content">
         {activeFilter.type === 'chat' ? (
-          (() => {
-            const llmClient = getLLMClient();
-            const apiKey = getApiKey();
-            if (llmClient === null || apiKey === null) {
-              return (
-                <div className="empty-state">
-                  <Icon name="key" size={48} />
-                  <p className="empty-state-text">API key required</p>
-                  <p className="empty-state-hint">Configure your OpenRouter API key in Settings to use chat</p>
-                </div>
-              );
-            }
-            return (
-              <ChatView
-                client={llmClient}
-                db={getDB()}
-                apiKey={apiKey}
-                onMutation={() => { void refresh(); }}
-              />
-            );
-          })()
+          <ChatPanel refresh={refresh} />
         ) : (
-          <>
-            <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
-            {searchQuery.trim() !== '' && (
-              <p className="search-result-count">
-                {displayedNotes.length === 0
-                  ? 'No results found'
-                  : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
-              </p>
-            )}
-            <QuickAdd ref={quickAddRef} onCreate={handleCreateNote} />
-            {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
-              <div className="empty-state">
-                <Icon name="sticky_note_2" size={48} />
-                <p className="empty-state-text">No notes yet</p>
-                <p className="empty-state-hint">Start typing above to capture a note</p>
-              </div>
-            )}
-            <NoteGrid
-              notes={displayedNotes}
-              allTags={allTags}
-              onSelect={setSelectedNote}
-              noteCommands={noteCommands}
-              selectedNoteIds={selectedNoteIds}
-              onBulkSelect={handleBulkSelect}
-              onClearSelection={clearSelection}
-              showLinkPreviews={linkPreviewDisplayEnabled}
-              isTrashView={isTrashView}
-            />
-          </>
+          <NotesPanel
+            allTags={allTags}
+            createNote={createNote}
+            updateNote={updateNote}
+            deleteNote={deleteNote}
+            togglePinNote={togglePinNote}
+            addTag={addTag}
+            removeTag={removeTag}
+            toggleArchiveNote={toggleArchiveNote}
+            trashNote={trashNote}
+            restoreNote={restoreNote}
+            activeFilter={activeFilter}
+            setActiveFilter={setActiveFilter}
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            displayedNotes={displayedNotes}
+            selectedNoteIds={selectedNoteIds}
+            setSelectedNoteIds={setSelectedNoteIds}
+            autoApplyActiveTag={autoApplyActiveTag}
+            linkPreviewDisplayEnabled={linkPreviewDisplayEnabled}
+            showSettings={showSettings}
+          />
         )}
       </div>
-      {currentNote !== null && (
-        <NoteModal
-          note={currentNote}
-          allTags={allTags}
-          noteCommands={noteCommands}
-          showLinkPreviews={linkPreviewDisplayEnabled}
-          isTrashView={isTrashView}
-          onClose={() => { setSelectedNote(null); }}
-        />
-      )}
       {showSettings && (
         <SettingsModal
           allTags={allTags}

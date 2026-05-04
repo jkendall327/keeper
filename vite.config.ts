@@ -1,5 +1,6 @@
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+import { defineConfig, type PluginOption } from "vite";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -10,5 +11,11 @@ export default defineConfig({
       "/api": "http://localhost:3001",
     },
   },
-  plugins: [react()],
+  plugins: [
+    react(),
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+    babel({
+      presets: [reactCompilerPreset()],
+    }) as PluginOption,
+  ],
 });

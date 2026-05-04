@@ -65,6 +65,18 @@ async function saveRightwardTabs({ includeCurrent }) {
 }
 
 function buildNote(info, tab) {
+  if (info.menuItemId === "save-page") {
+    return { title: tab.title || undefined, body: tab.url || "" };
+  }
+  if (info.menuItemId === "save-image") {
+    return { body: info.srcUrl || "" };
+  }
+  if (info.menuItemId === "save-link") {
+    return { body: info.linkUrl || "" };
+  }
+  if (info.menuItemId === "save-selection") {
+    return { body: info.selectionText || "" };
+  }
   if (info.selectionText) {
     return { body: info.selectionText };
   }
@@ -82,7 +94,7 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({
     id: "save-page",
     title: "Save page to Keeper",
-    contexts: ["page"],
+    contexts: ["page", "image"],
   });
   chrome.contextMenus.create({
     id: "save-link",

@@ -11,7 +11,7 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function mockFetch(body: unknown = {}): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn((..._args: Parameters<typeof fetch>) => Promise.resolve(jsonResponse(body)));
-  globalThis.fetch = fetchMock as unknown as typeof fetch;
+  globalThis.fetch = fetchMock;
   return fetchMock;
 }
 
@@ -90,12 +90,12 @@ describe("KeeperDB HTTP client contract", () => {
   it("maps 404 nullable reads to null and non-ok responses to errors", async () => {
     const notFound = vi.fn((..._args: Parameters<typeof fetch>) =>
       Promise.resolve(jsonResponse({ error: "missing" }, 404)));
-    globalThis.fetch = notFound as unknown as typeof fetch;
+    globalThis.fetch = notFound;
     await expect(getDB().getNote(toNoteId("missing"))).resolves.toBeNull();
 
     const broken = vi.fn((..._args: Parameters<typeof fetch>) =>
       Promise.resolve(jsonResponse({ error: "bad" }, 500)));
-    globalThis.fetch = broken as unknown as typeof fetch;
+    globalThis.fetch = broken;
     await expect(getDB().getAllNotes()).rejects.toThrow("GET /api/notes: 500");
   });
 });

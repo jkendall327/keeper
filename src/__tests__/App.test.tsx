@@ -435,7 +435,7 @@ describe('App Integration Tests', () => {
     await user.keyboard('{/Control}');
 
     // Note A should be selected
-    const cardA = noteA.closest('.note-card');
+    const cardA = screen.getByText('Note A').closest('.note-card');
     if (cardA === null) throw new Error('Card A not found');
     expect(cardA).toHaveClass('note-card-selected');
 
@@ -449,20 +449,24 @@ describe('App Integration Tests', () => {
     await user.keyboard('{/Control}');
 
     // Both A and B should be selected
-    const cardB = noteB.closest('.note-card');
+    const cardB = screen.getByText('Note B').closest('.note-card');
     if (cardB === null) throw new Error('Card B not found');
     expect(cardA).toHaveClass('note-card-selected');
     expect(cardB).toHaveClass('note-card-selected');
 
     // Ctrl-click A again to deselect
     await user.keyboard('{Control>}');
-    await user.click(noteA);
+    await user.click(screen.getByText('Note A'));
     await user.keyboard('{/Control}');
 
     // A deselected, B still selected
     await waitFor(() => {
-      expect(cardA).not.toHaveClass('note-card-selected');
-      expect(cardB).toHaveClass('note-card-selected');
+      const deselectedCardA = screen.getByText('Note A').closest('.note-card');
+      const stillSelectedCardB = screen.getByText('Note B').closest('.note-card');
+      if (deselectedCardA === null) throw new Error('Card A not found after deselection');
+      if (stillSelectedCardB === null) throw new Error('Card B not found after deselection');
+      expect(deselectedCardA).not.toHaveClass('note-card-selected');
+      expect(stillSelectedCardB).toHaveClass('note-card-selected');
     });
   });
 
@@ -545,7 +549,7 @@ describe('App Integration Tests', () => {
     await user.click(noteA);
     await user.keyboard('{/Control}');
 
-    const cardA = noteA.closest('.note-card');
+    const cardA = screen.getByText('Note A').closest('.note-card');
     if (cardA === null) throw new Error('Card A not found');
     expect(cardA).toHaveClass('note-card-selected');
 
@@ -557,18 +561,24 @@ describe('App Integration Tests', () => {
     expect(screen.queryByPlaceholderText('Title')).not.toBeInTheDocument();
 
     // Both notes should now be selected
-    const cardB = noteB.closest('.note-card');
+    const selectedCardA = screen.getByText('Note A').closest('.note-card');
+    const cardB = screen.getByText('Note B').closest('.note-card');
+    if (selectedCardA === null) throw new Error('Card A not found after selection');
     if (cardB === null) throw new Error('Card B not found');
-    expect(cardA).toHaveClass('note-card-selected');
+    expect(selectedCardA).toHaveClass('note-card-selected');
     expect(cardB).toHaveClass('note-card-selected');
 
     // Plain click on Note A again — should deselect it
-    await user.click(noteA);
-    expect(cardA).not.toHaveClass('note-card-selected');
-    expect(cardB).toHaveClass('note-card-selected');
+    await user.click(screen.getByText('Note A'));
+    const deselectedCardA = screen.getByText('Note A').closest('.note-card');
+    const stillSelectedCardB = screen.getByText('Note B').closest('.note-card');
+    if (deselectedCardA === null) throw new Error('Card A not found after deselection');
+    if (stillSelectedCardB === null) throw new Error('Card B not found after deselection');
+    expect(deselectedCardA).not.toHaveClass('note-card-selected');
+    expect(stillSelectedCardB).toHaveClass('note-card-selected');
 
     // Deselect Note B — should exit selection mode
-    await user.click(noteB);
+    await user.click(screen.getByText('Note B'));
     await waitFor(() => {
       expect(screen.queryByLabelText('Selected')).not.toBeInTheDocument();
     });
@@ -706,13 +716,11 @@ describe('App Integration Tests', () => {
 
     await user.type(input, 'Tagged work note');
     await user.keyboard('{Enter}');
-    const taggedNote = await screen.findByText('Tagged work note');
-
     await user.type(input, 'Plain untagged note');
     await user.keyboard('{Enter}');
     await screen.findByText('Plain untagged note');
 
-    await user.click(taggedNote);
+    await user.click(await screen.findByText('Tagged work note'));
     const tagInput = await screen.findByPlaceholderText('Add tag...');
     await user.type(tagInput, 'work');
     await user.keyboard('{Enter}');
@@ -1434,14 +1442,15 @@ describe('App Integration Tests', () => {
     // Mock ResizeObserver to invoke the callback, and mock scrollHeight > clientHeight
     const originalRO = globalThis.ResizeObserver;
     let observedCallback: (() => void) | null = null;
-    globalThis.ResizeObserver = class {
+    class MockResizeObserver {
       constructor(cb: ResizeObserverCallback) {
-        observedCallback = () => { cb([], this as unknown as ResizeObserver); };
+        observedCallback = () => { cb([], this); };
       }
       observe() { observedCallback?.(); }
       unobserve() { /* no-op */ }
       disconnect() { /* no-op */ }
-    } as unknown as typeof ResizeObserver;
+    }
+    globalThis.ResizeObserver = MockResizeObserver;
 
     const user = userEvent.setup();
     await renderApp();

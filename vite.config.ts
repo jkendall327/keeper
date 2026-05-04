@@ -10,23 +10,5 @@ export default defineConfig({
       "/api": "http://localhost:3001",
     },
   },
-  plugins: [
-    react({
-      babel: {
-        plugins: [
-          [
-            "babel-plugin-react-compiler",
-            {
-              compilationMode: "infer",
-              panicThreshold: "NONE",
-              environment: {
-                enableTreatRefLikeIdentifiersAsRefs: true,
-                enableTreatFunctionDepsAsConst: false,
-              },
-            },
-          ],
-        ],
-      },
-    }),
-  ],
+  plugins: [react()],
 });

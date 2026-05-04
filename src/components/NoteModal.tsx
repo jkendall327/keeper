@@ -267,7 +267,9 @@ export function NoteModal({
   // history.back() whose async popstate is caught by the re-mounted listener,
   // immediately closing the modal.
   const saveAndCloseRef = useRef(saveAndClose);
-  saveAndCloseRef.current = saveAndClose;
+  useEffect(() => {
+    saveAndCloseRef.current = saveAndClose;
+  }, [saveAndClose]);
   const ignoreNextPopState = useRef(false);
   useEffect(() => {
     history.pushState({ noteModal: true }, '');

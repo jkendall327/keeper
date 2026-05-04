@@ -44,7 +44,7 @@ export function SettingsModal({
   const [configured, setConfigured] = useState(isLLMConfigured);
   const [saved, setSaved] = useState(false);
   const [rules, setRules] = useState<AutoTagRule[]>([]);
-  const [rulesLoading, setRulesLoading] = useState(false);
+  const [rulesLoading, setRulesLoading] = useState(true);
   const [pattern, setPattern] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const tagDraftRef = useRef(tagDraft);
@@ -90,8 +90,23 @@ export function SettingsModal({
   }, []);
 
   useEffect(() => {
-    void loadRules();
-  }, [loadRules]);
+    let cancelled = false;
+    void getDB()
+      .getAutoTagRules()
+      .then((nextRules) => {
+        if (!cancelled) {
+          setRules(nextRules);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setRulesLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

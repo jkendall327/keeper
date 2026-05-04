@@ -674,6 +674,7 @@
 }
 
 .note-card-pin,
+.note-card-copy,
 .note-card-archive,
 .note-card-delete,
 .note-card-tag-btn {
@@ -690,6 +691,7 @@
 }
 
 .note-card-pin .material-symbols-outlined,
+.note-card-copy .material-symbols-outlined,
 .note-card-archive .material-symbols-outlined,
 .note-card-delete .material-symbols-outlined,
 .note-card-tag-btn .material-symbols-outlined {
@@ -701,6 +703,7 @@
 }
 
 .note-card-pin:hover,
+.note-card-copy:hover,
 .note-card-archive:hover,
 .note-card-delete:hover,
 .note-card-tag-btn:hover {

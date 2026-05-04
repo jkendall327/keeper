@@ -28,6 +28,7 @@ interface NoteCardProps {
 export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTogglePin, onToggleArchive, onUpdate, onAddTag, onRemoveTag, isSelected, showLinkPreviews, isTrashView, onRestore }: NoteCardProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const [isTruncated, setIsTruncated] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [showTagApplier, setShowTagApplier] = useState(false);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const closeTagApplier = useCallback(() => { setShowTagApplier(false); }, []);
@@ -81,6 +82,17 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
   const handleCheckboxToggle = (newBody: string) => {
     void onUpdate({ id: note.id, body: newBody });
   };
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(note.body);
+      setCopied(true);
+      setTimeout(() => { setCopied(false); }, 1500);
+    } catch (err) {
+      console.error('Failed to copy note:', err);
+    }
+  }, [note.body]);
+
   return (
     <div
       className={`note-card${note.pinned ? ' note-card-pinned' : ''}${isSelected === true ? ' note-card-selected' : ''}${showTagApplier ? ' note-card-tag-open' : ''}`}
@@ -193,6 +205,17 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, onDelete, onTog
               anchorRef={tagBtnRef}
             />
           )}
+          <button
+            className="note-card-copy"
+            onClick={(e) => {
+              e.stopPropagation();
+              void handleCopy();
+            }}
+            aria-label="Copy note"
+            title={copied ? 'Copied' : 'Copy note'}
+          >
+            <Icon name={copied ? 'check' : 'content_copy'} />
+          </button>
           {isTrashView === true ? (
             <button
               className="note-card-archive"

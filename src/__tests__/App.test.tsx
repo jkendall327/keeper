@@ -168,6 +168,31 @@ describe('App Integration Tests', () => {
     });
   });
 
+  it('copies note content from the note card action', async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(() => Promise.resolve());
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+    await renderApp();
+
+    const input = await screen.findByPlaceholderText('Take a note...');
+    await user.type(input, 'Copy me');
+    await user.keyboard('{Enter}');
+
+    const noteText = await screen.findByText('Copy me');
+    const noteCard = noteText.closest('.note-card');
+    if (noteCard === null) throw new Error('Note card not found');
+
+    const copyBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Copy note"]');
+    if (copyBtn === null) throw new Error('Copy button not found');
+    await user.click(copyBtn);
+
+    expect(writeText).toHaveBeenCalledWith('Copy me');
+    expect(screen.queryByPlaceholderText('Add tag...')).not.toBeInTheDocument();
+  });
+
   it('shows multiple notes', async () => {
     const user = userEvent.setup();
     await renderApp();

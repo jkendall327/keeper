@@ -1,5 +1,5 @@
 import type { SqliteDb, SqlRow } from "./sqlite-db.ts";
-import { SCHEMA_SQL } from "./schema.ts";
+import { migrate } from "./migrations.ts";
 import { toNoteId } from "./types.ts";
 import { containsUrl, extractSingleUrl, extractUrls } from "./url-detect.ts";
 import type {
@@ -34,51 +34,7 @@ export interface KeeperDBDeps {
 export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
   const { db, generateId, now } = deps;
 
-  // Initialize base schema
-  db.execRaw(SCHEMA_SQL);
-
-  // Migration: Add pinned column if it doesn't exist (for existing databases)
-  const columns = db.query("PRAGMA table_info(notes)");
-  const hasPinnedColumn = columns.some((col) => col["name"] === "pinned");
-  if (!hasPinnedColumn) {
-    db.execRaw(
-      "ALTER TABLE notes ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0",
-    );
-  }
-
-  // Create the pinned index (handled separately from main schema for migration compatibility)
-  db.execRaw("CREATE INDEX IF NOT EXISTS idx_notes_pinned ON notes(pinned)");
-
-  // Migration: Add archived column if it doesn't exist (for existing databases)
-  const hasArchivedColumn = columns.some((col) => col["name"] === "archived");
-  if (!hasArchivedColumn) {
-    db.execRaw(
-      "ALTER TABLE notes ADD COLUMN archived INTEGER NOT NULL DEFAULT 0",
-    );
-  }
-
-  db.execRaw(
-    "CREATE INDEX IF NOT EXISTS idx_notes_archived ON notes(archived)",
-  );
-
-  // Migration: Add trashed column if it doesn't exist (for existing databases)
-  const hasTrashedColumn = columns.some((col) => col["name"] === "trashed");
-  if (!hasTrashedColumn) {
-    db.execRaw(
-      "ALTER TABLE notes ADD COLUMN trashed INTEGER NOT NULL DEFAULT 0",
-    );
-  }
-
-  db.execRaw(
-    "CREATE INDEX IF NOT EXISTS idx_notes_trashed ON notes(trashed)",
-  );
-
-  // Migration: Add icon column to tags table if it doesn't exist
-  const tagColumns = db.query("PRAGMA table_info(tags)");
-  const hasIconColumn = tagColumns.some((col) => col["name"] === "icon");
-  if (!hasIconColumn) {
-    db.execRaw("ALTER TABLE tags ADD COLUMN icon TEXT DEFAULT NULL");
-  }
+  migrate(db);
 
   // ── Helpers ───────────────────────────────────────────────────
 

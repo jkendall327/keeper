@@ -1,6 +1,7 @@
 import { Suspense, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import './App.css';
 import { useDB } from './hooks/useDB.ts';
+import { useDisplayedNotes } from './hooks/useDisplayedNotes.ts';
 import { QuickAdd } from './components/QuickAdd.tsx';
 import { NoteGrid } from './components/NoteGrid.tsx';
 import { NoteModal } from './components/NoteModal.tsx';
@@ -386,7 +387,6 @@ function App() {
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<string>>(new Set());
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
   const [searchQuery, setSearchQuery] = useState('');
-  const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(dbNotes);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
   const [autoTagStatus, setAutoTagStatus] = useState('');
@@ -396,58 +396,18 @@ function App() {
 
   const isArchiveView = activeFilter.type === 'archive';
   const isTrashView = activeFilter.type === 'trash';
-  const displayedNoteIds = useMemo(() => displayedNotes.map((n) => n.id), [displayedNotes]);
-
-  // Update displayed notes based on search query and active filter
-  useEffect(() => {
-    let cancelled = false;
-    const loadNotes = async () => {
-      let notes_: NoteWithTags[];
-      if (searchQuery.trim() !== '') {
-        notes_ = await search(searchQuery);
-      } else {
-        switch (activeFilter.type) {
-          case 'all':
-            notes_ = dbNotes;
-            break;
-          case 'untagged':
-            notes_ = await getUntaggedNotes();
-            break;
-          case 'archive':
-            notes_ = await getArchivedNotes();
-            break;
-          case 'trash':
-            notes_ = await getTrashedNotes();
-            break;
-          case 'links':
-            notes_ = await getLinkedNotes();
-            break;
-          case 'tag':
-            notes_ = await getNotesForTag(activeFilter.tagId);
-            break;
-          case 'chat':
-            notes_ = [];
-            break;
-        }
-      }
-      if (cancelled) return;
-      setDisplayedNotes(notes_);
-    };
-    void loadNotes();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    searchQuery,
+  const displayedNotes = useDisplayedNotes({
     activeFilter,
     dbNotes,
-    search,
     getArchivedNotes,
+    getLinkedNotes,
+    getNotesForTag,
     getTrashedNotes,
     getUntaggedNotes,
-    getNotesForTag,
-    getLinkedNotes,
-  ]);
+    search,
+    searchQuery,
+  });
+  const displayedNoteIds = useMemo(() => displayedNotes.map((n) => n.id), [displayedNotes]);
 
   // Handle Web Share Target: when opened via /share?title=...&text=...&url=...
   useEffect(() => {

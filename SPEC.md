@@ -1,4 +1,4 @@
-# Google Keep Clone - Clean Specification
+# Keeper
 
 ## 1. Overview & Goals
 
@@ -33,7 +33,7 @@ A temporary holding area for:
 - No "Create Note" button needed
 
 **Note Fields:**
-- `title` (optional): Auto-generated from first 50 chars of body or timestamp if left blank
+- `title` (optional)
 - `body` (required): Plain text stored as Markdown
 - `tags`: Array of tag associations
 - `created_at`, `updated_at`: Timestamps
@@ -89,9 +89,6 @@ A temporary holding area for:
 - `[ ]` renders as unchecked checkbox (clickable)
 - `[x]` renders as checked checkbox (clickable)
 - Clicking checkbox updates underlying Markdown
-
-**Library:**
-- Use `markdown-it` or `remark` (either is acceptable)
 
 ### 2.5 Export System
 
@@ -249,12 +246,6 @@ WHERE id NOT IN (SELECT note_id FROM note_tags);
 
 The following features are explicitly deferred or not wanted:
 
-**Deferred to Future:**
-- Link extractor export mode (regex-parse URLs into bulleted list)
-- Advanced export formats (JSON, per-note markdown files)
-- Auto-detection of #tags from body text (may add later; separate tag UI is primary)
-
-**Explicitly Not Wanted:**
 - Multi-user support / authentication
 - Audio notes
 - Drawing features
@@ -288,14 +279,6 @@ The MVP is complete when:
 - Image paste: < 200ms to write to OPFS
 
 ### Browser Compatibility
-The user only uses Vivaldi so that's the priority. But we should be able to support Chromium browsers and Firefox.
+The user only uses Vivaldi so that's the priority.
+But we should be able to support Chromium browsers and Firefox.
 I don't care about Safari or any other browser.
-
-### Development Approach
-1. Set up SQLite in Web Worker with OPFS
-2. Build basic CRUD operations for notes
-3. Implement tag system
-4. Add FTS5 search
-5. Build export functionality
-6. Add image paste/storage
-7. Implement markdown preview with checkbox interactivity

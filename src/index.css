@@ -62,13 +62,6 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
-  .note-card {
-    background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-  .note-card-pinned {
-    background: #f8f8ff;
-  }
   .modal-panel {
     background: #ffffff;
   }

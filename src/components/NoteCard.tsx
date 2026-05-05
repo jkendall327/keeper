@@ -6,6 +6,7 @@ import { NoteActions } from './NoteActions.tsx';
 import { TagApplier } from './TagApplier.tsx';
 import { getImageUrl } from '../utils/image-url.ts';
 import type { NoteCommands } from './note-commands.ts';
+import styles from './NoteCard.module.css';
 
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
@@ -19,6 +20,10 @@ interface NoteCardProps {
   isSelected?: boolean;
   showLinkPreviews: boolean;
   isTrashView?: boolean;
+}
+
+function cx(...classes: (string | false)[]) {
+  return classes.filter(Boolean).join(' ');
 }
 
 export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, isSelected, showLinkPreviews, isTrashView }: NoteCardProps) {
@@ -80,7 +85,15 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
 
   return (
     <div
-      className={`note-card${note.pinned ? ' note-card-pinned' : ''}${isSelected === true ? ' note-card-selected' : ''}${showTagApplier ? ' note-card-tag-open' : ''}`}
+      className={cx(
+        styles.card,
+        'note-card',
+        note.pinned && styles.pinned,
+        note.pinned && 'note-card-pinned',
+        isSelected === true && 'note-card-selected',
+        showTagApplier && styles.tagOpen,
+        showTagApplier && 'note-card-tag-open',
+      )}
       data-note-id={note.id}
       role="button"
       tabIndex={0}
@@ -115,9 +128,9 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
           </svg>
         </span>
       )}
-      <div className="note-card-actions-top">
+      <div className={styles.topActions}>
         <button
-          className="note-card-pin"
+          className={cx(styles.iconButton, 'note-card-pin')}
           onClick={(e) => {
             e.stopPropagation();
             void noteCommands.togglePin(note.id);
@@ -125,51 +138,51 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
           aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
           title={note.pinned ? 'Unpin note' : 'Pin note'}
         >
-          <Icon name="push_pin" className={note.pinned ? 'icon-filled' : ''} />
+          <Icon name="push_pin" className={note.pinned ? styles.filledIcon : ''} />
         </button>
       </div>
-      {note.title !== '' && <h3 className="note-card-title">{note.title}</h3>}
+      {note.title !== '' && <h3 className={styles.title}>{note.title}</h3>}
       {(() => {
         const imageUrl =
           getImageUrl(note.body) ??
           (showLinkPreviews && note.link_preview?.status === 'found' ? note.link_preview.image_url : null);
         if (imageUrl !== null) {
           return (
-            <div className="note-card-body">
+            <div className={cx(styles.body, 'note-card-body')}>
               <img src={imageUrl} alt={note.title !== '' ? note.title : 'Image note'} loading="lazy" />
             </div>
           );
         }
         return (
           <>
-            <div ref={bodyRef} className="note-card-body">
+            <div ref={bodyRef} className={cx(styles.body, 'note-card-body')}>
               <MarkdownPreview
                 content={note.body}
                 onCheckboxToggle={handleCheckboxToggle}
               />
             </div>
-            {isTruncated && <span className="note-card-truncation">[...]</span>}
+            {isTruncated && <span className={cx(styles.truncation, 'note-card-truncation')}>[...]</span>}
           </>
         );
       })()}
       {note.tags.length > 0 && (
-        <div className="note-card-tags">
+        <div className={styles.tags}>
           {note.tags.map((tag) => (
-            <span key={tag.id} className="note-card-tag">
+            <span key={tag.id} className={cx(styles.tag, 'note-card-tag')}>
               <Icon name={tagDisplayIcon(tag)} size={14} />
               {tag.name}
             </span>
           ))}
         </div>
       )}
-      <div className="note-card-footer">
-        <time className="note-card-time">
+      <div className={styles.footer}>
+        <time className={styles.time}>
           {new Date(note.updated_at + 'Z').toLocaleDateString()}
         </time>
-        <div className="note-card-actions-bottom">
+        <div className={styles.bottomActions}>
           <button
             ref={tagBtnRef}
-            className="note-card-tag-btn"
+            className={cx(styles.iconButton, 'note-card-tag-btn')}
             onClick={(e) => {
               e.stopPropagation();
               setShowTagApplier((v) => !v);
@@ -192,7 +205,9 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
           )}
           <NoteActions
             note={note}
-            className="note-card-actions-inline"
+            className={cx(styles.inlineActions, 'note-card-actions-inline')}
+            buttonClassName={styles.iconButton}
+            filledIconClassName={styles.filledIcon}
             noteCommands={noteCommands}
             {...(isTrashView !== undefined ? { isTrashView } : {})}
           />

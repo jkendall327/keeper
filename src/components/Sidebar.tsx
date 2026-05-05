@@ -57,7 +57,10 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
   };
 
   return (
-    <aside className={cx(styles.sidebar, 'sidebar', isOpen === true && styles.open, isOpen === true && 'sidebar-open')}>
+    <aside
+      className={cx(styles.sidebar, 'sidebar', isOpen === true && styles.open, isOpen === true && 'sidebar-open')}
+      aria-label="Sidebar"
+    >
       <nav className={styles.nav}>
         <button
           className={cx(styles.tab, 'sidebar-tab', isActive({ type: 'all' }) && styles.tabActive, isActive({ type: 'all' }) && 'sidebar-tab-active')}

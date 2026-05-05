@@ -50,6 +50,20 @@ async function renderApp() {
   await act(async () => { render(<App />); });
 }
 
+function getNoteCardByText(text: string | RegExp) {
+  const card = screen.getByText(text).closest<HTMLElement>('[data-note-id][role="button"]');
+  if (card === null) throw new Error(`Note card not found for ${String(text)}`);
+  return card;
+}
+
+function getSidebar() {
+  return screen.getByRole('complementary', { name: 'Sidebar' });
+}
+
+function getSidebarTagButton(name: string) {
+  return within(getSidebar()).getByRole('button', { name });
+}
+
 describe('App Integration Tests', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -122,8 +136,7 @@ describe('App Integration Tests', () => {
 
     await user.click(await screen.findByAltText('Image note'));
 
-    const modal = document.querySelector<HTMLElement>('.modal-panel');
-    if (modal === null) throw new Error('Modal not found');
+    const modal = screen.getByRole('dialog', { name: 'Edit note' });
 
     await user.click(within(modal).getByRole('button', { name: 'Open image preview' }));
 
@@ -133,7 +146,7 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Escape}');
 
     expect(screen.queryByRole('dialog', { name: 'Image preview' })).not.toBeInTheDocument();
-    expect(document.querySelector('.modal-panel')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Edit note' })).toBeInTheDocument();
   });
 
   it('adds and removes tags', async () => {
@@ -239,23 +252,20 @@ describe('App Integration Tests', () => {
     await user.click(await screen.findByText('Target note'));
     const targetTagInput = await screen.findByPlaceholderText('Add tag...');
     await user.click(targetTagInput);
+    const noteDialog = screen.getByRole('dialog', { name: 'Edit note' });
 
-    const popularSuggestions = await waitFor(() => Array.from(
-      document.querySelectorAll<HTMLElement>('.modal-tag-suggestion'),
-    ).map((element) => element.textContent));
+    const popularSuggestions = await waitFor(() => within(noteDialog).getAllByRole('option').map((element) => element.textContent));
     expect(popularSuggestions).toEqual(['work', 'alpha']);
 
     await user.type(targetTagInput, 'la');
     await waitFor(() => {
-      const filteredSuggestions = Array.from(
-        document.querySelectorAll<HTMLElement>('.modal-tag-suggestion'),
-      ).map((element) => element.textContent);
+      const filteredSuggestions = within(noteDialog).getAllByRole('option').map((element) => element.textContent);
       expect(filteredSuggestions).toEqual(['later']);
     });
 
     await user.clear(targetTagInput);
     const workSuggestion = await waitFor(() => {
-      const suggestion = Array.from(document.querySelectorAll<HTMLElement>('.modal-tag-suggestion')).find(
+      const suggestion = within(noteDialog).getAllByRole('option').find(
         (element) => element.textContent === 'work',
       );
       if (suggestion === undefined) throw new Error('work suggestion not found');
@@ -284,14 +294,13 @@ describe('App Integration Tests', () => {
     await user.click(await screen.findByText('Suggestions disabled note'));
     const disabledTagInput = await screen.findByPlaceholderText('Add tag...');
     await user.click(disabledTagInput);
+    const disabledNoteDialog = screen.getByRole('dialog', { name: 'Edit note' });
 
-    expect(document.querySelectorAll('.modal-tag-suggestion')).toHaveLength(0);
+    expect(within(disabledNoteDialog).queryAllByRole('option')).toHaveLength(0);
 
     await user.type(disabledTagInput, 'alp');
     await waitFor(() => {
-      const filteredSuggestions = Array.from(
-        document.querySelectorAll<HTMLElement>('.modal-tag-suggestion'),
-      ).map((element) => element.textContent);
+      const filteredSuggestions = within(disabledNoteDialog).getAllByRole('option').map((element) => element.textContent);
       expect(filteredSuggestions).toEqual(['alpha']);
     });
   });
@@ -333,9 +342,8 @@ describe('App Integration Tests', () => {
     await user.type(input, 'Copy me');
     await user.keyboard('{Enter}');
 
-    const noteText = await screen.findByText('Copy me');
-    const noteCard = noteText.closest('.note-card');
-    if (noteCard === null) throw new Error('Note card not found');
+    await screen.findByText('Copy me');
+    const noteCard = getNoteCardByText('Copy me');
 
     const copyBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Copy note"]');
     if (copyBtn === null) throw new Error('Copy button not found');
@@ -359,8 +367,7 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Enter}');
 
     await user.click(await screen.findByText('Copy from modal'));
-    const modal = document.querySelector<HTMLElement>('.modal-panel');
-    if (modal === null) throw new Error('Modal not found');
+    const modal = screen.getByRole('dialog', { name: 'Edit note' });
 
     const bodyInput = within(modal).getByPlaceholderText('Note');
     await user.clear(bodyInput);
@@ -387,8 +394,7 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Enter}');
 
     await user.click(await screen.findByText('Archive from modal'));
-    const modal = document.querySelector<HTMLElement>('.modal-panel');
-    if (modal === null) throw new Error('Modal not found');
+    const modal = screen.getByRole('dialog', { name: 'Edit note' });
 
     await user.click(within(modal).getByLabelText('Archive note'));
 
@@ -434,9 +440,7 @@ describe('App Integration Tests', () => {
     await screen.findByDisplayValue('Modal test');
 
     // Click backdrop
-    const backdrop = document.querySelector('.modal-backdrop');
-    if (backdrop === null) throw new Error('Backdrop not found');
-    await user.click(backdrop);
+    await user.click(screen.getByTestId('note-modal-backdrop'));
 
     // Modal closed
     await waitFor(() => {
@@ -587,9 +591,8 @@ describe('App Integration Tests', () => {
     await user.keyboard('{/Control}');
 
     // Note A should be selected
-    const cardA = screen.getByText('Note A').closest('.note-card');
-    if (cardA === null) throw new Error('Card A not found');
-    expect(cardA).toHaveClass('note-card-selected');
+    const cardA = getNoteCardByText('Note A');
+    expect(cardA).toHaveAttribute('aria-pressed', 'true');
 
     // Modal should NOT open
     expect(screen.queryByPlaceholderText('Title')).not.toBeInTheDocument();
@@ -601,10 +604,9 @@ describe('App Integration Tests', () => {
     await user.keyboard('{/Control}');
 
     // Both A and B should be selected
-    const cardB = screen.getByText('Note B').closest('.note-card');
-    if (cardB === null) throw new Error('Card B not found');
-    expect(cardA).toHaveClass('note-card-selected');
-    expect(cardB).toHaveClass('note-card-selected');
+    const cardB = getNoteCardByText('Note B');
+    expect(cardA).toHaveAttribute('aria-pressed', 'true');
+    expect(cardB).toHaveAttribute('aria-pressed', 'true');
 
     // Ctrl-click A again to deselect
     await user.keyboard('{Control>}');
@@ -613,12 +615,8 @@ describe('App Integration Tests', () => {
 
     // A deselected, B still selected
     await waitFor(() => {
-      const deselectedCardA = screen.getByText('Note A').closest('.note-card');
-      const stillSelectedCardB = screen.getByText('Note B').closest('.note-card');
-      if (deselectedCardA === null) throw new Error('Card A not found after deselection');
-      if (stillSelectedCardB === null) throw new Error('Card B not found after deselection');
-      expect(deselectedCardA).not.toHaveClass('note-card-selected');
-      expect(stillSelectedCardB).toHaveClass('note-card-selected');
+      expect(getNoteCardByText('Note A')).toHaveAttribute('aria-pressed', 'false');
+      expect(getNoteCardByText('Note B')).toHaveAttribute('aria-pressed', 'true');
     });
   });
 
@@ -654,34 +652,24 @@ describe('App Integration Tests', () => {
       const check1 = checks[1];
       const check2 = checks[2];
       if (check0 === undefined || check1 === undefined || check2 === undefined) throw new Error('Missing checks');
-      const checkCard0 = check0.closest('.note-card');
-      const checkCard1 = check1.closest('.note-card');
-      const checkCard2 = check2.closest('.note-card');
+      const checkCard0 = check0.closest('[data-note-id][role="button"]');
+      const checkCard1 = check1.closest('[data-note-id][role="button"]');
+      const checkCard2 = check2.closest('[data-note-id][role="button"]');
       if (checkCard0 === null) throw new Error('Check 0 not inside a note card');
       if (checkCard1 === null) throw new Error('Check 1 not inside a note card');
       if (checkCard2 === null) throw new Error('Check 2 not inside a note card');
-      expect(checkCard0).toHaveClass('note-card-selected');
-      expect(checkCard1).toHaveClass('note-card-selected');
-      expect(checkCard2).toHaveClass('note-card-selected');
+      expect(checkCard0).toHaveAttribute('aria-pressed', 'true');
+      expect(checkCard1).toHaveAttribute('aria-pressed', 'true');
+      expect(checkCard2).toHaveAttribute('aria-pressed', 'true');
       // Verify the specific cards are the right ones
-      const cardA2 = screen.getByText('Note A').closest('.note-card');
-      const cardB2 = screen.getByText('Note B').closest('.note-card');
-      const cardC2 = screen.getByText('Note C').closest('.note-card');
-      if (cardA2 === null) throw new Error('Card A not found');
-      if (cardB2 === null) throw new Error('Card B not found');
-      if (cardC2 === null) throw new Error('Card C not found');
-      expect(cardA2).toHaveClass('note-card-selected');
-      expect(cardB2).toHaveClass('note-card-selected');
-      expect(cardC2).toHaveClass('note-card-selected');
+      expect(getNoteCardByText('Note A')).toHaveAttribute('aria-pressed', 'true');
+      expect(getNoteCardByText('Note B')).toHaveAttribute('aria-pressed', 'true');
+      expect(getNoteCardByText('Note C')).toHaveAttribute('aria-pressed', 'true');
     });
 
     // D and E should not be selected
-    const cardD = screen.getByText('Note D').closest('.note-card');
-    const cardE = screen.getByText('Note E').closest('.note-card');
-    if (cardD === null) throw new Error('Card D not found');
-    if (cardE === null) throw new Error('Card E not found');
-    expect(cardD).not.toHaveClass('note-card-selected');
-    expect(cardE).not.toHaveClass('note-card-selected');
+    expect(getNoteCardByText('Note D')).toHaveAttribute('aria-pressed', 'false');
+    expect(getNoteCardByText('Note E')).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('plain click in selection mode toggles selection instead of opening modal', async () => {
@@ -701,9 +689,8 @@ describe('App Integration Tests', () => {
     await user.click(noteA);
     await user.keyboard('{/Control}');
 
-    const cardA = screen.getByText('Note A').closest('.note-card');
-    if (cardA === null) throw new Error('Card A not found');
-    expect(cardA).toHaveClass('note-card-selected');
+    const cardA = getNoteCardByText('Note A');
+    expect(cardA).toHaveAttribute('aria-pressed', 'true');
 
     // Plain click on Note B — should add it to selection (not open modal)
     const noteB = await screen.findByText('Note B');
@@ -713,21 +700,13 @@ describe('App Integration Tests', () => {
     expect(screen.queryByPlaceholderText('Title')).not.toBeInTheDocument();
 
     // Both notes should now be selected
-    const selectedCardA = screen.getByText('Note A').closest('.note-card');
-    const cardB = screen.getByText('Note B').closest('.note-card');
-    if (selectedCardA === null) throw new Error('Card A not found after selection');
-    if (cardB === null) throw new Error('Card B not found');
-    expect(selectedCardA).toHaveClass('note-card-selected');
-    expect(cardB).toHaveClass('note-card-selected');
+    expect(getNoteCardByText('Note A')).toHaveAttribute('aria-pressed', 'true');
+    expect(getNoteCardByText('Note B')).toHaveAttribute('aria-pressed', 'true');
 
     // Plain click on Note A again — should deselect it
     await user.click(screen.getByText('Note A'));
-    const deselectedCardA = screen.getByText('Note A').closest('.note-card');
-    const stillSelectedCardB = screen.getByText('Note B').closest('.note-card');
-    if (deselectedCardA === null) throw new Error('Card A not found after deselection');
-    if (stillSelectedCardB === null) throw new Error('Card B not found after deselection');
-    expect(deselectedCardA).not.toHaveClass('note-card-selected');
-    expect(stillSelectedCardB).toHaveClass('note-card-selected');
+    expect(getNoteCardByText('Note A')).toHaveAttribute('aria-pressed', 'false');
+    expect(getNoteCardByText('Note B')).toHaveAttribute('aria-pressed', 'true');
 
     // Deselect Note B — should exit selection mode
     await user.click(screen.getByText('Note B'));
@@ -878,15 +857,7 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Enter}');
     await user.keyboard('{Escape}');
 
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar === null) throw new Error('Sidebar not found');
-    const workTag = await waitFor(() => {
-      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
-        (button) => button.textContent === 'work',
-      );
-      if (tagButton === undefined) throw new Error('work tag not found');
-      return tagButton;
-    });
+    const workTag = await waitFor(() => getSidebarTagButton('work'));
 
     await user.click(workTag);
 
@@ -921,15 +892,7 @@ describe('App Integration Tests', () => {
       expect(archiveTaggedBtn).toBeEnabled();
     });
 
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar === null) throw new Error('Sidebar not found');
-    const workTag = await waitFor(() => {
-      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
-        (button) => button.textContent === 'work',
-      );
-      if (tagButton === undefined) throw new Error('work tag not found');
-      return tagButton;
-    });
+    const workTag = await waitFor(() => getSidebarTagButton('work'));
 
     await user.click(workTag);
     expect(screen.queryByRole('button', { name: 'Archive tagged notes' })).not.toBeInTheDocument();
@@ -967,22 +930,14 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Enter}');
     await user.keyboard('{Escape}');
 
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar === null) throw new Error('Sidebar not found');
-    const fooTag = await waitFor(() => {
-      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
-        (button) => button.textContent === 'foo',
-      );
-      if (tagButton === undefined) throw new Error('foo tag not found');
-      return tagButton;
-    });
+    const fooTag = await waitFor(() => getSidebarTagButton('foo'));
 
     await user.click(fooTag);
     await user.click(await screen.findByText('Former foo note'));
     await user.click(await screen.findByLabelText('Remove tag foo'));
 
     await waitFor(() => {
-      expect(document.querySelector('.modal-panel')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Edit note' })).not.toBeInTheDocument();
       expect(screen.queryByText('Former foo note')).not.toBeInTheDocument();
     });
 
@@ -990,7 +945,7 @@ describe('App Integration Tests', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Former foo note')).toBeInTheDocument();
-      expect(document.querySelector('.modal-panel')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Edit note' })).not.toBeInTheDocument();
     });
   });
 
@@ -1012,25 +967,17 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Escape}');
 
     await waitFor(() => {
-      expect(document.querySelector('.modal-panel')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Edit note' })).not.toBeInTheDocument();
       expect(screen.queryByText('New foo note')).not.toBeInTheDocument();
     });
 
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar === null) throw new Error('Sidebar not found');
-    const fooTag = await waitFor(() => {
-      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
-        (button) => button.textContent === 'foo',
-      );
-      if (tagButton === undefined) throw new Error('foo tag not found');
-      return tagButton;
-    });
+    const fooTag = await waitFor(() => getSidebarTagButton('foo'));
 
     await user.click(fooTag);
 
     await waitFor(() => {
       expect(screen.getByText('New foo note')).toBeInTheDocument();
-      expect(document.querySelector('.modal-panel')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog', { name: 'Edit note' })).not.toBeInTheDocument();
     });
   });
 
@@ -1047,15 +994,7 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Enter}');
     await user.keyboard('{Escape}');
 
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar === null) throw new Error('Sidebar not found');
-    const catsTag = await waitFor(() => {
-      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
-        (button) => button.textContent === 'cats',
-      );
-      if (tagButton === undefined) throw new Error('cats tag not found');
-      return tagButton;
-    });
+    const catsTag = await waitFor(() => getSidebarTagButton('cats'));
 
     await user.click(catsTag);
     await user.type(input, 'New kitten thought');
@@ -1085,15 +1024,7 @@ describe('App Integration Tests', () => {
     await user.click(screen.getByRole('checkbox', { name: /Apply current tag to new notes/ }));
     await user.click(screen.getByLabelText('Close settings'));
 
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar === null) throw new Error('Sidebar not found');
-    const catsTag = await waitFor(() => {
-      const tagButton = Array.from(sidebar.querySelectorAll<HTMLButtonElement>('.sidebar-tag-name')).find(
-        (button) => button.textContent === 'cats',
-      );
-      if (tagButton === undefined) throw new Error('cats tag not found');
-      return tagButton;
-    });
+    const catsTag = await waitFor(() => getSidebarTagButton('cats'));
 
     await user.click(catsTag);
     await user.type(input, 'Loose kitten thought');
@@ -1257,15 +1188,7 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Escape}');
 
     // Wait for the tag to appear in the sidebar
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar === null) throw new Error('Sidebar not found');
-    await waitFor(() => {
-      expect(sidebar.textContent).toContain('oldname');
-    });
-    const sidebarTag = Array.from(sidebar.querySelectorAll('.sidebar-tag-name')).find(
-      (el) => el.textContent === 'oldname',
-    );
-    if (sidebarTag === undefined) throw new Error('Sidebar tag not found');
+    const sidebarTag = await waitFor(() => getSidebarTagButton('oldname'));
 
     // Double-click the tag name to rename
     await user.dblClick(sidebarTag);
@@ -1282,11 +1205,8 @@ describe('App Integration Tests', () => {
 
     // The tag should now be renamed in the sidebar
     await waitFor(() => {
-      const sidebarEl = document.querySelector('.sidebar');
-      if (sidebarEl === null) throw new Error('Sidebar not found');
-      const tagNames = Array.from(sidebarEl.querySelectorAll('.sidebar-tag-name')).map((el) => el.textContent);
-      expect(tagNames).toContain('newname');
-      expect(tagNames).not.toContain('oldname');
+      expect(within(getSidebar()).getByRole('button', { name: 'newname' })).toBeInTheDocument();
+      expect(within(getSidebar()).queryByRole('button', { name: 'oldname' })).not.toBeInTheDocument();
     });
   });
 
@@ -1309,10 +1229,8 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Escape}');
 
     // Wait for tag in sidebar
-    const sidebar = document.querySelector('.sidebar');
-    if (sidebar === null) throw new Error('Sidebar not found');
     await waitFor(() => {
-      expect(sidebar.textContent).toContain('removeme');
+      expect(getSidebarTagButton('removeme')).toBeInTheDocument();
     });
 
     // Find the delete button (it's always in the DOM, just hidden with opacity)
@@ -1337,14 +1255,12 @@ describe('App Integration Tests', () => {
     const hint = screen.getByText('Start typing above to capture a note');
     expect(hint).toBeInTheDocument();
 
-    // Only ONE empty state element should exist in the DOM (no duplicate from NoteGrid)
-    const allEmptyStates = document.querySelectorAll('.empty-state');
-    expect(allEmptyStates).toHaveLength(1);
-    expect(allEmptyStates[0]?.textContent).toContain('No notes yet');
+    // Only ONE notes empty state element should exist in the DOM (no duplicate from NoteGrid)
+    const emptyState = screen.getByTestId('notes-empty-state');
+    expect(screen.getAllByTestId('notes-empty-state')).toHaveLength(1);
+    expect(emptyState).toHaveTextContent('No notes yet');
 
     // The empty state container should contain a Material Symbol icon
-    const emptyState = heading.closest('.empty-state');
-    if (emptyState === null) throw new Error('Empty state container not found');
     const icon = emptyState.querySelector('.material-symbols-outlined');
     if (icon === null) throw new Error('Icon not found in empty state');
     expect(icon.textContent).toBe('sticky_note_2');
@@ -1444,10 +1360,7 @@ describe('App Integration Tests', () => {
       await user.click(settingsBtn);
       expect(screen.getByText('Settings')).toBeInTheDocument();
 
-      // Click the backdrop (modal-backdrop element)
-      const backdrop = document.querySelector('.modal-backdrop');
-      if (backdrop === null) throw new Error('Backdrop not found');
-      await user.click(backdrop);
+      await user.click(screen.getByTestId('settings-modal-backdrop'));
 
       await waitFor(() => {
         expect(screen.queryByText('Settings')).not.toBeInTheDocument();
@@ -1546,11 +1459,8 @@ describe('App Integration Tests', () => {
       const tagInput = screen.getByLabelText('Tags');
       await user.type(tagInput, 'wo');
 
-      await screen.findAllByText('work');
-      const suggestion = screen
-        .getAllByText('work')
-        .find((element) => element.classList.contains('modal-tag-suggestion'));
-      if (suggestion === undefined) throw new Error('Autotag tag suggestion not found');
+      const settingsDialog = screen.getByRole('dialog', { name: 'Settings' });
+      const suggestion = await within(settingsDialog).findByRole('option', { name: 'work' });
       await user.click(suggestion);
 
       expect(screen.getByLabelText('Remove rule tag work')).toBeInTheDocument();
@@ -1751,10 +1661,8 @@ describe('App Integration Tests', () => {
 
     await screen.findByText(/Line 1 of a very long note/);
 
-    const noteCard = screen.getByText(/Line 1 of a very long note/).closest('.note-card');
-    if (noteCard === null) throw new Error('Note card not found');
-    const bodyDiv = noteCard.querySelector('.note-card-body');
-    if (bodyDiv === null) throw new Error('Note card body div not found');
+    const noteCard = getNoteCardByText(/Line 1 of a very long note/);
+    const bodyDiv = within(noteCard).getByTestId('note-card-body');
 
     // Verify G5 fix: body wrapper is a div (ref target), containing the markdown preview
     expect(bodyDiv.tagName).toBe('DIV');
@@ -1771,8 +1679,7 @@ describe('App Integration Tests', () => {
     await act(async () => { observedCallback?.(); });
 
     // The truncation indicator [...] should now appear
-    const truncation = noteCard.querySelector('.note-card-truncation');
-    if (truncation === null) throw new Error('Truncation indicator not found');
+    const truncation = within(noteCard).getByTestId('note-card-truncation');
     expect(truncation.textContent).toBe('[...]');
 
     globalThis.ResizeObserver = originalRO;

@@ -393,10 +393,12 @@ export function NoteModal({
   }, [body]);
 
   return (
-    <div className={cx(styles.backdrop, 'modal-backdrop')} onClick={handleBackdropClick}>
+    <div className={cx(styles.backdrop, 'modal-backdrop')} data-testid="note-modal-backdrop" onClick={handleBackdropClick}>
       <div
         className={cx(styles.panel, 'modal-panel')}
         ref={panelRef}
+        role="dialog"
+        aria-label="Edit note"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
@@ -522,11 +524,12 @@ export function NoteModal({
               onKeyDown={handleTagKeyDown}
             />
             {showSuggestions && suggestions.length > 0 && (
-              <ul className={cx(styles.tagSuggestions, 'modal-tag-suggestions')}>
+              <ul className={cx(styles.tagSuggestions, 'modal-tag-suggestions')} role="listbox" aria-label="Tag suggestions">
                 {suggestions.map((tag) => (
                   <li
                     key={tag.id}
                     className={cx(styles.tagSuggestion, 'modal-tag-suggestion')}
+                    role="option"
                     onMouseDown={(e) => { e.preventDefault(); }}
                     onClick={() => {
                       handleStageTag(tag.name);

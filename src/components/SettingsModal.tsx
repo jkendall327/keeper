@@ -229,10 +229,14 @@ export function SettingsModal({
   }, [onAppSettingsChange, popularTagLimitDraft]);
 
   return (
-    <div className={cx(styles.backdrop, 'modal-backdrop')} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className={styles.modal}>
+    <div
+      className={cx(styles.backdrop, 'modal-backdrop')}
+      data-testid="settings-modal-backdrop"
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className={styles.modal} role="dialog" aria-labelledby="settings-modal-title">
         <div className={styles.header}>
-          <h2>Settings</h2>
+          <h2 id="settings-modal-title">Settings</h2>
           <button className={styles.closeBtn} onClick={onClose} aria-label="Close settings">
             <Icon name="close" size={20} />
           </button>
@@ -483,11 +487,12 @@ export function SettingsModal({
                 />
               </div>
               {showTagSuggestions && tagSuggestions.length > 0 && (
-                <ul className={cx(styles.tagSuggestions, 'modal-tag-suggestions')}>
+                <ul className={cx(styles.tagSuggestions, 'modal-tag-suggestions')} role="listbox" aria-label="Autotag tag suggestions">
                   {tagSuggestions.map((tag) => (
                     <li
                       key={tag.id}
                       className={cx(styles.tagSuggestion, 'modal-tag-suggestion')}
+                      role="option"
                       onMouseDown={(e) => { e.preventDefault(); }}
                       onClick={() => { addTagName(tag.name); }}
                     >

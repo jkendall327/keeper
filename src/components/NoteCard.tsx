@@ -97,6 +97,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
       )}
       data-note-id={note.id}
       role="button"
+      aria-pressed={isSelected === true}
       tabIndex={0}
       onClick={(e) => {
         // Don't fire click after a long press
@@ -149,20 +150,22 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
           (showLinkPreviews && note.link_preview?.status === 'found' ? note.link_preview.image_url : null);
         if (imageUrl !== null) {
           return (
-            <div className={cx(styles.body, 'note-card-body')}>
+            <div className={cx(styles.body, 'note-card-body')} data-testid="note-card-body">
               <img src={imageUrl} alt={note.title !== '' ? note.title : 'Image note'} loading="lazy" />
             </div>
           );
         }
         return (
           <>
-            <div ref={bodyRef} className={cx(styles.body, 'note-card-body')}>
+            <div ref={bodyRef} className={cx(styles.body, 'note-card-body')} data-testid="note-card-body">
               <MarkdownPreview
                 content={note.body}
                 onCheckboxToggle={handleCheckboxToggle}
               />
             </div>
-            {isTruncated && <span className={cx(styles.truncation, 'note-card-truncation')}>[...]</span>}
+            {isTruncated && (
+              <span className={cx(styles.truncation, 'note-card-truncation')} data-testid="note-card-truncation">[...]</span>
+            )}
           </>
         );
       })()}

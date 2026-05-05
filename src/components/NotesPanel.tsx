@@ -141,7 +141,7 @@ export function NotesPanel({
       )}
       <QuickAdd ref={quickAddRef} onCreate={handleCreateNote} />
       {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
-        <div className={`${styles.emptyState} empty-state`}>
+        <div className={`${styles.emptyState} empty-state`} data-testid="notes-empty-state">
           <Icon name="sticky_note_2" size={48} />
           <p className={`${styles.emptyStateText} empty-state-text`}>No notes yet</p>
           <p className={`${styles.emptyStateHint} empty-state-hint`}>Start typing above to capture a note</p>

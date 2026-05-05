@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { toNoteId, type NoteId, type NoteWithTags, type Tag } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 import type { NoteCommands } from './note-commands.ts';
+import styles from './NoteGrid.module.css';
 
 interface NoteGridProps {
   notes: NoteWithTags[];
@@ -23,6 +24,10 @@ interface DragState {
 }
 
 const DRAG_THRESHOLD = 5;
+
+function cx(...classes: (string | false)[]) {
+  return classes.filter(Boolean).join(' ');
+}
 
 export function NoteGrid({
   notes, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
@@ -219,7 +224,7 @@ export function NoteGrid({
   };
 
   const renderGroup = (group: NoteWithTags[]) => (
-    <div className="note-grid">
+    <div className={cx(styles.grid, 'note-grid')}>
       {group.map((note) => (
         <NoteCard
           key={note.id}
@@ -244,11 +249,11 @@ export function NoteGrid({
     >
       {pinnedNotes.length > 0 && renderGroup(pinnedNotes)}
       {pinnedNotes.length > 0 && regularNotes.length > 0 && (
-        <div className="note-grid-divider" />
+        <div className={styles.divider} />
       )}
       {regularNotes.length > 0 && renderGroup(regularNotes)}
       {(pinnedNotes.length > 0 || regularNotes.length > 0) && archivedNotes.length > 0 && (
-        <div className="note-grid-divider" />
+        <div className={styles.divider} />
       )}
       {archivedNotes.length > 0 && renderGroup(archivedNotes)}
       {selRect !== null && (

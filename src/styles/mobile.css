@@ -26,11 +26,6 @@
     z-index: 199;
   }
 
-  /* Single-column note grid */
-  .note-grid {
-    columns: 1;
-  }
-
   /* Full-screen note modal */
   .modal-backdrop {
     align-items: stretch;

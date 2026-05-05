@@ -1,12 +1,17 @@
-.note-grid {
+.grid {
   columns: 25ch;
   column-gap: 16px;
 }
 
-.note-grid-divider {
+.divider {
   height: 2px;
   background: rgba(128, 128, 128, 0.2);
   margin: 24px 0;
   border-radius: 1px;
 }
 
+@media (max-width: 768px) {
+  .grid {
+    columns: 1;
+  }
+}

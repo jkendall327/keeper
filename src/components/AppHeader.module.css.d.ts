@@ -5,6 +5,7 @@ declare const styles: {
   readonly "bulkCount": string;
   readonly "deleteButton": string;
   readonly "hamburgerButton": string;
+  readonly "header": string;
   readonly "left": string;
   readonly "status": string;
   readonly "tagButtonWrap": string;

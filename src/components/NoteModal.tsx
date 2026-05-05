@@ -393,26 +393,26 @@ export function NoteModal({
   }, [body]);
 
   return (
-    <div className={cx(styles.backdrop, 'modal-backdrop')} data-testid="note-modal-backdrop" onClick={handleBackdropClick}>
+    <div className={styles.backdrop} data-testid="note-modal-backdrop" onClick={handleBackdropClick}>
       <div
-        className={cx(styles.panel, 'modal-panel')}
+        className={styles.panel}
         ref={panelRef}
         role="dialog"
         aria-label="Edit note"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
-        <div className={cx(styles.editor, 'modal-editor')}>
-          <div className={cx(styles.header, 'modal-header')}>
+        <div className={styles.editor}>
+          <div className={styles.header}>
             <input
-              className={cx(styles.titleInput, 'modal-title-input')}
+              className={styles.titleInput}
               type="text"
               placeholder="Title"
               value={title}
               onChange={(e) => { setTitle(e.target.value); }}
             />
             <button
-              className={cx(styles.closeButton, 'modal-close-btn')}
+              className={styles.closeButton}
               onClick={() => { void saveAndClose(); }}
               aria-label="Close note"
             >
@@ -421,7 +421,7 @@ export function NoteModal({
           </div>
           <textarea
             ref={bodyTextareaRef}
-            className={cx(styles.bodyInput, 'modal-body-input')}
+            className={styles.bodyInput}
             placeholder="Note"
             value={body}
             onChange={handleBodyChange}
@@ -434,7 +434,7 @@ export function NoteModal({
             }}
           />
           {body.includes('media://') && (
-            <div className={cx(styles.livePreview, 'modal-body-live-preview')}>
+            <div className={styles.livePreview}>
               <MarkdownPreview content={body} onCheckboxToggle={handleCheckboxToggle} />
             </div>
           )}
@@ -446,10 +446,10 @@ export function NoteModal({
                 : null);
             if (imageUrl !== null) {
               return (
-                <div className={cx(styles.livePreview, 'modal-body-live-preview')}>
+                <div className={styles.livePreview}>
                   <button
                     type="button"
-                    className={cx(styles.imagePreviewButton, 'modal-image-preview-button')}
+                    className={styles.imagePreviewButton}
                     onClick={() => { setLightboxImageUrl(imageUrl); }}
                     aria-label="Open image preview"
                   >
@@ -461,18 +461,18 @@ export function NoteModal({
             return null;
           })()}
           {body.trim() === '' && (
-            <p className={cx(styles.emptyWarning, 'modal-empty-warning')}>This note will be deleted when closed.</p>
+            <p className={styles.emptyWarning}>This note will be deleted when closed.</p>
           )}
         </div>
-        <div className={cx(styles.tags, 'modal-tags')}>
-          <h4 className={cx(styles.tagsTitle, 'modal-tags-title')}>Tags</h4>
-          <div className={cx(styles.tagList, 'modal-tag-list')}>
+        <div className={styles.tags}>
+          <h4 className={styles.tagsTitle}>Tags</h4>
+          <div className={styles.tagList}>
             {note.tags.map((tag) => (
-              <span key={tag.id} className={cx(styles.tagChip, 'modal-tag-chip')}>
+              <span key={tag.id} className={styles.tagChip}>
                 <Icon name={tagDisplayIcon(tag)} size={14} />
                 {tag.name}
                 <button
-                  className={cx(styles.tagRemoveButton, 'modal-tag-remove')}
+                  className={styles.tagRemoveButton}
                   onClick={() => { void noteCommands.removeTag(note.id, tag.name); }}
                   aria-label={`Remove tag ${tag.name}`}
                 >
@@ -483,7 +483,7 @@ export function NoteModal({
             {pendingTagNames.map((tagName) => (
               <span
                 key={`pending-${tagName}`}
-                className={cx(styles.tagChip, styles.pendingTagChip, 'modal-tag-chip', 'modal-tag-chip-pending')}
+                className={cx(styles.tagChip, styles.pendingTagChip)}
               >
                 <Icon
                   name={tagDisplayIcon(allTags.find((tag) => tag.name === tagName) ?? { id: -1, name: tagName, icon: null })}
@@ -491,7 +491,7 @@ export function NoteModal({
                 />
                 {tagName}
                 <button
-                  className={cx(styles.tagRemoveButton, 'modal-tag-remove')}
+                  className={styles.tagRemoveButton}
                   onClick={() => { handleRemovePendingTag(tagName); }}
                   aria-label={`Remove tag ${tagName}`}
                 >
@@ -500,10 +500,10 @@ export function NoteModal({
               </span>
             ))}
           </div>
-          <div className={cx(styles.tagInputWrapper, 'modal-tag-input-wrapper')}>
+          <div className={styles.tagInputWrapper}>
             <input
               ref={tagInputRef}
-              className={cx(styles.tagInput, 'modal-tag-input')}
+              className={styles.tagInput}
               type="text"
               placeholder="Add tag..."
               value={tagInput}
@@ -524,11 +524,11 @@ export function NoteModal({
               onKeyDown={handleTagKeyDown}
             />
             {showSuggestions && suggestions.length > 0 && (
-              <ul className={cx(styles.tagSuggestions, 'modal-tag-suggestions')} role="listbox" aria-label="Tag suggestions">
+              <ul className={styles.tagSuggestions} role="listbox" aria-label="Tag suggestions">
                 {suggestions.map((tag) => (
                   <li
                     key={tag.id}
-                    className={cx(styles.tagSuggestion, 'modal-tag-suggestion')}
+                    className={styles.tagSuggestion}
                     role="option"
                     onMouseDown={(e) => { e.preventDefault(); }}
                     onClick={() => {
@@ -544,7 +544,7 @@ export function NoteModal({
           </div>
           <NoteActions
             note={note}
-            className={cx(styles.noteActions, 'modal-note-actions')}
+            className={styles.noteActions}
             copyText={body}
             includePin
             noteCommands={noteCommands}
@@ -560,7 +560,7 @@ export function NoteModal({
         </div>
         {lightboxImageUrl !== null && (
           <div
-            className={cx(styles.lightboxBackdrop, 'image-lightbox-backdrop')}
+            className={styles.lightboxBackdrop}
             role="dialog"
             aria-modal="true"
             aria-label="Image preview"
@@ -568,10 +568,10 @@ export function NoteModal({
               if (e.target === e.currentTarget) setLightboxImageUrl(null);
             }}
           >
-            <div className={cx(styles.lightboxPanel, 'image-lightbox-panel')}>
+            <div className={styles.lightboxPanel}>
               <button
                 type="button"
-                className={cx(styles.lightboxCloseButton, 'image-lightbox-close')}
+                className={styles.lightboxCloseButton}
                 onClick={() => { setLightboxImageUrl(null); }}
                 aria-label="Close image preview"
                 autoFocus

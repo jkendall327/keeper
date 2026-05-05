@@ -25,10 +25,6 @@ interface DragState {
 
 const DRAG_THRESHOLD = 5;
 
-function cx(...classes: (string | false)[]) {
-  return classes.filter(Boolean).join(' ');
-}
-
 export function NoteGrid({
   notes, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
   showLinkPreviews, isTrashView,
@@ -42,7 +38,7 @@ export function NoteGrid({
     // Only left button, and not on a note card or interactive element
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    if (target.closest('.note-card') !== null) return;
+    if (target.closest('[data-note-id]') !== null) return;
 
     const wrapper = wrapperRef.current;
     if (wrapper === null) return;
@@ -224,7 +220,7 @@ export function NoteGrid({
   };
 
   const renderGroup = (group: NoteWithTags[]) => (
-    <div className={cx(styles.grid, 'note-grid')}>
+    <div className={styles.grid}>
       {group.map((note) => (
         <NoteCard
           key={note.id}
@@ -244,7 +240,7 @@ export function NoteGrid({
   return (
     <div
       ref={wrapperRef}
-      className={cx(styles.wrapper, 'note-grid-wrapper')}
+      className={styles.wrapper}
       onMouseDown={handleMouseDown}
     >
       {pinnedNotes.length > 0 && renderGroup(pinnedNotes)}
@@ -258,7 +254,7 @@ export function NoteGrid({
       {archivedNotes.length > 0 && renderGroup(archivedNotes)}
       {selRect !== null && (
         <div
-          className={cx(styles.selectionRectangle, 'selection-rectangle')}
+          className={styles.selectionRectangle}
           style={{
             left: selRect.x,
             top: selRect.y,

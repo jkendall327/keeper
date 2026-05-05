@@ -314,14 +314,11 @@ describe('App Integration Tests', () => {
     await user.type(input, 'Delete me');
     await user.keyboard('{Enter}');
 
-    const noteText = await screen.findByText('Delete me');
-    const noteCard = noteText.closest('.note-card');
-    if (noteCard === null) throw new Error('Note card not found');
+    await screen.findByText('Delete me');
+    const noteCard = getNoteCardByText('Delete me');
 
     // Click delete button
-    const deleteBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Delete note"]');
-    if (deleteBtn === null) throw new Error('Delete button not found');
-    await user.click(deleteBtn);
+    await user.click(within(noteCard).getByLabelText('Delete note'));
 
     // Verify deleted
     await waitFor(() => {
@@ -345,9 +342,7 @@ describe('App Integration Tests', () => {
     await screen.findByText('Copy me');
     const noteCard = getNoteCardByText('Copy me');
 
-    const copyBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Copy note"]');
-    if (copyBtn === null) throw new Error('Copy button not found');
-    await user.click(copyBtn);
+    await user.click(within(noteCard).getByLabelText('Copy note'));
 
     expect(writeText).toHaveBeenCalledWith('Copy me');
     expect(screen.queryByPlaceholderText('Add tag...')).not.toBeInTheDocument();
@@ -472,15 +467,11 @@ describe('App Integration Tests', () => {
     });
   });
 
-  it('Icon component renders material-symbols-outlined span', async () => {
+  it('settings button renders the settings icon glyph', async () => {
     await renderApp();
 
-    // The settings button in the sidebar should contain a Material Symbol icon
     const settingsBtn = screen.getByLabelText('Open settings');
-    const iconSpan = settingsBtn.querySelector('.material-symbols-outlined');
-    if (iconSpan === null) throw new Error('Material Symbol icon not found in settings button');
-    expect(iconSpan).toBeInTheDocument();
-    expect(iconSpan.textContent).toBe('settings');
+    expect(settingsBtn).toHaveTextContent('settings');
   });
 
   it('note card action buttons use Material Symbol icons', async () => {
@@ -492,28 +483,17 @@ describe('App Integration Tests', () => {
     await user.type(input, 'Icon test');
     await user.keyboard('{Enter}');
 
-    const noteText = await screen.findByText('Icon test');
-    const noteCard = noteText.closest('.note-card');
-    if (noteCard === null) throw new Error('Note card not found');
+    await screen.findByText('Icon test');
+    const noteCard = getNoteCardByText('Icon test');
 
-    // Pin button should contain a material-symbols-outlined icon with "push_pin"
-    const pinBtn = noteCard.querySelector('[aria-label="Pin note"]');
-    if (pinBtn === null) throw new Error('Pin button not found');
-    const pinIcon = pinBtn.querySelector('.material-symbols-outlined');
-    if (pinIcon === null) throw new Error('Material Symbol icon not found in pin button');
-    expect(pinIcon).toBeInTheDocument();
-    expect(pinIcon.textContent).toBe('push_pin');
+    // Pin button should render the push_pin glyph name for the icon font.
+    expect(within(noteCard).getByLabelText('Pin note')).toHaveTextContent('push_pin');
 
-    // Delete button should contain "delete" icon
-    const deleteBtn = noteCard.querySelector('[aria-label="Delete note"]');
-    if (deleteBtn === null) throw new Error('Delete button not found');
-    const deleteIcon = deleteBtn.querySelector('.material-symbols-outlined');
-    if (deleteIcon === null) throw new Error('Material Symbol icon not found in delete button');
-    expect(deleteIcon).toBeInTheDocument();
-    expect(deleteIcon.textContent).toBe('delete');
+    // Delete button should render the delete glyph name.
+    expect(within(noteCard).getByLabelText('Delete note')).toHaveTextContent('delete');
   });
 
-  it('pinned notes get the pinned CSS class', async () => {
+  it('pinning a note updates the pin action state', async () => {
     const user = userEvent.setup();
     await renderApp();
 
@@ -522,22 +502,18 @@ describe('App Integration Tests', () => {
     await user.type(input, 'Pin me');
     await user.keyboard('{Enter}');
 
-    const noteText = await screen.findByText('Pin me');
-    const noteCard = noteText.closest('.note-card');
-    if (noteCard === null) throw new Error('Note card not found');
+    await screen.findByText('Pin me');
+    const noteCard = getNoteCardByText('Pin me');
 
     // Initially not pinned
-    expect(noteCard).not.toHaveClass('note-card-pinned');
+    expect(within(noteCard).getByLabelText('Pin note')).toBeInTheDocument();
 
     // Pin the note
-    const pinBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Pin note"]');
-    if (pinBtn === null) throw new Error('Pin button not found');
-    await user.click(pinBtn);
+    await user.click(within(noteCard).getByLabelText('Pin note'));
 
-    // After pinning, the card should have the pinned class
+    // After pinning, the action reflects the pinned state
     await waitFor(() => {
-      const updatedCard = screen.getByText('Pin me').closest('.note-card');
-      expect(updatedCard).toHaveClass('note-card-pinned');
+      expect(within(getNoteCardByText('Pin me')).getByLabelText('Unpin note')).toBeInTheDocument();
     });
   });
 
@@ -740,9 +716,8 @@ describe('App Integration Tests', () => {
     await user.type(quickAdd, 'Capture target');
     await user.keyboard('{Enter}');
 
-    const noteText = await screen.findByText('Capture target');
-    const noteCard = noteText.closest('.note-card');
-    if (noteCard === null) throw new Error('Note card not found');
+    await screen.findByText('Capture target');
+    const noteCard = getNoteCardByText('Capture target');
 
     await user.keyboard('{Control>}');
     await user.click(noteCard);
@@ -1114,11 +1089,7 @@ describe('App Integration Tests', () => {
 
     // The tag chip in the card should contain a material icon
     await waitFor(() => {
-      const chip = document.querySelector('.note-card-tag');
-      if (chip === null) throw new Error('Tag chip not found');
-      const icon = chip.querySelector('.material-symbols-outlined');
-      if (icon === null) throw new Error('Material icon not found in tag chip');
-      expect(icon.textContent).toBe('label');
+      expect(within(getNoteCardByText('Tag icon test')).getByTestId('note-card-tag-work')).toHaveTextContent('label');
     });
   });
 
@@ -1146,9 +1117,7 @@ describe('App Integration Tests', () => {
     expect(iconBtn).toBeInTheDocument();
 
     // Default icon should be 'label'
-    const defaultIcon = iconBtn.querySelector('.material-symbols-outlined');
-    if (defaultIcon === null) throw new Error('Default icon not found');
-    expect(defaultIcon.textContent).toBe('label');
+    expect(iconBtn).toHaveTextContent('label');
 
     // Click to open icon picker
     await user.click(iconBtn);
@@ -1163,9 +1132,7 @@ describe('App Integration Tests', () => {
 
     // Verify the sidebar tag icon updated to 'star'
     await waitFor(() => {
-      const updatedIcon = iconBtn.querySelector('.material-symbols-outlined');
-      if (updatedIcon === null) throw new Error('Updated icon not found');
-      expect(updatedIcon.textContent).toBe('star');
+      expect(iconBtn).toHaveTextContent('star');
     });
   });
 
@@ -1260,10 +1227,8 @@ describe('App Integration Tests', () => {
     expect(screen.getAllByTestId('notes-empty-state')).toHaveLength(1);
     expect(emptyState).toHaveTextContent('No notes yet');
 
-    // The empty state container should contain a Material Symbol icon
-    const icon = emptyState.querySelector('.material-symbols-outlined');
-    if (icon === null) throw new Error('Icon not found in empty state');
-    expect(icon.textContent).toBe('sticky_note_2');
+    // The empty state container should contain the sticky note glyph name.
+    expect(emptyState).toHaveTextContent('sticky_note_2');
   });
 
   it('hides empty state after creating a note', async () => {
@@ -1526,8 +1491,7 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Enter}');
     await screen.findByText('Keep this visible');
 
-    const linkCard = screen.getByText('https://example.com').closest('.note-card');
-    if (linkCard === null) throw new Error('Link note card not found');
+    const linkCard = getNoteCardByText('https://example.com');
     await user.keyboard('{Control>}');
     await user.click(linkCard);
     await user.keyboard('{/Control}');
@@ -1695,12 +1659,9 @@ describe('App Integration Tests', () => {
     await user.keyboard('{Enter}');
 
     // Archive the note
-    const noteText = await screen.findByText('Archive modal test');
-    const noteCard = noteText.closest('.note-card');
-    if (noteCard === null) throw new Error('Note card not found');
-    const archiveBtn = noteCard.querySelector<HTMLButtonElement>('[aria-label="Archive note"]');
-    if (archiveBtn === null) throw new Error('Archive button not found');
-    await user.click(archiveBtn);
+    await screen.findByText('Archive modal test');
+    const noteCard = getNoteCardByText('Archive modal test');
+    await user.click(within(noteCard).getByLabelText('Archive note'));
 
     // Note should disappear from the default view
     await waitFor(() => {

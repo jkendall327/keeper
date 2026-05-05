@@ -34,8 +34,6 @@ export function NoteActions({
 }: NoteActionsProps) {
   const [copied, setCopied] = useState(false);
 
-  const buttonClassNames = buttonClassName === undefined ? undefined : ` ${buttonClassName}`;
-
   const handleCopy = async () => {
     try {
       await navigator.clipboard.writeText(copyText ?? note.body);
@@ -66,7 +64,7 @@ export function NoteActions({
   return (
     <div className={className}>
       <button
-        className={`note-card-copy${buttonClassNames ?? ''}`}
+        className={buttonClassName}
         onClick={(e) => {
           e.stopPropagation();
           void handleCopy();
@@ -77,7 +75,7 @@ export function NoteActions({
         <Icon name={copied ? 'check' : 'content_copy'} />
       </button>
       <button
-        className={`note-card-archive${buttonClassNames ?? ''}`}
+        className={buttonClassName}
         onClick={(e) => {
           e.stopPropagation();
           void handleArchive();
@@ -88,7 +86,7 @@ export function NoteActions({
         <Icon name={isTrashView === true ? 'restore_from_trash' : note.archived ? 'unarchive' : 'archive'} />
       </button>
       <button
-        className={`note-card-delete${buttonClassNames ?? ''}`}
+        className={buttonClassName}
         onClick={(e) => {
           e.stopPropagation();
           void handleDelete();
@@ -100,7 +98,7 @@ export function NoteActions({
       </button>
       {includePin && (
         <button
-          className={`note-card-pin${buttonClassNames ?? ''}`}
+          className={buttonClassName}
           onClick={(e) => {
             e.stopPropagation();
             void handlePin();
@@ -108,7 +106,7 @@ export function NoteActions({
           aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
           title={note.pinned ? 'Unpin note' : 'Pin note'}
         >
-          <Icon name="push_pin" className={note.pinned ? filledIconClassName ?? 'icon-filled' : ''} />
+          <Icon name="push_pin" className={note.pinned ? filledIconClassName ?? '' : ''} />
         </button>
       )}
     </div>

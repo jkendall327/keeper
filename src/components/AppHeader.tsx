@@ -54,7 +54,7 @@ export function AppHeader({
   const allDisplayedSelected = selectedNoteIds.size === displayedNoteCount && displayedNoteCount > 0;
 
   return (
-    <header className="app-header">
+    <header className={styles.header}>
       <div className={styles.left}>
         {isMobile && (
           <button
@@ -67,12 +67,12 @@ export function AppHeader({
         )}
         {!isMobile && <h1 className={styles.title}>Keeper</h1>}
       </div>
-      <div className={cx(styles.actions, 'app-header-actions')}>
+      <div className={styles.actions}>
         {autoTagStatus !== '' && (
-          <span className={cx(styles.status, 'autotag-run-status')} role="status">{autoTagStatus}</span>
+          <span className={styles.status} role="status">{autoTagStatus}</span>
         )}
         <button
-          className={cx(styles.actionButton, 'bulk-action-btn', 'autotag-run-btn')}
+          className={styles.actionButton}
           onClick={() => { void handleRunAutoTagRules(); }}
           title="Run autotag rules"
           aria-label="Run autotag rules"
@@ -81,7 +81,7 @@ export function AppHeader({
         </button>
         {isInboxView && (
           <button
-            className={cx(styles.actionButton, 'bulk-action-btn', 'archive-tagged-btn')}
+            className={styles.actionButton}
             onClick={() => { void handleArchiveTaggedInboxNotes(); }}
             title="Archive tagged notes"
             aria-label="Archive tagged notes"
@@ -92,7 +92,7 @@ export function AppHeader({
         )}
         {displayedNoteCount > 0 && (
           <button
-            className={cx(styles.actionButton, 'bulk-action-btn', 'select-all-btn')}
+            className={styles.actionButton}
             onClick={handleSelectAll}
             title={allDisplayedSelected ? 'Deselect All' : 'Select All'}
           >
@@ -104,11 +104,11 @@ export function AppHeader({
           </button>
         )}
         {selectedNoteIds.size > 0 && (
-          <div className={cx(styles.bulkActions, 'bulk-actions')}>
-            <span className={cx(styles.bulkCount, 'bulk-count')}>{selectedNoteIds.size} selected</span>
+          <div className={styles.bulkActions}>
+            <span className={styles.bulkCount}>{selectedNoteIds.size} selected</span>
             {isTrashView && (
               <button
-                className={cx(styles.actionButton, 'bulk-action-btn', 'bulk-archive-btn')}
+                className={styles.actionButton}
                 onClick={() => { void handleBulkRestore(); }}
                 title="Restore"
               >
@@ -119,7 +119,7 @@ export function AppHeader({
               <div className={styles.tagButtonWrap}>
                 <button
                   ref={bulkTagBtnRef}
-                  className={cx(styles.actionButton, 'bulk-action-btn')}
+                  className={styles.actionButton}
                   onClick={() => { setShowBulkTagApplier((v) => !v); }}
                   title="Label"
                 >
@@ -142,7 +142,7 @@ export function AppHeader({
             )}
             {!isArchiveView && !isTrashView && (
               <button
-                className={cx(styles.actionButton, 'bulk-action-btn', 'bulk-archive-btn')}
+                className={styles.actionButton}
                 onClick={() => { void handleBulkArchive(); }}
                 title="Archive"
               >
@@ -151,14 +151,14 @@ export function AppHeader({
             )}
             {!isMobile && (
               <button
-                className={cx(styles.actionButton, 'bulk-action-btn', 'bulk-export-btn')}
+                className={styles.actionButton}
                 onClick={onOpenExport}
               >
                 Export
               </button>
             )}
             <button
-              className={cx(styles.actionButton, styles.deleteButton, 'bulk-action-btn', 'bulk-delete-btn')}
+              className={cx(styles.actionButton, styles.deleteButton)}
               onClick={() => { void handleBulkDelete(); }}
               title="Delete"
             >

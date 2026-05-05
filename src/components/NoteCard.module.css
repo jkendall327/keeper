@@ -107,6 +107,15 @@
   padding-right: 32px;
 }
 
+.body img {
+  max-width: 100%;
+  height: auto;
+  max-height: 150px;
+  object-fit: contain;
+  border-radius: 4px;
+  margin: 0.5rem 0;
+}
+
 .truncation {
   display: block;
   font-size: 0.8rem;

@@ -15,10 +15,10 @@ export function ChatPanel({ refresh }: ChatPanelProps) {
 
   if (llmClient === null || apiKey === null) {
     return (
-      <div className={`${styles.emptyState} empty-state`}>
+      <div className={styles.emptyState}>
         <Icon name="key" size={48} />
-        <p className={`${styles.emptyStateText} empty-state-text`}>API key required</p>
-        <p className={`${styles.emptyStateHint} empty-state-hint`}>Configure your OpenRouter API key in Settings to use chat</p>
+        <p className={styles.emptyStateText}>API key required</p>
+        <p className={styles.emptyStateHint}>Configure your OpenRouter API key in Settings to use chat</p>
       </div>
     );
   }

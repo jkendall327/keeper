@@ -87,13 +87,9 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
     <div
       className={cx(
         styles.card,
-        'note-card',
         note.pinned && styles.pinned,
-        note.pinned && 'note-card-pinned',
         isSelected === true && styles.selected,
-        isSelected === true && 'note-card-selected',
         showTagApplier && styles.tagOpen,
-        showTagApplier && 'note-card-tag-open',
       )}
       data-note-id={note.id}
       role="button"
@@ -123,7 +119,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
       }}
     >
       {isSelected === true && (
-        <span className={cx(styles.selectionCheck, 'note-card-check')} aria-label="Selected">
+        <span className={styles.selectionCheck} aria-label="Selected">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="10" r="10" fill="#646cff" />
             <path d="M6 10l3 3 5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -132,7 +128,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
       )}
       <div className={styles.topActions}>
         <button
-          className={cx(styles.iconButton, 'note-card-pin')}
+          className={styles.iconButton}
           onClick={(e) => {
             e.stopPropagation();
             void noteCommands.togglePin(note.id);
@@ -150,21 +146,21 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
           (showLinkPreviews && note.link_preview?.status === 'found' ? note.link_preview.image_url : null);
         if (imageUrl !== null) {
           return (
-            <div className={cx(styles.body, 'note-card-body')} data-testid="note-card-body">
+            <div className={styles.body} data-testid="note-card-body">
               <img src={imageUrl} alt={note.title !== '' ? note.title : 'Image note'} loading="lazy" />
             </div>
           );
         }
         return (
           <>
-            <div ref={bodyRef} className={cx(styles.body, 'note-card-body')} data-testid="note-card-body">
+            <div ref={bodyRef} className={styles.body} data-testid="note-card-body">
               <MarkdownPreview
                 content={note.body}
                 onCheckboxToggle={handleCheckboxToggle}
               />
             </div>
             {isTruncated && (
-              <span className={cx(styles.truncation, 'note-card-truncation')} data-testid="note-card-truncation">[...]</span>
+              <span className={styles.truncation} data-testid="note-card-truncation">[...]</span>
             )}
           </>
         );
@@ -172,7 +168,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
       {note.tags.length > 0 && (
         <div className={styles.tags}>
           {note.tags.map((tag) => (
-            <span key={tag.id} className={cx(styles.tag, 'note-card-tag')}>
+            <span key={tag.id} className={styles.tag} data-testid={`note-card-tag-${tag.name}`}>
               <Icon name={tagDisplayIcon(tag)} size={14} />
               {tag.name}
             </span>
@@ -186,7 +182,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
         <div className={styles.bottomActions}>
           <button
             ref={tagBtnRef}
-            className={cx(styles.iconButton, 'note-card-tag-btn')}
+            className={styles.iconButton}
             onClick={(e) => {
               e.stopPropagation();
               setShowTagApplier((v) => !v);
@@ -209,7 +205,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
           )}
           <NoteActions
             note={note}
-            className={cx(styles.inlineActions, 'note-card-actions-inline')}
+            className={styles.inlineActions}
             buttonClassName={styles.iconButton}
             filledIconClassName={styles.filledIcon}
             noteCommands={noteCommands}

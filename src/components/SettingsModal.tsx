@@ -230,7 +230,7 @@ export function SettingsModal({
 
   return (
     <div
-      className={cx(styles.backdrop, 'modal-backdrop')}
+      className={styles.backdrop}
       data-testid="settings-modal-backdrop"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
@@ -487,11 +487,11 @@ export function SettingsModal({
                 />
               </div>
               {showTagSuggestions && tagSuggestions.length > 0 && (
-                <ul className={cx(styles.tagSuggestions, 'modal-tag-suggestions')} role="listbox" aria-label="Autotag tag suggestions">
+                <ul className={styles.tagSuggestions} role="listbox" aria-label="Autotag tag suggestions">
                   {tagSuggestions.map((tag) => (
                     <li
                       key={tag.id}
-                      className={cx(styles.tagSuggestion, 'modal-tag-suggestion')}
+                      className={styles.tagSuggestion}
                       role="option"
                       onMouseDown={(e) => { e.preventDefault(); }}
                       onClick={() => { addTagName(tag.name); }}

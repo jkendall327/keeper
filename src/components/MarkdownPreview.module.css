@@ -106,8 +106,3 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   object-fit: contain;
 }
-
-:global(.modal-body-live-preview) .root img {
-  margin-left: auto;
-  margin-right: auto;
-}

@@ -63,7 +63,7 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
   };
 
   return (
-    <div className={`${styles.backdrop} modal-backdrop`} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className={styles.backdrop} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className={styles.modal} role="dialog" aria-label="Export notes">
         <div className={styles.tabs}>
           <button

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Icon } from './Icon.tsx';
 import { getRecentIcons, saveRecentIcon } from './recent-icons.ts';
+import styles from './IconPicker.module.css';
 
 const ICON_LIST = [
   'home', 'star', 'favorite', 'bookmark', 'label', 'flag',
@@ -78,23 +79,23 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
   };
 
   return (
-    <div className="icon-picker" ref={popoverRef} role="dialog" aria-label="Choose an icon">
+    <div className={styles.picker} ref={popoverRef} role="dialog" aria-label="Choose an icon">
       <input
         ref={searchRef}
         type="text"
-        className="icon-picker-search"
+        className={styles.search}
         placeholder="Search icons..."
         value={search}
         onChange={(e) => { setSearch(e.target.value); }}
       />
       {recentIcons.length > 0 && search.trim() === '' && (
-        <div className="icon-picker-section">
-          <div className="icon-picker-section-label">Recent</div>
-          <div className="icon-picker-grid">
+        <div className={styles.section}>
+          <div className={styles.sectionLabel}>Recent</div>
+          <div className={styles.grid}>
             {recentIcons.map((name) => (
               <button
                 key={name}
-                className="icon-picker-item"
+                className={styles.item}
                 title={name}
                 onMouseDown={(e) => { e.stopPropagation(); }}
                 onClick={(e) => { handleSelect(name, e); }}
@@ -105,12 +106,12 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
           </div>
         </div>
       )}
-      <div className="icon-picker-section">
-        <div className="icon-picker-grid">
+      <div className={styles.section}>
+        <div className={styles.grid}>
           {filtered.map((name) => (
             <button
               key={name}
-              className="icon-picker-item"
+              className={styles.item}
               title={name}
               onMouseDown={(e) => { e.stopPropagation(); }}
               onClick={(e) => { handleSelect(name, e); }}
@@ -120,7 +121,7 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
           ))}
         </div>
         {filtered.length === 0 && (
-          <div className="icon-picker-empty">No matching icons</div>
+          <div className={styles.empty}>No matching icons</div>
         )}
       </div>
     </div>

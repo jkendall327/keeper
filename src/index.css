@@ -72,8 +72,7 @@ button:focus-visible {
   .sidebar {
     background: #eef0f4;
   }
-  .modal-panel,
-  .export-modal {
+  .modal-panel {
     background: #ffffff;
   }
   .modal-tag-suggestions {

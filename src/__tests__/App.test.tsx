@@ -1709,8 +1709,7 @@ describe('App Integration Tests', () => {
     await user.click(screen.getByText('Export'));
 
     // The export preview textarea should be visible
-    const preview = document.querySelector<HTMLTextAreaElement>('.export-preview');
-    if (preview === null) throw new Error('Export preview not found');
+    const preview = screen.getByLabelText<HTMLTextAreaElement>('Export preview');
 
     // Default is Compact (single newline separator)
     const compactValue = preview.value;

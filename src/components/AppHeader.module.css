@@ -1,21 +1,17 @@
-/* ── App Header Left ───────────────────────────────────── */
-
-.app-header-left {
+.left {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.app-header-left h1 {
+.title {
   font-size: 1.6rem;
   font-weight: 800;
   letter-spacing: -0.03em;
   margin: 0;
 }
 
-/* ── Hamburger Button ──────────────────────────────────── */
-
-.hamburger-btn {
+.hamburgerButton {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -27,7 +23,6 @@
   cursor: pointer;
 }
 
-.hamburger-btn:hover {
+.hamburgerButton:hover {
   background: rgba(128, 128, 128, 0.1);
 }
-

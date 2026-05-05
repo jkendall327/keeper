@@ -4,6 +4,7 @@ import { Icon } from './Icon.tsx';
 import { TagApplier } from './TagApplier.tsx';
 import type { useDB } from '../hooks/useDB.ts';
 import type { useBulkNoteActions } from '../hooks/useBulkNoteActions.ts';
+import styles from './AppHeader.module.css';
 
 type DB = ReturnType<typeof useDB>;
 
@@ -53,17 +54,17 @@ export function AppHeader({
 
   return (
     <header className="app-header">
-      <div className="app-header-left">
+      <div className={styles.left}>
         {isMobile && (
           <button
-            className="hamburger-btn"
+            className={styles.hamburgerButton}
             onClick={onToggleSidebar}
             aria-label="Toggle sidebar"
           >
             <Icon name="menu" size={24} />
           </button>
         )}
-        {!isMobile && <h1>Keeper</h1>}
+        {!isMobile && <h1 className={styles.title}>Keeper</h1>}
       </div>
       <div className="app-header-actions">
         {autoTagStatus !== '' && (

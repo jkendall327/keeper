@@ -1,13 +1,11 @@
-/* ── Chat View ──────────────────────────────────────────────── */
-
-.chat-view {
+.view {
   display: flex;
   flex-direction: column;
   height: calc(100vh - 120px);
   min-height: 400px;
 }
 
-.chat-header {
+.header {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -16,14 +14,14 @@
   margin-bottom: 12px;
 }
 
-.chat-model-error {
+.modelError {
   font-size: 0.75rem;
   color: #e57373;
   padding: 4px 8px;
   margin-bottom: 8px;
 }
 
-.chat-model-select {
+.modelSelect {
   flex: 1;
   padding: 6px 12px;
   font-family: inherit;
@@ -35,7 +33,7 @@
   cursor: pointer;
 }
 
-.chat-clear-btn {
+.clearButton {
   display: flex;
   align-items: center;
   padding: 6px;
@@ -48,11 +46,11 @@
   transition: opacity 0.15s;
 }
 
-.chat-clear-btn:hover {
+.clearButton:hover {
   opacity: 1;
 }
 
-.chat-messages {
+.messages {
   flex: 1;
   overflow-y: auto;
   display: flex;
@@ -61,7 +59,7 @@
   padding-bottom: 12px;
 }
 
-.chat-empty {
+.empty {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -70,12 +68,12 @@
   color: rgba(255, 255, 255, 0.3);
 }
 
-.chat-empty p {
+.empty p {
   margin: 16px 0 0;
   font-size: 0.95rem;
 }
 
-.chat-message {
+.message {
   max-width: 85%;
   padding: 10px 14px;
   border-radius: 12px;
@@ -84,25 +82,25 @@
   word-wrap: break-word;
 }
 
-.chat-message-user {
+.userMessage {
   align-self: flex-end;
   background: #646cff;
   color: white;
 }
 
-.chat-message-assistant {
+.assistantMessage {
   align-self: flex-start;
   background: #2a2a2a;
 }
 
-.chat-message-tool {
+.toolMessage {
   align-self: flex-start;
   background: rgba(100, 108, 255, 0.08);
   border: 1px solid rgba(100, 108, 255, 0.2);
   max-width: 100%;
 }
 
-.chat-tool-label {
+.toolLabel {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -112,14 +110,14 @@
   margin-bottom: 4px;
 }
 
-.chat-tool-result {
+.toolResult {
   margin: 0;
   font-size: 0.8rem;
   white-space: pre-wrap;
   opacity: 0.8;
 }
 
-.chat-confirmation {
+.confirmation {
   align-self: flex-start;
   background: rgba(255, 152, 0, 0.1);
   border: 1px solid rgba(255, 152, 0, 0.3);
@@ -127,17 +125,17 @@
   padding: 12px 14px;
 }
 
-.chat-confirmation p {
+.confirmation p {
   margin: 0 0 8px;
   font-size: 0.9rem;
 }
 
-.chat-confirmation-actions {
+.confirmationActions {
   display: flex;
   gap: 8px;
 }
 
-.chat-confirm-yes {
+.confirmYesButton {
   padding: 4px 12px;
   font-family: inherit;
   font-size: 0.8rem;
@@ -148,7 +146,7 @@
   cursor: pointer;
 }
 
-.chat-confirm-no {
+.confirmNoButton {
   padding: 4px 12px;
   font-family: inherit;
   font-size: 0.8rem;
@@ -159,7 +157,7 @@
   cursor: pointer;
 }
 
-.chat-loading {
+.loading {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -168,11 +166,11 @@
   padding: 4px 0;
 }
 
-.chat-message-streaming {
+.streamingMessage {
   opacity: 0.9;
 }
 
-.chat-cursor {
+.cursor {
   display: inline-block;
   width: 2px;
   height: 1em;
@@ -183,17 +181,19 @@
 }
 
 @keyframes blink {
-  50% { opacity: 0; }
+  50% {
+    opacity: 0;
+  }
 }
 
-.chat-input-bar {
+.inputBar {
   display: flex;
   gap: 8px;
   padding-top: 12px;
   border-top: 1px solid rgba(128, 128, 128, 0.15);
 }
 
-.chat-input {
+.input {
   flex: 1;
   padding: 10px 14px;
   font-family: inherit;
@@ -207,11 +207,11 @@
   transition: border-color 0.15s;
 }
 
-.chat-input:focus {
+.input:focus {
   border-color: #646cff;
 }
 
-.chat-send-btn {
+.sendButton {
   display: flex;
   align-items: center;
   padding: 10px;
@@ -223,36 +223,31 @@
   transition: opacity 0.15s;
 }
 
-.chat-send-btn:disabled {
+.sendButton:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
-.chat-message-content {
+.messageContent {
   white-space: pre-wrap;
 }
 
 @media (prefers-color-scheme: light) {
-  .chat-empty {
+  .empty {
     color: rgba(0, 0, 0, 0.3);
   }
 
-  .chat-message-assistant {
+  .assistantMessage {
     background: #f0f0f0;
   }
 
-  .chat-message-tool {
+  .toolMessage {
     background: rgba(100, 108, 255, 0.06);
     border-color: rgba(100, 108, 255, 0.15);
   }
 
-  .chat-confirmation {
+  .confirmation {
     background: rgba(255, 152, 0, 0.08);
     border-color: rgba(255, 152, 0, 0.25);
-  }
-
-  .modal-body-live-preview {
-    border-color: rgba(0, 0, 0, 0.1);
-    background: rgba(0, 0, 0, 0.03);
   }
 }

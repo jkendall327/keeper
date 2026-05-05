@@ -3,10 +3,8 @@
 @import './styles/search-and-empty-state.css';
 @import './styles/note-grid.css';
 @import './styles/note-card.css';
-@import './styles/tag-applier.css';
 @import './styles/note-modal.css';
 @import './styles/markdown-preview.css';
 @import './styles/selection.css';
 @import './styles/header-actions.css';
-@import './styles/chat-view.css';
 @import './styles/mobile.css';

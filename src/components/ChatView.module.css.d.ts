@@ -1,0 +1,29 @@
+declare const styles: {
+  readonly "assistantMessage": string;
+  readonly "blink": string;
+  readonly "clearButton": string;
+  readonly "confirmNoButton": string;
+  readonly "confirmYesButton": string;
+  readonly "confirmation": string;
+  readonly "confirmationActions": string;
+  readonly "cursor": string;
+  readonly "empty": string;
+  readonly "header": string;
+  readonly "input": string;
+  readonly "inputBar": string;
+  readonly "loading": string;
+  readonly "message": string;
+  readonly "messageContent": string;
+  readonly "messages": string;
+  readonly "modelError": string;
+  readonly "modelSelect": string;
+  readonly "sendButton": string;
+  readonly "streamingMessage": string;
+  readonly "toolLabel": string;
+  readonly "toolMessage": string;
+  readonly "toolResult": string;
+  readonly "userMessage": string;
+  readonly "view": string;
+};
+export = styles;
+

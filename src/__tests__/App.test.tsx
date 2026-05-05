@@ -1758,7 +1758,7 @@ describe('App Integration Tests', () => {
 
     // Verify G5 fix: body wrapper is a div (ref target), containing the markdown preview
     expect(bodyDiv.tagName).toBe('DIV');
-    const bodyText = bodyDiv.querySelector('.markdown-preview');
+    const bodyText = bodyDiv.firstElementChild;
     if (bodyText === null) throw new Error('Note card markdown preview not found');
     expect(bodyText.textContent).toContain('Line 1 of a very long note');
 

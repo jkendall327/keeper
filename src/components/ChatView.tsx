@@ -4,6 +4,7 @@ import { markdown } from '@motioneffector/markdown';
 import { useChatLoop, type ChatMessage } from '../llm/useChatLoop.ts';
 import { Icon } from './Icon.tsx';
 import type { KeeperDB } from '../db/types.ts';
+import markdownStyles from './MarkdownPreview.module.css';
 
 interface ModelOption {
   id: string;
@@ -74,6 +75,10 @@ function renderMarkdownSafe(input: string): string {
   }
 }
 
+function cx(...classes: (string | false)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const html = useMemo(() => {
     if (msg.role === 'assistant') {
@@ -97,7 +102,10 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   if (msg.role === 'assistant' && html !== null) {
     return (
       <div className="chat-message chat-message-assistant">
-        <div className="chat-message-content markdown-preview" dangerouslySetInnerHTML={{ __html: html }} />
+        <div
+          className={cx('chat-message-content', markdownStyles.root)}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
       </div>
     );
   }
@@ -219,7 +227,10 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
         )}
         {streaming !== '' && (
           <div className="chat-message chat-message-assistant chat-message-streaming">
-            <div className="chat-message-content markdown-preview" dangerouslySetInnerHTML={{ __html: streamingHtml }} />
+            <div
+              className={cx('chat-message-content', markdownStyles.root)}
+              dangerouslySetInnerHTML={{ __html: streamingHtml }}
+            />
             <span className="chat-cursor" />
           </div>
         )}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { tagDisplayIcon, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { IconPicker } from './IconPicker.tsx';
+import styles from './Sidebar.module.css';
 
 export type FilterType =
   | { type: 'all' }
@@ -21,6 +22,10 @@ interface SidebarProps {
   onUpdateTagIcon: (tagId: number, icon: string | null) => void;
   onOpenSettings: () => void;
   isOpen?: boolean;
+}
+
+function cx(...classes: (string | false)[]) {
+  return classes.filter(Boolean).join(' ');
 }
 
 export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDeleteTag, onUpdateTagIcon, onOpenSettings, isOpen }: SidebarProps) {
@@ -52,21 +57,21 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
   };
 
   return (
-    <aside className={`sidebar ${isOpen === true ? 'sidebar-open' : ''}`}>
-      <nav className="sidebar-nav">
+    <aside className={cx(styles.sidebar, 'sidebar', isOpen === true && styles.open, isOpen === true && 'sidebar-open')}>
+      <nav className={styles.nav}>
         <button
-          className={`sidebar-tab ${isActive({ type: 'all' }) ? 'sidebar-tab-active' : ''}`}
+          className={cx(styles.tab, 'sidebar-tab', isActive({ type: 'all' }) && styles.tabActive, isActive({ type: 'all' }) && 'sidebar-tab-active')}
           onClick={() => { onFilterChange({ type: 'all' }); }}
         >
           <Icon name="notes" size={18} /> Inbox
         </button>
 
         {tags.map((tag) => (
-          <div key={tag.id} className="sidebar-tag-item">
+          <div key={tag.id} className={styles.tagItem}>
             {editingTagId === tag.id ? (
               <input
                 type="text"
-                className="sidebar-tag-input"
+                className={styles.tagInput}
                 value={editValue}
                 onChange={(e) => { setEditValue(e.target.value); }}
                 onBlur={() => { handleSaveEdit(tag); }}
@@ -81,9 +86,9 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
               />
             ) : (
               <>
-                <div className="sidebar-tag-icon-wrapper" style={{ position: 'relative' }}>
+                <div className={styles.tagIconWrapper}>
                   <button
-                    className="sidebar-tag-icon-btn"
+                    className={styles.tagIconButton}
                     onClick={() => { setIconPickerTagId(iconPickerTagId === tag.id ? null : tag.id); }}
                     title="Change tag icon"
                     aria-label={`Change icon for ${tag.name}`}
@@ -101,14 +106,14 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
                   )}
                 </div>
                 <button
-                  className={`sidebar-tab sidebar-tag-name ${isActive({ type: 'tag', tagId: tag.id }) ? 'sidebar-tab-active' : ''}`}
+                  className={cx(styles.tab, 'sidebar-tab', styles.tagName, 'sidebar-tag-name', isActive({ type: 'tag', tagId: tag.id }) && styles.tabActive, isActive({ type: 'tag', tagId: tag.id }) && 'sidebar-tab-active')}
                   onClick={() => { onFilterChange({ type: 'tag', tagId: tag.id }); }}
                   onDoubleClick={() => { handleStartEdit(tag); }}
                 >
                   {tag.name}
                 </button>
                 <button
-                  className="sidebar-tag-delete"
+                  className={cx(styles.tagDelete, 'sidebar-tag-delete')}
                   onClick={(e) => {
                     e.stopPropagation();
                     onDeleteTag(tag.id);
@@ -124,42 +129,42 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
         ))}
 
         <button
-          className={`sidebar-tab ${isActive({ type: 'untagged' }) ? 'sidebar-tab-active' : ''}`}
+          className={cx(styles.tab, 'sidebar-tab', isActive({ type: 'untagged' }) && styles.tabActive, isActive({ type: 'untagged' }) && 'sidebar-tab-active')}
           onClick={() => { onFilterChange({ type: 'untagged' }); }}
         >
           <Icon name="label_off" size={18} /> Untagged
         </button>
 
         <button
-          className={`sidebar-tab ${isActive({ type: 'links' }) ? 'sidebar-tab-active' : ''}`}
+          className={cx(styles.tab, 'sidebar-tab', isActive({ type: 'links' }) && styles.tabActive, isActive({ type: 'links' }) && 'sidebar-tab-active')}
           onClick={() => { onFilterChange({ type: 'links' }); }}
         >
           <Icon name="link" size={18} /> Links
         </button>
 
         <button
-          className={`sidebar-tab ${isActive({ type: 'archive' }) ? 'sidebar-tab-active' : ''}`}
+          className={cx(styles.tab, 'sidebar-tab', isActive({ type: 'archive' }) && styles.tabActive, isActive({ type: 'archive' }) && 'sidebar-tab-active')}
           onClick={() => { onFilterChange({ type: 'archive' }); }}
         >
           <Icon name="archive" size={18} /> Archive
         </button>
 
         <button
-          className={`sidebar-tab ${isActive({ type: 'trash' }) ? 'sidebar-tab-active' : ''}`}
+          className={cx(styles.tab, 'sidebar-tab', isActive({ type: 'trash' }) && styles.tabActive, isActive({ type: 'trash' }) && 'sidebar-tab-active')}
           onClick={() => { onFilterChange({ type: 'trash' }); }}
         >
           <Icon name="delete" size={18} /> Trash
         </button>
 
         <button
-          className={`sidebar-tab ${isActive({ type: 'chat' }) ? 'sidebar-tab-active' : ''}`}
+          className={cx(styles.tab, 'sidebar-tab', isActive({ type: 'chat' }) && styles.tabActive, isActive({ type: 'chat' }) && 'sidebar-tab-active')}
           onClick={() => { onFilterChange({ type: 'chat' }); }}
         >
           <Icon name="chat" size={18} /> Chat
         </button>
       </nav>
-      <div className="sidebar-footer">
-        <button className="sidebar-settings-btn" onClick={onOpenSettings} aria-label="Open settings">
+      <div className={styles.footer}>
+        <button className={cx(styles.settingsButton, 'sidebar-settings-btn')} onClick={onOpenSettings} aria-label="Open settings">
           <Icon name="settings" size={20} />
         </button>
       </div>

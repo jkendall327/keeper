@@ -1,7 +1,6 @@
 @import './styles/app-layout.css';
 @import './styles/sidebar.css';
 @import './styles/search-and-empty-state.css';
-@import './styles/quick-add.css';
 @import './styles/note-grid.css';
 @import './styles/note-card.css';
 @import './styles/tag-applier.css';

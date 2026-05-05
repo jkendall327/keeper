@@ -1,5 +1,6 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react';
 import type { CreateNoteInput } from '../db/types.ts';
+import styles from './QuickAdd.module.css';
 
 interface QuickAddProps {
   onCreate: (input: CreateNoteInput) => Promise<void>;
@@ -32,10 +33,10 @@ export const QuickAdd = forwardRef<HTMLTextAreaElement, QuickAddProps>(
     };
 
     return (
-      <div className="quick-add">
+      <div className={styles.container}>
         <textarea
           ref={textareaRef}
-          className="quick-add-input"
+          className={styles.input}
           placeholder="Take a note..."
           value={body}
           onChange={(e) => { setBody(e.target.value); }}

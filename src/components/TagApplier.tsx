@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { tagDisplayIcon, type NoteId, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
+import styles from './TagApplier.module.css';
 
 interface TagApplierProps {
   /** IDs of the notes to tag (supports single or bulk) */
@@ -109,28 +110,28 @@ export function TagApplier({
   const popover = (
     <div
       ref={panelRef}
-      className="tag-applier"
+      className={styles.panel}
       style={anchorRef !== undefined ? { position: 'absolute', ...(direction === 'up' ? { transform: 'translateY(-100%)' } : {}) } : undefined}
       onClick={(e) => { e.stopPropagation(); }}
       onPointerDown={(e) => { e.stopPropagation(); }}
     >
-      <div className="tag-applier-header">{noteIds.length > 1 ? `Label ${String(noteIds.length)} notes` : 'Label note'}</div>
-      <div className="tag-applier-input-row">
+      <div className={styles.header}>{noteIds.length > 1 ? `Label ${String(noteIds.length)} notes` : 'Label note'}</div>
+      <div className={styles.inputRow}>
         <input
           ref={inputRef}
           type="text"
-          className="tag-applier-input"
+          className={styles.input}
           placeholder="Enter label name"
           value={inputValue}
           onChange={(e) => { setInputValue(e.target.value); }}
           onKeyDown={handleKeyDown}
         />
       </div>
-      <div className="tag-applier-list">
+      <div className={styles.list}>
         {filteredTags.map((tag) => (
           <label
             key={tag.id}
-            className="tag-applier-item"
+            className={styles.item}
           >
             <IndeterminateCheckbox
               checked={isApplied(tag.name) || isIndeterminate(tag.name)}
@@ -138,11 +139,11 @@ export function TagApplier({
               onChange={() => { void handleToggleTag(tag.name); }}
             />
             <Icon name={tagDisplayIcon(tag)} size={18} />
-            <span className="tag-applier-name">{tag.name}</span>
+            <span className={styles.name}>{tag.name}</span>
           </label>
         ))}
         {filteredTags.length === 0 && inputValue.trim() !== '' && (
-          <div className="tag-applier-empty">
+          <div className={styles.empty}>
             Press Enter to create &ldquo;{inputValue.trim()}&rdquo;
           </div>
         )}

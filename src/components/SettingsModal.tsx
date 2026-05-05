@@ -229,7 +229,7 @@ export function SettingsModal({
   }, [onAppSettingsChange, popularTagLimitDraft]);
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className={cx(styles.backdrop, 'modal-backdrop')} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className={styles.modal}>
         <div className={styles.header}>
           <h2>Settings</h2>
@@ -483,11 +483,11 @@ export function SettingsModal({
                 />
               </div>
               {showTagSuggestions && tagSuggestions.length > 0 && (
-                <ul className="modal-tag-suggestions">
+                <ul className={cx(styles.tagSuggestions, 'modal-tag-suggestions')}>
                   {tagSuggestions.map((tag) => (
                     <li
                       key={tag.id}
-                      className="modal-tag-suggestion"
+                      className={cx(styles.tagSuggestion, 'modal-tag-suggestion')}
                       onMouseDown={(e) => { e.preventDefault(); }}
                       onClick={() => { addTagName(tag.name); }}
                     >

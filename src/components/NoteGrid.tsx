@@ -244,7 +244,7 @@ export function NoteGrid({
   return (
     <div
       ref={wrapperRef}
-      className="note-grid-wrapper"
+      className={cx(styles.wrapper, 'note-grid-wrapper')}
       onMouseDown={handleMouseDown}
     >
       {pinnedNotes.length > 0 && renderGroup(pinnedNotes)}
@@ -258,7 +258,7 @@ export function NoteGrid({
       {archivedNotes.length > 0 && renderGroup(archivedNotes)}
       {selRect !== null && (
         <div
-          className="selection-rectangle"
+          className={cx(styles.selectionRectangle, 'selection-rectangle')}
           style={{
             left: selRect.x,
             top: selRect.y,

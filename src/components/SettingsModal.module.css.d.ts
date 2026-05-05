@@ -1,6 +1,7 @@
 declare const styles: {
   readonly "autotagChipInput": string;
   readonly "autotagTagInputWrapper": string;
+  readonly "backdrop": string;
   readonly "chip": string;
   readonly "clearBtn": string;
   readonly "closeBtn": string;
@@ -25,6 +26,8 @@ declare const styles: {
   readonly "tab": string;
   readonly "tabActive": string;
   readonly "tabs": string;
+  readonly "tagSuggestion": string;
+  readonly "tagSuggestions": string;
   readonly "toggleRow": string;
 };
 export = styles;

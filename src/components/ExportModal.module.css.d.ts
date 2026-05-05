@@ -1,6 +1,7 @@
 declare const styles: {
   readonly "actionButton": string;
   readonly "actions": string;
+  readonly "backdrop": string;
   readonly "burnButton": string;
   readonly "copyButton": string;
   readonly "modal": string;

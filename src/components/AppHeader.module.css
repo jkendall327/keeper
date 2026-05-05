@@ -4,6 +4,67 @@
   gap: 8px;
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.bulkActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bulkCount {
+  white-space: nowrap;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.status {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.actionButton {
+  padding: 6px 14px;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.actionButton:hover {
+  background: rgba(128, 128, 128, 0.1);
+  border-color: rgba(128, 128, 128, 0.5);
+}
+
+.actionButton:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.actionButton:disabled:hover {
+  background: transparent;
+  border-color: rgba(128, 128, 128, 0.3);
+}
+
+.deleteButton:hover {
+  background: rgba(255, 68, 68, 0.1);
+  border-color: rgba(255, 68, 68, 0.5);
+  color: #ff4444;
+}
+
+.tagButtonWrap {
+  position: relative;
+  display: inline-block;
+}
+
 .title {
   font-size: 1.6rem;
   font-weight: 800;
@@ -25,4 +86,14 @@
 
 .hamburgerButton:hover {
   background: rgba(128, 128, 128, 0.1);
+}
+
+@media (max-width: 768px) {
+  .actionButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 8px;
+    line-height: 1;
+  }
 }

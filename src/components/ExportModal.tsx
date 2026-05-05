@@ -11,7 +11,7 @@ interface ExportModalProps {
   onDelete: () => void;
 }
 
-function cx(...classes: Array<string | false>) {
+function cx(...classes: (string | false)[]) {
   return classes.filter(Boolean).join(' ');
 }
 

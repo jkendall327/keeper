@@ -89,6 +89,10 @@
 }
 
 @media (max-width: 768px) {
+  .title {
+    font-size: 1.3rem;
+  }
+
   .actionButton {
     display: flex;
     align-items: center;

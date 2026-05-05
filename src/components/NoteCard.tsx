@@ -90,6 +90,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
         'note-card',
         note.pinned && styles.pinned,
         note.pinned && 'note-card-pinned',
+        isSelected === true && styles.selected,
         isSelected === true && 'note-card-selected',
         showTagApplier && styles.tagOpen,
         showTagApplier && 'note-card-tag-open',
@@ -121,7 +122,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
       }}
     >
       {isSelected === true && (
-        <span className="note-card-check" aria-label="Selected">
+        <span className={cx(styles.selectionCheck, 'note-card-check')} aria-label="Selected">
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="10" r="10" fill="#646cff" />
             <path d="M6 10l3 3 5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />

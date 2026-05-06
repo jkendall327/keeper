@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { clsx } from 'clsx';
 import { tagDisplayIcon, type NoteWithTags, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
+import { ImageLightbox } from './ImageLightbox.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { NoteActions } from './NoteActions.tsx';
 import { getDB } from '../db/db-client.ts';
@@ -559,28 +560,11 @@ export function NoteModal({
           />
         </div>
         {lightboxImageUrl !== null && (
-          <div
-            className={styles.lightboxBackdrop}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Image preview"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) setLightboxImageUrl(null);
-            }}
-          >
-            <div className={styles.lightboxPanel}>
-              <button
-                type="button"
-                className={styles.lightboxCloseButton}
-                onClick={() => { setLightboxImageUrl(null); }}
-                aria-label="Close image preview"
-                autoFocus
-              >
-                <Icon name="close" size={22} />
-              </button>
-              <img src={lightboxImageUrl} alt={title !== '' ? title : 'Image note'} />
-            </div>
-          </div>
+          <ImageLightbox
+            imageUrl={lightboxImageUrl}
+            title={title}
+            onClose={() => { setLightboxImageUrl(null); }}
+          />
         )}
       </div>
     </div>

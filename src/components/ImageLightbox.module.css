@@ -1,0 +1,50 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.82);
+  padding: 24px;
+}
+
+.panel {
+  position: relative;
+  display: flex;
+  max-width: 100%;
+  max-height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel img {
+  width: auto;
+  max-width: min(100%, 1200px);
+  max-height: calc(100vh - 48px);
+  height: auto;
+  border-radius: var(--radius-md);
+  object-fit: contain;
+}
+
+.closeButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  cursor: pointer;
+}
+
+.closeButton:hover,
+.closeButton:focus-visible {
+  background: rgba(0, 0, 0, 0.85);
+}

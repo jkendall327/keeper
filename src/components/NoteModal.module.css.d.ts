@@ -8,9 +8,6 @@ declare const styles: {
   readonly "header": string;
   readonly "iconButton": string;
   readonly "imagePreviewButton": string;
-  readonly "lightboxBackdrop": string;
-  readonly "lightboxCloseButton": string;
-  readonly "lightboxPanel": string;
   readonly "livePreview": string;
   readonly "noteActions": string;
   readonly "panel": string;

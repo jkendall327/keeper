@@ -1,5 +1,4 @@
 import { Suspense, useState } from 'react';
-import './App.css';
 import styles from './App.module.css';
 import { useDB } from './hooks/useDB.ts';
 import { useAppSettings } from './hooks/useAppSettings.ts';

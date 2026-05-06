@@ -1,4 +1,3 @@
-import { Icon } from './Icon.tsx';
 import styles from './ImageLightbox.module.css';
 
 interface ImageLightboxProps {
@@ -25,15 +24,6 @@ export function ImageLightbox({
       }}
     >
       <div className={styles.panel}>
-        <button
-          type="button"
-          className={styles.closeButton}
-          onClick={onClose}
-          aria-label="Close image preview"
-          autoFocus
-        >
-          <Icon name="close" size={22} />
-        </button>
         <img src={imageUrl} alt={altText} />
       </div>
     </div>

@@ -15,7 +15,6 @@ declare const styles: {
   readonly "time": string;
   readonly "title": string;
   readonly "topActions": string;
-  readonly "truncation": string;
 };
 export = styles;
 

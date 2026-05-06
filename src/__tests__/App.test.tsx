@@ -1601,20 +1601,7 @@ describe('App Integration Tests', () => {
     expect(spacedValue).toContain('\n\n');
   });
 
-  it('truncation indicator shows [...] when note body overflows', async () => {
-    // Mock ResizeObserver to invoke the callback, and mock scrollHeight > clientHeight
-    const originalRO = globalThis.ResizeObserver;
-    let observedCallback: (() => void) | null = null;
-    class MockResizeObserver {
-      constructor(cb: ResizeObserverCallback) {
-        observedCallback = () => { cb([], this); };
-      }
-      observe() { observedCallback?.(); }
-      unobserve() { /* no-op */ }
-      disconnect() { /* no-op */ }
-    }
-    globalThis.ResizeObserver = MockResizeObserver;
-
+  it('does not show a separate truncation indicator when note body overflows', async () => {
     const user = userEvent.setup();
     await renderApp();
 
@@ -1628,25 +1615,12 @@ describe('App Integration Tests', () => {
     const noteCard = getNoteCardByText(/Line 1 of a very long note/);
     const bodyDiv = within(noteCard).getByTestId('note-card-body');
 
-    // Verify G5 fix: body wrapper is a div (ref target), containing the markdown preview
+    // Body wrapper remains a div containing the markdown preview.
     expect(bodyDiv.tagName).toBe('DIV');
     const bodyText = bodyDiv.firstElementChild;
     if (bodyText === null) throw new Error('Note card markdown preview not found');
     expect(bodyText.textContent).toContain('Line 1 of a very long note');
-
-    // Simulate overflow: scrollHeight > clientHeight
-    Object.defineProperty(bodyDiv, 'scrollHeight', { value: 500, configurable: true });
-    Object.defineProperty(bodyDiv, 'clientHeight', { value: 200, configurable: true });
-
-    // Trigger the ResizeObserver callback
-    // eslint-disable-next-line @typescript-eslint/require-await
-    await act(async () => { observedCallback?.(); });
-
-    // The truncation indicator [...] should now appear
-    const truncation = within(noteCard).getByTestId('note-card-truncation');
-    expect(truncation.textContent).toBe('[...]');
-
-    globalThis.ResizeObserver = originalRO;
+    expect(within(noteCard).queryByTestId('note-card-truncation')).not.toBeInTheDocument();
   });
 
   it('clicking a note in archive view opens the modal', async () => {

@@ -116,14 +116,6 @@
   margin: 0.5rem 0;
 }
 
-.truncation {
-  display: block;
-  font-size: 0.8rem;
-  opacity: 0.4;
-  text-align: center;
-  margin-top: 4px;
-}
-
 .footer {
   display: flex;
   align-items: center;

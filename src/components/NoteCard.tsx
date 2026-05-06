@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState } from 'react';
 import { clsx } from 'clsx';
 import { tagDisplayIcon, type NoteWithTags, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
@@ -24,24 +24,12 @@ interface NoteCardProps {
 }
 
 export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, isSelected, showLinkPreviews, isTrashView }: NoteCardProps) {
-  const bodyRef = useRef<HTMLDivElement>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
   const [showTagApplier, setShowTagApplier] = useState(false);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const closeTagApplier = () => { setShowTagApplier(false); };
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressFired = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
-
-  useEffect(() => {
-    const el = bodyRef.current;
-    if (el === null) return;
-    const check = () => { setIsTruncated(el.scrollHeight > el.clientHeight); };
-    check();
-    const observer = new ResizeObserver(check);
-    observer.observe(el);
-    return () => { observer.disconnect(); };
-  }, [note.body]);
 
   const cancelLongPress = () => {
     if (longPressTimer.current !== null) {
@@ -149,17 +137,12 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
           );
         }
         return (
-          <>
-            <div ref={bodyRef} className={styles.body} data-testid="note-card-body">
-              <MarkdownPreview
-                content={note.body}
-                onCheckboxToggle={handleCheckboxToggle}
-              />
-            </div>
-            {isTruncated && (
-              <span className={styles.truncation} data-testid="note-card-truncation">[...]</span>
-            )}
-          </>
+          <div className={styles.body} data-testid="note-card-body">
+            <MarkdownPreview
+              content={note.body}
+              onCheckboxToggle={handleCheckboxToggle}
+            />
+          </div>
         );
       })()}
       {note.tags.length > 0 && (

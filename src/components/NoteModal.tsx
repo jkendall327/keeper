@@ -4,6 +4,9 @@ import { Icon } from './Icon.tsx';
 import { ImageLightbox } from './ImageLightbox.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { NoteModalTags } from './note-modal/NoteModalTags.tsx';
+import { useAutosizingTextarea } from './note-modal/useAutosizingTextarea.ts';
+import { useNoteModalHistoryClose } from './note-modal/useNoteModalHistoryClose.ts';
+import { useNoteModalInitialFocus } from './note-modal/useNoteModalInitialFocus.ts';
 import { usePendingNoteTags } from './note-modal/usePendingNoteTags.ts';
 import { getDB } from '../db/db-client.ts';
 import { getImageUrl } from '../utils/image-url.ts';
@@ -243,60 +246,9 @@ export function NoteModal({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [note.id]);
 
-  // Focus the body textarea on mount and place the cursor at the end
-  useEffect(() => {
-    const textarea = bodyTextareaRef.current;
-    if (textarea !== null) {
-      textarea.focus();
-      const len = textarea.value.length;
-      textarea.setSelectionRange(len, len);
-    } else {
-      panelRef.current?.focus();
-    }
-  }, []);
-
-  // Push a history entry so that back-swipe / back-button closes the modal
-  // instead of navigating away from the app.
-  // Use a ref for saveAndClose so this effect is mount-only — otherwise
-  // StrictMode's double-fire (mount → cleanup → mount) causes cleanup to call
-  // history.back() whose async popstate is caught by the re-mounted listener,
-  // immediately closing the modal.
-  const saveAndCloseRef = useRef(saveAndClose);
-  useEffect(() => {
-    saveAndCloseRef.current = saveAndClose;
-  }, [saveAndClose]);
-  const ignoreNextPopState = useRef(false);
-  useEffect(() => {
-    history.pushState({ noteModal: true }, '');
-    const handlePopState = () => {
-      if (ignoreNextPopState.current) {
-        ignoreNextPopState.current = false;
-        return;
-      }
-      void saveAndCloseRef.current();
-    };
-    window.addEventListener('popstate', handlePopState);
-    return () => {
-      window.removeEventListener('popstate', handlePopState);
-      // Clean up the history entry if the modal closes by other means (Escape, backdrop click)
-      if (history.state != null && (history.state as { noteModal?: boolean }).noteModal === true) {
-        ignoreNextPopState.current = true;
-        history.back();
-      }
-    };
-  }, []);
-
-  // Auto-resize textarea based on content
-  useEffect(() => {
-    const textarea = bodyTextareaRef.current;
-    if (textarea !== null) {
-      // Reset height to auto to get accurate scrollHeight
-      textarea.style.height = 'auto';
-      // Set height to scrollHeight, capped by CSS max-height
-      textarea.style.height = `${String(textarea.scrollHeight)}px`;
-      textarea.style.overflowY = textarea.scrollHeight > textarea.clientHeight + 1 ? 'auto' : 'hidden';
-    }
-  }, [body]);
+  useNoteModalInitialFocus(bodyTextareaRef, panelRef);
+  useNoteModalHistoryClose(saveAndClose);
+  useAutosizingTextarea(bodyTextareaRef, body);
 
   return (
     <div className={styles.backdrop} data-testid="note-modal-backdrop" onClick={handleBackdropClick}>

@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--backdrop);
   user-select: text;
 }
 
@@ -17,9 +17,9 @@
   width: 90vw;
   max-height: 80vh;
   padding: 20px;
-  background: #1a1a2e;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 12px;
+  background: var(--surface-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
 }
 
 @media (prefers-color-scheme: light) {
@@ -37,8 +37,8 @@
   padding: 6px 16px;
   font-family: inherit;
   font-size: 0.85rem;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -46,13 +46,13 @@
 }
 
 .tab:hover {
-  background: rgba(128, 128, 128, 0.1);
+  background: var(--surface-hover);
 }
 
 .tabActive {
-  background: rgba(100, 108, 255, 0.15);
-  border-color: #646cff;
-  color: #646cff;
+  background: var(--color-accent-muted);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .separatorToggle {
@@ -87,8 +87,8 @@
   font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   font-size: 0.85rem;
   line-height: 1.5;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   background: rgba(0, 0, 0, 0.2);
   color: inherit;
   resize: none;
@@ -110,8 +110,8 @@
   padding: 8px 16px;
   font-family: inherit;
   font-size: 0.85rem;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -119,29 +119,29 @@
 }
 
 .actionButton:hover {
-  background: rgba(128, 128, 128, 0.1);
-  border-color: rgba(128, 128, 128, 0.5);
+  background: var(--surface-hover);
+  border-color: var(--color-border-strong);
 }
 
 .copyButton {
-  background: rgba(100, 108, 255, 0.15);
-  border-color: #646cff;
-  color: #646cff;
+  background: var(--color-accent-muted);
+  border-color: var(--color-accent);
+  color: var(--color-accent);
 }
 
 .copyButton:hover {
-  background: rgba(100, 108, 255, 0.25);
+  background: var(--color-accent-muted-hover);
 }
 
 .burnButton {
-  background: rgba(255, 68, 68, 0.1);
-  border-color: rgba(255, 68, 68, 0.5);
-  color: #ff4444;
+  background: var(--color-danger-muted);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
 }
 
 .burnButton:hover {
-  background: rgba(255, 68, 68, 0.25);
-  border-color: #ff4444;
+  background: var(--color-danger-muted-hover);
+  border-color: var(--color-danger);
 }
 
 @media (max-width: 768px) {

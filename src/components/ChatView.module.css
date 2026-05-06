@@ -10,7 +10,7 @@
   align-items: center;
   gap: 8px;
   padding-bottom: 12px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
+  border-bottom: 1px solid var(--color-border-muted);
   margin-bottom: 12px;
 }
 
@@ -26,8 +26,8 @@
   padding: 6px 12px;
   font-family: inherit;
   font-size: 0.85rem;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -38,7 +38,7 @@
   align-items: center;
   padding: 6px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -76,7 +76,7 @@
 .message {
   max-width: 85%;
   padding: 10px 14px;
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   font-size: 0.9rem;
   line-height: 1.5;
   word-wrap: break-word;
@@ -84,13 +84,13 @@
 
 .userMessage {
   align-self: flex-end;
-  background: #646cff;
+  background: var(--color-accent);
   color: white;
 }
 
 .assistantMessage {
   align-self: flex-start;
-  background: #2a2a2a;
+  background: var(--surface-card);
 }
 
 .toolMessage {
@@ -121,7 +121,7 @@
   align-self: flex-start;
   background: rgba(255, 152, 0, 0.1);
   border: 1px solid rgba(255, 152, 0, 0.3);
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   padding: 12px 14px;
 }
 
@@ -140,8 +140,8 @@
   font-family: inherit;
   font-size: 0.8rem;
   border: none;
-  border-radius: 6px;
-  background: #ff4444;
+  border-radius: var(--radius-md);
+  background: var(--color-danger);
   color: white;
   cursor: pointer;
 }
@@ -150,8 +150,8 @@
   padding: 4px 12px;
   font-family: inherit;
   font-size: 0.8rem;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -190,7 +190,7 @@
   display: flex;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  border-top: 1px solid var(--color-border-muted);
 }
 
 .input {
@@ -198,8 +198,8 @@
   padding: 10px 14px;
   font-family: inherit;
   font-size: 0.9rem;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
   background: transparent;
   color: inherit;
   outline: none;
@@ -208,7 +208,7 @@
 }
 
 .input:focus {
-  border-color: #646cff;
+  border-color: var(--color-accent);
 }
 
 .sendButton {
@@ -216,8 +216,8 @@
   align-items: center;
   padding: 10px;
   border: none;
-  border-radius: 8px;
-  background: #646cff;
+  border-radius: var(--radius-lg);
+  background: var(--color-accent);
   color: white;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -243,7 +243,7 @@
 
   .toolMessage {
     background: rgba(100, 108, 255, 0.06);
-    border-color: rgba(100, 108, 255, 0.15);
+    border-color: var(--color-accent-muted);
   }
 
   .confirmation {

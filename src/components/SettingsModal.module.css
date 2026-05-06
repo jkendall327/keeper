@@ -5,15 +5,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--backdrop);
   user-select: text;
 }
 
 /* ── Settings Modal ─────────────────────────────────────── */
 
 .modal {
-  background: #2a2a2a;
-  border-radius: 8px;
+  background: var(--surface-card);
+  border-radius: var(--radius-lg);
   padding: 24px;
   width: 560px;
   max-width: 90vw;
@@ -39,7 +39,7 @@
   flex-wrap: wrap;
   gap: 4px;
   margin-bottom: 20px;
-  border-bottom: 1px solid rgba(128, 128, 128, 0.2);
+  border-bottom: 1px solid var(--color-border-soft);
 }
 
 .tab {
@@ -59,8 +59,8 @@
 }
 
 .tabActive {
-  border-bottom-color: #646cff;
-  color: #646cff;
+  border-bottom-color: var(--color-accent);
+  color: var(--color-accent);
   opacity: 1;
 }
 
@@ -69,7 +69,7 @@
   align-items: center;
   padding: 4px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -108,8 +108,8 @@
   padding: 8px 12px;
   font-family: inherit;
   font-size: 0.9rem;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   outline: none;
@@ -117,7 +117,7 @@
 }
 
 .keyInput:focus {
-  border-color: #646cff;
+  border-color: var(--color-accent);
 }
 
 .keyActions {
@@ -131,8 +131,8 @@
   font-family: inherit;
   font-size: 0.85rem;
   border: none;
-  border-radius: 6px;
-  background: #646cff;
+  border-radius: var(--radius-md);
+  background: var(--color-accent);
   color: white;
   cursor: pointer;
   transition: opacity 0.15s;
@@ -148,15 +148,15 @@
   font-family: inherit;
   font-size: 0.85rem;
   border: 1px solid rgba(255, 68, 68, 0.3);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
-  color: #ff4444;
+  color: var(--color-danger);
   cursor: pointer;
   transition: background-color 0.15s;
 }
 
 .clearBtn:hover {
-  background: rgba(255, 68, 68, 0.1);
+  background: var(--color-danger-muted);
 }
 
 .status {
@@ -168,14 +168,14 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #4caf50;
+  color: var(--color-success);
 }
 
 .statusNone {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  color: #ff9800;
+  color: var(--color-warning);
 }
 
 .error {
@@ -213,9 +213,9 @@
   max-height: 160px;
   margin: 4px 0 0;
   overflow-y: auto;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
-  background: #1a1a2e;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
   padding: 4px 0;
   list-style: none;
 }
@@ -227,7 +227,7 @@
 }
 
 .tagSuggestion:hover {
-  background: rgba(100, 108, 255, 0.1);
+  background: var(--color-accent-wash);
 }
 
 .autotagChipInput {
@@ -237,12 +237,12 @@
   gap: 6px;
   min-height: 38px;
   padding: 5px 8px;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
 }
 
 .autotagChipInput:focus-within {
-  border-color: #646cff;
+  border-color: var(--color-accent);
 }
 
 .autotagChipInput input {
@@ -263,7 +263,7 @@
   gap: 4px;
   padding: 2px 8px;
   border-radius: 10px;
-  background: rgba(100, 108, 255, 0.15);
+  background: var(--color-accent-muted);
   color: #8f95ff;
   font-size: 0.75rem;
 }
@@ -275,7 +275,7 @@
   justify-content: center;
   padding: 2px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -285,7 +285,7 @@
 .chip button:hover,
 .ruleActions button:hover {
   opacity: 1;
-  background: rgba(128, 128, 128, 0.15);
+  background: var(--surface-hover-strong);
 }
 
 .ruleList {
@@ -301,7 +301,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 10px 0;
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  border-top: 1px solid var(--color-border-muted);
 }
 
 .ruleMain {

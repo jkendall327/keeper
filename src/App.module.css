@@ -4,7 +4,7 @@
   flex-direction: column;
   max-width: none;
   margin: 0;
-  padding: 0 0 0 220px;
+  padding: 0 0 0 var(--sidebar-width);
   user-select: none;
 }
 
@@ -40,7 +40,7 @@
   position: fixed;
   inset: 0;
   z-index: 199;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--backdrop);
 }
 
 @media (max-width: 768px) {

@@ -36,8 +36,8 @@
 
 .actionButton {
   padding: 6px 14px;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   font-family: inherit;
@@ -47,8 +47,8 @@
 }
 
 .actionButton:hover {
-  background: rgba(128, 128, 128, 0.1);
-  border-color: rgba(128, 128, 128, 0.5);
+  background: var(--surface-hover);
+  border-color: var(--color-border-strong);
 }
 
 .actionButton:disabled {
@@ -58,13 +58,13 @@
 
 .actionButton:disabled:hover {
   background: transparent;
-  border-color: rgba(128, 128, 128, 0.3);
+  border-color: var(--color-border);
 }
 
 .deleteButton:hover {
-  background: rgba(255, 68, 68, 0.1);
-  border-color: rgba(255, 68, 68, 0.5);
-  color: #ff4444;
+  background: var(--color-danger-muted);
+  border-color: var(--color-danger-border);
+  color: var(--color-danger);
 }
 
 .tagButtonWrap {
@@ -85,14 +85,14 @@
   justify-content: center;
   padding: 6px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   cursor: pointer;
 }
 
 .hamburgerButton:hover {
-  background: rgba(128, 128, 128, 0.1);
+  background: var(--surface-hover);
 }
 
 @media (max-width: 768px) {

@@ -5,7 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.5);
+  background: var(--backdrop);
   user-select: text;
 }
 
@@ -15,9 +15,9 @@
   max-width: 700px;
   max-height: 80vh;
   overflow: hidden;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 12px;
-  background: #1a1a2e;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--surface-elevated);
 }
 
 .editor {
@@ -57,7 +57,7 @@
   justify-content: center;
   padding: 4px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -88,7 +88,7 @@
 
 .emptyWarning {
   margin: 8px 0 0;
-  color: #ff9800;
+  color: var(--color-warning);
   font-size: 0.8rem;
   opacity: 0.9;
 }
@@ -99,7 +99,7 @@
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
-  border-left: 1px solid rgba(128, 128, 128, 0.2);
+  border-left: 1px solid var(--color-border-soft);
   padding: 20px 16px;
 }
 
@@ -157,8 +157,8 @@
   gap: 4px;
   padding: 3px 8px;
   border-radius: 10px;
-  background: rgba(100, 108, 255, 0.15);
-  color: #646cff;
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
   font-size: 0.8rem;
 }
 
@@ -188,8 +188,8 @@
 .tagInput {
   width: 100%;
   padding: 6px 8px;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   font-family: inherit;
@@ -199,7 +199,7 @@
 }
 
 .tagInput:focus {
-  border-color: #646cff;
+  border-color: var(--color-accent);
 }
 
 .tagSuggestions {
@@ -211,9 +211,9 @@
   max-height: 160px;
   margin: 4px 0 0;
   overflow-y: auto;
-  border: 1px solid rgba(128, 128, 128, 0.3);
-  border-radius: 6px;
-  background: #1a1a2e;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--surface-elevated);
   padding: 4px 0;
   list-style: none;
 }
@@ -225,14 +225,14 @@
 }
 
 .tagSuggestion:hover {
-  background: rgba(100, 108, 255, 0.1);
+  background: var(--color-accent-wash);
 }
 
 .livePreview {
   margin-top: 1rem;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.2);
   padding: 1rem;
 }
@@ -245,7 +245,7 @@
   margin-left: auto;
   margin-right: auto;
   overflow-y: auto;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   object-fit: contain;
 }
 
@@ -261,9 +261,9 @@
 }
 
 .imagePreviewButton:focus-visible {
-  outline: 2px solid #646cff;
+  outline: 2px solid var(--color-accent);
   outline-offset: 4px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 }
 
 .lightboxBackdrop {
@@ -291,7 +291,7 @@
   max-width: min(100%, 1200px);
   max-height: calc(100vh - 48px);
   height: auto;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   object-fit: contain;
 }
 
@@ -306,7 +306,7 @@
   justify-content: center;
   padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: rgba(0, 0, 0, 0.65);
   color: #fff;
   cursor: pointer;
@@ -346,7 +346,7 @@
   .tags {
     width: auto;
     flex-shrink: 0;
-    border-top: 1px solid rgba(128, 128, 128, 0.2);
+    border-top: 1px solid var(--color-border-soft);
     border-left: none;
   }
 

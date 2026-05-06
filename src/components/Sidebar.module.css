@@ -3,7 +3,7 @@
   top: 0;
   left: 0;
   bottom: 0;
-  width: 220px;
+  width: var(--sidebar-width);
   background: #1e1e2e;
   border-radius: 0;
   padding: 12px 8px;
@@ -23,7 +23,7 @@
   font-size: 0.9rem;
   text-align: left;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -31,12 +31,12 @@
 }
 
 .tab:hover {
-  background: rgba(128, 128, 128, 0.1);
+  background: var(--surface-hover);
 }
 
 .tabActive {
-  background: rgba(100, 108, 255, 0.15);
-  color: #646cff;
+  background: var(--color-accent-muted);
+  color: var(--color-accent);
   font-weight: 500;
 }
 
@@ -57,8 +57,8 @@
   padding: 8px 12px;
   font-family: inherit;
   font-size: 0.9rem;
-  border: 1px solid #646cff;
-  border-radius: 6px;
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   outline: none;
@@ -77,7 +77,7 @@
   justify-content: center;
   padding: 4px;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -87,7 +87,7 @@
 
 .tagIconButton:hover {
   opacity: 1;
-  background: rgba(128, 128, 128, 0.15);
+  background: var(--surface-hover-strong);
 }
 
 .tagName {
@@ -101,7 +101,7 @@
   font-family: inherit;
   font-size: 1rem;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -117,14 +117,14 @@
 
 .tagDelete:hover {
   opacity: 1;
-  background: rgba(255, 68, 68, 0.1);
-  color: #ff4444;
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
 }
 
 .footer {
   margin-top: 16px;
   padding-top: 8px;
-  border-top: 1px solid rgba(128, 128, 128, 0.15);
+  border-top: 1px solid var(--color-border-muted);
 }
 
 .settingsButton {
@@ -133,7 +133,7 @@
   justify-content: center;
   padding: 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   background: transparent;
   color: inherit;
   cursor: pointer;
@@ -143,7 +143,7 @@
 
 .settingsButton:hover {
   opacity: 1;
-  background: rgba(128, 128, 128, 0.1);
+  background: var(--surface-hover);
 }
 
 @media (prefers-color-scheme: light) {

@@ -51,7 +51,7 @@
 }
 
 .root a {
-  color: #646cff;
+  color: var(--color-accent);
   text-decoration: underline;
 }
 
@@ -63,14 +63,14 @@
   padding: 2px 6px;
   font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
   font-size: 0.85em;
-  background: rgba(128, 128, 128, 0.15);
+  background: var(--surface-hover-strong);
   border-radius: 3px;
 }
 
 .root pre {
   padding: 12px;
-  background: rgba(128, 128, 128, 0.1);
-  border-radius: 6px;
+  background: var(--surface-hover);
+  border-radius: var(--radius-md);
   overflow-x: auto;
 }
 
@@ -82,7 +82,7 @@
 .root blockquote {
   margin: 0.5em 0;
   padding-left: 1em;
-  border-left: 3px solid rgba(128, 128, 128, 0.3);
+  border-left: 3px solid var(--color-border);
   opacity: 0.8;
 }
 
@@ -93,7 +93,7 @@
 
 .root hr {
   border: none;
-  border-top: 1px solid rgba(128, 128, 128, 0.3);
+  border-top: 1px solid var(--color-border);
   margin: 1em 0;
 }
 
@@ -102,7 +102,7 @@
   height: auto;
   display: block;
   margin: 1rem 0;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   border: 1px solid rgba(255, 255, 255, 0.1);
   object-fit: contain;
 }

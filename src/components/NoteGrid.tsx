@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from 'react';
 import { toNoteId, type NoteId, type NoteWithTags, type Tag } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 import type { NoteCommands } from './note-commands.ts';
+import styles from './NoteGrid.module.css';
 
 interface NoteGridProps {
   notes: NoteWithTags[];
@@ -37,7 +38,7 @@ export function NoteGrid({
     // Only left button, and not on a note card or interactive element
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
-    if (target.closest('.note-card') !== null) return;
+    if (target.closest('[data-note-id]') !== null) return;
 
     const wrapper = wrapperRef.current;
     if (wrapper === null) return;
@@ -219,7 +220,7 @@ export function NoteGrid({
   };
 
   const renderGroup = (group: NoteWithTags[]) => (
-    <div className="note-grid">
+    <div className={styles.grid}>
       {group.map((note) => (
         <NoteCard
           key={note.id}
@@ -239,21 +240,21 @@ export function NoteGrid({
   return (
     <div
       ref={wrapperRef}
-      className="note-grid-wrapper"
+      className={styles.wrapper}
       onMouseDown={handleMouseDown}
     >
       {pinnedNotes.length > 0 && renderGroup(pinnedNotes)}
       {pinnedNotes.length > 0 && regularNotes.length > 0 && (
-        <div className="note-grid-divider" />
+        <div className={styles.divider} />
       )}
       {regularNotes.length > 0 && renderGroup(regularNotes)}
       {(pinnedNotes.length > 0 || regularNotes.length > 0) && archivedNotes.length > 0 && (
-        <div className="note-grid-divider" />
+        <div className={styles.divider} />
       )}
       {archivedNotes.length > 0 && renderGroup(archivedNotes)}
       {selRect !== null && (
         <div
-          className="selection-rectangle"
+          className={styles.selectionRectangle}
           style={{
             left: selRect.x,
             top: selRect.y,

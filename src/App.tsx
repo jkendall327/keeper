@@ -1,5 +1,5 @@
 import { Suspense, useState } from 'react';
-import './App.css';
+import styles from './App.module.css';
 import { useDB } from './hooks/useDB.ts';
 import { useAppSettings } from './hooks/useAppSettings.ts';
 import { useDisplayedNotes } from './hooks/useDisplayedNotes.ts';
@@ -91,9 +91,9 @@ function AppContent({
   };
 
   return (
-    <div className="app-layout">
+    <div className={styles.layout}>
       {isMobile && sidebarOpen && (
-        <div className="sidebar-overlay" onClick={onSidebarClose} />
+        <div className={styles.sidebarOverlay} onClick={onSidebarClose} />
       )}
       <Sidebar
         tags={allTags}
@@ -128,7 +128,7 @@ function AppContent({
         }}
         isOpen={sidebarOpen}
       />
-      <div className="app-content">
+      <div className={styles.content}>
         {activeFilter.type === 'chat' ? (
           <ChatPanel refresh={refresh} />
         ) : (
@@ -231,7 +231,7 @@ function App() {
   const handleSidebarClose = () => { setSidebarOpen(false); };
 
   return (
-    <div className="app">
+    <div className={styles.app}>
       <AppHeader
         allTags={db.allTags}
         bulkActions={bulkActions}
@@ -244,8 +244,8 @@ function App() {
         onRemoveTagFromNotes={db.removeTagFromNotes}
         onToggleSidebar={() => { setSidebarOpen((v) => !v); }}
       />
-      <main className="app-main">
-        <Suspense fallback={<p className="loading">Loading...</p>}>
+      <main className={styles.main}>
+        <Suspense fallback={<p className={styles.loading}>Loading...</p>}>
           <AppContent
             allTags={db.allTags}
             notes={db.notes}

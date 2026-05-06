@@ -4,6 +4,8 @@ import { markdown } from '@motioneffector/markdown';
 import { useChatLoop, type ChatMessage } from '../llm/useChatLoop.ts';
 import { Icon } from './Icon.tsx';
 import type { KeeperDB } from '../db/types.ts';
+import markdownStyles from './MarkdownPreview.module.css';
+import styles from './ChatView.module.css';
 
 interface ModelOption {
   id: string;
@@ -74,6 +76,10 @@ function renderMarkdownSafe(input: string): string {
   }
 }
 
+function cx(...classes: (string | false)[]) {
+  return classes.filter(Boolean).join(' ');
+}
+
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const html = useMemo(() => {
     if (msg.role === 'assistant') {
@@ -84,27 +90,30 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
   if (msg.role === 'tool') {
     return (
-      <div className="chat-message chat-message-tool">
-        <div className="chat-tool-label">
+      <div className={cx(styles.message, styles.toolMessage)}>
+        <div className={styles.toolLabel}>
           <Icon name="build" size={14} />
           {msg.toolResult.name}
         </div>
-        <pre className="chat-tool-result">{msg.content}</pre>
+        <pre className={styles.toolResult}>{msg.content}</pre>
       </div>
     );
   }
 
   if (msg.role === 'assistant' && html !== null) {
     return (
-      <div className="chat-message chat-message-assistant">
-        <div className="chat-message-content markdown-preview" dangerouslySetInnerHTML={{ __html: html }} />
+      <div className={cx(styles.message, styles.assistantMessage)}>
+        <div
+          className={cx(styles.messageContent, markdownStyles.root)}
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
       </div>
     );
   }
 
   return (
-    <div className={`chat-message chat-message-${msg.role}`}>
-      <div className="chat-message-content">{msg.content}</div>
+    <div className={cx(styles.message, msg.role === 'user' && styles.userMessage)}>
+      <div className={styles.messageContent}>{msg.content}</div>
     </div>
   );
 }
@@ -165,10 +174,10 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
   };
 
   return (
-    <div className="chat-view">
-      <div className="chat-header">
+    <div className={styles.view}>
+      <div className={styles.header}>
         <select
-          className="chat-model-select"
+          className={styles.modelSelect}
           value={selectedModel}
           onChange={(e) => { handleModelChange(e.target.value); }}
           aria-label="Select model"
@@ -180,17 +189,17 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
             <option key={m.id} value={m.id}>{m.name}</option>
           ))}
         </select>
-        <button className="chat-clear-btn" onClick={clear} title="New conversation" aria-label="New conversation">
+        <button className={styles.clearButton} onClick={clear} title="New conversation" aria-label="New conversation">
           <Icon name="add" size={20} />
         </button>
       </div>
       {modelError !== null && (
-        <div className="chat-model-error">{modelError}</div>
+        <div className={styles.modelError}>{modelError}</div>
       )}
 
-      <div className="chat-messages" aria-live="polite">
+      <div className={styles.messages} aria-live="polite">
         {messages.length === 0 && (
-          <div className="chat-empty">
+          <div className={styles.empty}>
             <Icon name="chat" size={48} />
             <p>Start a conversation about your notes</p>
           </div>
@@ -199,17 +208,17 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
           <MessageBubble key={i} msg={msg} />
         ))}
         {pendingConfirmation !== null && (
-          <div className="chat-confirmation">
+          <div className={styles.confirmation}>
             <p>{pendingConfirmation.toolResult.result}</p>
-            <div className="chat-confirmation-actions">
+            <div className={styles.confirmationActions}>
               <button
-                className="chat-confirm-yes"
+                className={styles.confirmYesButton}
                 onClick={() => { void confirmDelete(true); }}
               >
                 Yes, delete
               </button>
               <button
-                className="chat-confirm-no"
+                className={styles.confirmNoButton}
                 onClick={() => { void confirmDelete(false); }}
               >
                 No, keep it
@@ -218,22 +227,25 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
           </div>
         )}
         {streaming !== '' && (
-          <div className="chat-message chat-message-assistant chat-message-streaming">
-            <div className="chat-message-content markdown-preview" dangerouslySetInnerHTML={{ __html: streamingHtml }} />
-            <span className="chat-cursor" />
+          <div className={cx(styles.message, styles.assistantMessage, styles.streamingMessage)}>
+            <div
+              className={cx(styles.messageContent, markdownStyles.root)}
+              dangerouslySetInnerHTML={{ __html: streamingHtml }}
+            />
+            <span className={styles.cursor} />
           </div>
         )}
         {loading && streaming === '' && (
-          <div className="chat-loading">
+          <div className={styles.loading}>
             <Icon name="hourglass_empty" size={16} /> Thinking...
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      <div className="chat-input-bar">
+      <div className={styles.inputBar}>
         <textarea
-          className="chat-input"
+          className={styles.input}
           placeholder="Ask about your notes..."
           value={input}
           onChange={(e) => { setInput(e.target.value); }}
@@ -242,7 +254,7 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
           disabled={loading}
         />
         <button
-          className="chat-send-btn"
+          className={styles.sendButton}
           onClick={handleSubmit}
           disabled={loading || input.trim() === ''}
           aria-label="Send message"

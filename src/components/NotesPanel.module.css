@@ -1,12 +1,10 @@
-/* ── Empty State ──────────────────────────────────────────── */
-
-.search-result-count {
+.searchResultCount {
   margin: 8px 0 0;
-  font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.5);
+  font-size: 0.85rem;
 }
 
-.empty-state {
+.emptyState {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -15,23 +13,23 @@
   color: rgba(255, 255, 255, 0.3);
 }
 
-.empty-state-text {
+.emptyStateText {
+  margin: 16px 0 4px;
   font-size: 1.2rem;
   font-weight: 600;
-  margin: 16px 0 4px;
 }
 
-.empty-state-hint {
-  font-size: 0.9rem;
+.emptyStateHint {
   margin: 0;
+  font-size: 0.9rem;
 }
 
 @media (prefers-color-scheme: light) {
-  .search-result-count {
+  .searchResultCount {
     color: rgba(0, 0, 0, 0.5);
   }
 
-  .empty-state {
+  .emptyState {
     color: rgba(0, 0, 0, 0.3);
   }
 }

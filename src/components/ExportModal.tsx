@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { NoteWithTags } from '../db/types.ts';
 import { extractUrls } from '../db/url-detect.ts';
+import styles from './ExportModal.module.css';
 
 type Mode = 'text' | 'urls';
 
@@ -8,6 +9,10 @@ interface ExportModalProps {
   notes: NoteWithTags[];
   onClose: () => void;
   onDelete: () => void;
+}
+
+function cx(...classes: (string | false)[]) {
+  return classes.filter(Boolean).join(' ');
 }
 
 export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
@@ -58,17 +63,17 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
   };
 
   return (
-    <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="export-modal">
-        <div className="export-tabs">
+    <div className={styles.backdrop} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className={styles.modal} role="dialog" aria-label="Export notes">
+        <div className={styles.tabs}>
           <button
-            className={`export-tab${mode === 'text' ? ' export-tab-active' : ''}`}
+            className={cx(styles.tab, mode === 'text' && styles.tabActive)}
             onClick={() => { setMode('text'); }}
           >
             Text
           </button>
           <button
-            className={`export-tab${mode === 'urls' ? ' export-tab-active' : ''}`}
+            className={cx(styles.tab, mode === 'urls' && styles.tabActive)}
             onClick={() => { setMode('urls'); }}
           >
             URLs
@@ -76,7 +81,7 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
         </div>
 
         {mode === 'text' && (
-          <div className="export-separator-toggle" role="radiogroup" aria-label="Note separator">
+          <div className={styles.separatorToggle} role="radiogroup" aria-label="Note separator">
             <label>
               <input
                 type="radio"
@@ -99,7 +104,7 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
         )}
 
         {mode === 'urls' && (
-          <label className="export-sort-toggle">
+          <label className={styles.sortToggle}>
             <input
               type="checkbox"
               checked={sorted}
@@ -110,20 +115,21 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
         )}
 
         <textarea
-          className="export-preview"
+          className={styles.preview}
           readOnly
+          aria-label="Export preview"
           value={output}
         />
 
-        <div className="export-actions">
-          <button className="export-action-btn export-copy-btn" onClick={() => { void handleCopy(); }}>
+        <div className={styles.actions}>
+          <button className={cx(styles.actionButton, styles.copyButton)} onClick={() => { void handleCopy(); }}>
             {copied ? 'Copied!' : copyFailed ? 'Copy failed' : 'Copy to clipboard'}
           </button>
-          <button className="export-action-btn export-download-btn" onClick={handleDownload}>
+          <button className={styles.actionButton} onClick={handleDownload}>
             Download .txt
           </button>
           {exportCompleted && (
-            <button className="export-action-btn export-burn-btn" onClick={handleBurn}>
+            <button className={cx(styles.actionButton, styles.burnButton)} onClick={handleBurn}>
               Permanently delete {notes.length === 1 ? 'this note' : `these ${String(notes.length)} notes`}
             </button>
           )}

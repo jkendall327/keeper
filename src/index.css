@@ -27,6 +27,10 @@ body {
   min-width: 320px;
 }
 
+body.is-drag-selecting {
+  user-select: none;
+}
+
 h1 {
   font-size: 3.2em;
   line-height: 1.1;
@@ -61,22 +65,5 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
-  }
-  .note-card {
-    background: #ffffff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-  }
-  .note-card-pinned {
-    background: #f8f8ff;
-  }
-  .sidebar {
-    background: #eef0f4;
-  }
-  .modal-panel,
-  .export-modal {
-    background: #ffffff;
-  }
-  .modal-tag-suggestions {
-    background: #ffffff;
   }
 }

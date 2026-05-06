@@ -6,6 +6,8 @@ import type { NoteCommands } from './note-commands.ts';
 interface NoteActionsProps {
   note: NoteWithTags;
   className: string;
+  buttonClassName?: string;
+  filledIconClassName?: string;
   copyText?: string;
   includePin?: boolean;
   noteCommands: NoteCommands;
@@ -19,6 +21,8 @@ interface NoteActionsProps {
 export function NoteActions({
   note,
   className,
+  buttonClassName,
+  filledIconClassName,
   copyText,
   includePin = false,
   noteCommands,
@@ -60,7 +64,7 @@ export function NoteActions({
   return (
     <div className={className}>
       <button
-        className="note-card-copy"
+        className={buttonClassName}
         onClick={(e) => {
           e.stopPropagation();
           void handleCopy();
@@ -71,7 +75,7 @@ export function NoteActions({
         <Icon name={copied ? 'check' : 'content_copy'} />
       </button>
       <button
-        className="note-card-archive"
+        className={buttonClassName}
         onClick={(e) => {
           e.stopPropagation();
           void handleArchive();
@@ -82,7 +86,7 @@ export function NoteActions({
         <Icon name={isTrashView === true ? 'restore_from_trash' : note.archived ? 'unarchive' : 'archive'} />
       </button>
       <button
-        className="note-card-delete"
+        className={buttonClassName}
         onClick={(e) => {
           e.stopPropagation();
           void handleDelete();
@@ -94,7 +98,7 @@ export function NoteActions({
       </button>
       {includePin && (
         <button
-          className="note-card-pin"
+          className={buttonClassName}
           onClick={(e) => {
             e.stopPropagation();
             void handlePin();
@@ -102,7 +106,7 @@ export function NoteActions({
           aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
           title={note.pinned ? 'Unpin note' : 'Pin note'}
         >
-          <Icon name="push_pin" className={note.pinned ? 'icon-filled' : ''} />
+          <Icon name="push_pin" className={note.pinned ? filledIconClassName ?? '' : ''} />
         </button>
       )}
     </div>

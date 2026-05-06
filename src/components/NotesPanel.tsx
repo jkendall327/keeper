@@ -9,6 +9,7 @@ import type { FilterType } from './Sidebar.tsx';
 import type { NoteCommands } from './note-commands.ts';
 import type { CreateNoteInput, NoteId, NoteWithTags } from '../db/types.ts';
 import type { useDB } from '../hooks/useDB.ts';
+import styles from './NotesPanel.module.css';
 
 interface NotesPanelProps {
   allTags: ReturnType<typeof useDB>['allTags'];
@@ -132,7 +133,7 @@ export function NotesPanel({
     <>
       <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
       {searchQuery.trim() !== '' && (
-        <p className="search-result-count">
+        <p className={styles.searchResultCount}>
           {displayedNotes.length === 0
             ? 'No results found'
             : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
@@ -140,10 +141,10 @@ export function NotesPanel({
       )}
       <QuickAdd ref={quickAddRef} onCreate={handleCreateNote} />
       {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
-        <div className="empty-state">
+        <div className={styles.emptyState} data-testid="notes-empty-state">
           <Icon name="sticky_note_2" size={48} />
-          <p className="empty-state-text">No notes yet</p>
-          <p className="empty-state-hint">Start typing above to capture a note</p>
+          <p className={styles.emptyStateText}>No notes yet</p>
+          <p className={styles.emptyStateHint}>Start typing above to capture a note</p>
         </div>
       )}
       <NoteGrid

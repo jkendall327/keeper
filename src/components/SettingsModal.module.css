@@ -1,3 +1,14 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  user-select: text;
+}
+
 /* ── Settings Modal ─────────────────────────────────────── */
 
 .modal {
@@ -193,6 +204,32 @@
   position: relative;
 }
 
+.tagSuggestions {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 10;
+  max-height: 160px;
+  margin: 4px 0 0;
+  overflow-y: auto;
+  border: 1px solid rgba(128, 128, 128, 0.3);
+  border-radius: 6px;
+  background: #1a1a2e;
+  padding: 4px 0;
+  list-style: none;
+}
+
+.tagSuggestion {
+  padding: 6px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.tagSuggestion:hover {
+  background: rgba(100, 108, 255, 0.1);
+}
+
 .autotagChipInput {
   display: flex;
   align-items: center;
@@ -293,5 +330,16 @@
   .modal {
     background: #fff;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+  }
+
+  .tagSuggestions {
+    background: #fff;
+  }
+}
+
+@media (max-width: 768px) {
+  .backdrop {
+    align-items: stretch;
+    justify-content: stretch;
   }
 }

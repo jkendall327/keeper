@@ -1,6 +1,4 @@
-/* ── Icon Picker ──────────────────────────────────────────── */
-
-.icon-picker {
+.picker {
   position: absolute;
   z-index: 100;
   left: 0;
@@ -15,7 +13,7 @@
   padding: 8px;
 }
 
-.icon-picker-search {
+.search {
   width: 100%;
   padding: 6px 8px;
   font-family: inherit;
@@ -29,15 +27,15 @@
   box-sizing: border-box;
 }
 
-.icon-picker-search:focus {
+.search:focus {
   border-color: #646cff;
 }
 
-.icon-picker-section {
+.section {
   margin-bottom: 4px;
 }
 
-.icon-picker-section-label {
+.sectionLabel {
   font-size: 0.7rem;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.4);
@@ -46,13 +44,13 @@
   padding-left: 2px;
 }
 
-.icon-picker-grid {
+.grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 2px;
 }
 
-.icon-picker-item {
+.item {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -66,11 +64,11 @@
   padding: 0;
 }
 
-.icon-picker-item:hover {
+.item:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
-.icon-picker-empty {
+.empty {
   text-align: center;
   padding: 16px;
   font-size: 0.85rem;
@@ -78,26 +76,26 @@
 }
 
 @media (prefers-color-scheme: light) {
-  .icon-picker {
+  .picker {
     background: #fff;
     border-color: rgba(0, 0, 0, 0.15);
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
   }
 
-  .icon-picker-search {
+  .search {
     background: rgba(0, 0, 0, 0.03);
     border-color: rgba(0, 0, 0, 0.15);
   }
 
-  .icon-picker-section-label {
+  .sectionLabel {
     color: rgba(0, 0, 0, 0.4);
   }
 
-  .icon-picker-item:hover {
+  .item:hover {
     background: rgba(0, 0, 0, 0.06);
   }
 
-  .icon-picker-empty {
+  .empty {
     color: rgba(0, 0, 0, 0.4);
   }
 }

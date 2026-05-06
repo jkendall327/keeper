@@ -11,11 +11,13 @@ import { bufferToArrayBuffer, type MediaHandler } from "./media-handler.ts";
 import { truncateExtensionTitle } from "../src/utils/extension-title.ts";
 import { createEventBroadcaster } from "./events.ts";
 import { createLinkPreviewQueue } from "./link-preview-queue.ts";
+import type { BackupService } from "./backup-service.ts";
 
 export function registerRoutes(
   app: FastifyInstance,
   db: KeeperDB,
   media: MediaHandler,
+  backup?: BackupService,
 ): void {
   const { broadcast, registerEventRoutes } = createEventBroadcaster();
   const queueLinkPreview = createLinkPreviewQueue({
@@ -292,6 +294,47 @@ export function registerRoutes(
       }
     },
   );
+
+  // ── Backup & Restore ─────────────────────
+
+  if (backup !== undefined) {
+    app.get<{ Querystring: { includeMedia?: string } }>(
+      "/api/backup",
+      async (req, reply) => {
+        const includeMedia = req.query.includeMedia !== "false";
+        const archive = await backup.createBackup({ includeMedia });
+        const stamp = new Date().toISOString().slice(0, 10);
+        return reply
+          .header("Content-Type", "application/zip")
+          .header("Content-Disposition", `attachment; filename="keeper-backup-${stamp}.keeper.zip"`)
+          .send(archive);
+      },
+    );
+
+    app.post("/api/restore", async (req, reply) => {
+      const parts = req.parts();
+      let archive: Buffer | undefined;
+
+      for await (const part of parts) {
+        if (part.type === "file") {
+          archive = await part.toBuffer();
+        }
+      }
+
+      if (archive === undefined) {
+        return reply.code(400).send({ error: "No backup archive uploaded" });
+      }
+
+      try {
+        const result = await backup.restoreBackup({ archive });
+        broadcast("refresh");
+        return result;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to restore backup";
+        return reply.code(400).send({ error: message });
+      }
+    });
+  }
 
   // ── Link previews ─────────────────────────
 

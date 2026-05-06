@@ -1,18 +1,24 @@
 import Fastify from "fastify";
 import fastifyMultipart from "@fastify/multipart";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { registerRoutes } from "../routes.ts";
 import { createKeeperDB } from "../../src/db/db-impl.ts";
 import { createTestDb } from "../../src/db/__tests__/test-db.ts";
 import type { KeeperDB, Media, NoteId, StoreMediaInput } from "../../src/db/types.ts";
 import type { SqliteDb } from "../../src/db/sqlite-db.ts";
-import type { MediaHandler } from "../media-handler.ts";
+import { createMediaHandler, type MediaHandler } from "../media-handler.ts";
 import type { FastifyInstance } from "fastify";
+import { createSqliteAdapter, type ServerSqliteAdapter } from "../sqlite-adapter.ts";
+import { createBackupService } from "../backup-service.ts";
 
 export interface TestApp {
   app: FastifyInstance;
   db: KeeperDB;
   sqlDb: SqliteDb;
   media: MediaHandler;
+  cleanup?: () => Promise<void>;
 }
 
 export async function createTestApp(): Promise<TestApp> {
@@ -75,6 +81,48 @@ export async function createTestApp(): Promise<TestApp> {
   await app.ready();
 
   return { app, db, sqlDb, media };
+}
+
+export async function createFileBackedTestApp(): Promise<TestApp> {
+  const dataDir = await mkdtemp(join(tmpdir(), "keeper-test-data-"));
+  const app = Fastify();
+  await app.register(fastifyMultipart);
+
+  let idCounter = 0;
+  let timeCounter = 0;
+  const sqlDb: ServerSqliteAdapter = createSqliteAdapter(join(dataDir, "keeper.sqlite3"));
+  const db = createKeeperDB({
+    db: sqlDb,
+    generateId: () => `test-id-${String(++idCounter)}`,
+    now: () => `2025-01-15 12:00:${String(timeCounter++).padStart(2, "0")}`,
+  });
+
+  const mediaDir = join(dataDir, "media");
+  const origDeleteNote = db.deleteNote.bind(db);
+  const media = await createMediaHandler(mediaDir, sqlDb, origDeleteNote);
+  db.storeMedia = media.storeMedia.bind(media);
+  db.deleteMedia = media.deleteMedia.bind(media);
+  db.deleteNote = media.deleteNoteWithMedia.bind(media);
+
+  const backup = createBackupService({
+    dataDir,
+    mediaDir,
+    db: sqlDb,
+  });
+
+  registerRoutes(app, db, media, backup);
+  await app.ready();
+
+  return {
+    app,
+    db,
+    sqlDb,
+    media,
+    cleanup: async () => {
+      sqlDb.close();
+      await rm(dataDir, { recursive: true, force: true });
+    },
+  };
 }
 
 export function multipartBody(fields: Record<string, string>, file: { field: string; filename: string; contentType: string; content: string | Buffer }) {

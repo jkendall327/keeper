@@ -8,6 +8,7 @@ import { bufferToArrayBuffer, createMediaHandler } from "./media-handler.ts";
 import { registerRoutes } from "./routes.ts";
 import { createKeeperDB } from "../src/db/db-impl.ts";
 import { randomUUID } from "node:crypto";
+import { createBackupService } from "./backup-service.ts";
 
 const dataDir = process.env["DATA_DIR"] ?? "./data";
 const portRaw = Number(process.env["PORT"] ?? "3001");
@@ -32,6 +33,11 @@ const keeperDb = createKeeperDB({
 const mediaDir = join(dataDir, "media");
 const origDeleteNote = keeperDb.deleteNote.bind(keeperDb);
 const media = await createMediaHandler(mediaDir, adapter, origDeleteNote);
+const backup = createBackupService({
+  dataDir,
+  mediaDir,
+  db: adapter,
+});
 
 keeperDb.storeMedia = media.storeMedia.bind(media);
 keeperDb.deleteMedia = media.deleteMedia.bind(media);
@@ -43,7 +49,7 @@ keeperDb.getMedia = async (id: string) => {
 };
 
 // Register API routes
-registerRoutes(app, keeperDb, media);
+registerRoutes(app, keeperDb, media, backup);
 
 // Serve built frontend
 const distDir = join(import.meta.dirname, "..", "dist");

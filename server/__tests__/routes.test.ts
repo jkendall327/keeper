@@ -1,7 +1,8 @@
 // @vitest-environment node
 import { describe, it, expect, afterEach } from "vitest";
-import { createTestApp, multipartBody, type TestApp } from "./test-app.ts";
+import { createFileBackedTestApp, createTestApp, multipartBody, type TestApp } from "./test-app.ts";
 import type { LightMyRequestResponse } from "fastify";
+import { readKeeperArchive } from "../keeper-archive.ts";
 
 interface TagDto {
   id: number;
@@ -34,6 +35,7 @@ async function setup() {
 
 afterEach(async () => {
   await current?.app.close();
+  await current?.cleanup?.();
   current = undefined;
 });
 
@@ -285,5 +287,83 @@ describe("Fastify API routes", () => {
     expect(deleted.statusCode).toBe(200);
     const missing = await app.inject({ method: "GET", url: "/api/media/media-1" });
     expect(missing.statusCode).toBe(404);
+  });
+
+  it("downloads a backup archive with a SQLite snapshot and media files", async () => {
+    current = await createFileBackedTestApp();
+    const { app } = current;
+    await app.inject({ method: "POST", url: "/api/notes", payload: { title: "Saved", body: "with image" } });
+    const multipart = multipartBody(
+      { noteId: "test-id-1", mimeType: "image/png" },
+      { field: "file", filename: "pic.png", contentType: "image/png", content: "png-bytes" },
+    );
+    const uploaded = await app.inject({
+      method: "POST",
+      url: "/api/media",
+      headers: { "content-type": multipart.contentType },
+      payload: multipart.body,
+    });
+    const mediaId = (parseJson(uploaded) as { id: string }).id;
+
+    const response = await app.inject({ method: "GET", url: "/api/backup" });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toBe("application/zip");
+    expect(response.headers["content-disposition"]).toContain("keeper-backup-");
+
+    const archive = readKeeperArchive(response.rawPayload);
+    const manifest = JSON.parse(archive.get("manifest.json")?.toString("utf8") ?? "") as {
+      app: string;
+      counts: { notes: number; media: number };
+    };
+    expect(manifest).toMatchObject({
+      app: "keeper",
+      counts: { notes: 1, media: 1 },
+    });
+    expect(archive.has("keeper.sqlite3")).toBe(true);
+    expect([...archive.keys()]).toContain(`media/${mediaId}.png`);
+    expect(archive.get(`media/${mediaId}.png`)?.toString()).toBe("png-bytes");
+  });
+
+  it("restores a backup archive over the current database and media directory", async () => {
+    current = await createFileBackedTestApp();
+    const { app } = current;
+    await app.inject({ method: "POST", url: "/api/notes", payload: { title: "Original", body: "keep me" } });
+    const originalMedia = multipartBody(
+      { noteId: "test-id-1", mimeType: "image/png" },
+      { field: "file", filename: "pic.png", contentType: "image/png", content: "original-bytes" },
+    );
+    const uploaded = await app.inject({
+      method: "POST",
+      url: "/api/media",
+      headers: { "content-type": originalMedia.contentType },
+      payload: originalMedia.body,
+    });
+    const mediaId = (parseJson(uploaded) as { id: string }).id;
+    const backup = await app.inject({ method: "GET", url: "/api/backup" });
+
+    await app.inject({ method: "POST", url: "/api/notes", payload: { title: "Later", body: "discard me" } });
+    await app.inject({ method: "DELETE", url: `/api/media/${mediaId}` });
+
+    const restoreMultipart = multipartBody(
+      {},
+      { field: "backup", filename: "keeper-backup.keeper.zip", contentType: "application/zip", content: backup.rawPayload },
+    );
+    const restored = await app.inject({
+      method: "POST",
+      url: "/api/restore",
+      headers: { "content-type": restoreMultipart.contentType },
+      payload: restoreMultipart.body,
+    });
+    expect(restored.statusCode).toBe(200);
+    expect(parseJson(restored) as { preRestoreBackupPath: string }).toMatchObject({
+      preRestoreBackupPath: expect.stringContaining("pre-restore-") as string,
+    });
+
+    const notes = parseJson(await app.inject({ method: "GET", url: "/api/notes" })) as NoteDto[];
+    expect(notes.map((note) => note.title)).toEqual(["Original"]);
+
+    const served = await app.inject({ method: "GET", url: `/api/media/${mediaId}` });
+    expect(served.statusCode).toBe(200);
+    expect(served.body).toBe("original-bytes");
   });
 });

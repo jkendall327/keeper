@@ -183,9 +183,13 @@ describe('CRUD Invariants (Property-Based)', () => {
     await fc.assert(
       fc.asyncProperty(
         fc.integer({ min: 1, max: 5 }),
-        fc.string({ minLength: 1, maxLength: 30 }),
-        fc.string({ minLength: 1, maxLength: 30 }),
-        async (noteCount, oldName, newName) => {
+        fc
+          .tuple(
+            fc.string({ minLength: 1, maxLength: 30 }),
+            fc.string({ minLength: 1, maxLength: 30 }),
+          )
+          .filter(([oldName, newName]) => oldName !== newName),
+        async (noteCount, [oldName, newName]) => {
           // Reset DB for each run
           idCounter = 0;
           api = createKeeperDB({

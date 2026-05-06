@@ -386,6 +386,7 @@ export function NoteModal({
       textarea.style.height = 'auto';
       // Set height to scrollHeight, capped by CSS max-height
       textarea.style.height = `${String(textarea.scrollHeight)}px`;
+      textarea.style.overflowY = textarea.scrollHeight > textarea.clientHeight + 1 ? 'auto' : 'hidden';
     }
   }, [body]);
 

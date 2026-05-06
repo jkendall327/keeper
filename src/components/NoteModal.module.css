@@ -11,9 +11,8 @@
 
 .panel {
   display: flex;
-  width: 90vw;
-  max-width: 700px;
-  max-height: 80vh;
+  width: min(88vw, 860px);
+  max-height: min(88vh, 720px);
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-xl);
@@ -25,7 +24,7 @@
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  padding: 20px;
+  padding: 28px 32px;
 }
 
 .header {
@@ -72,17 +71,17 @@
 .bodyInput {
   width: 100%;
   min-height: 100px;
-  max-height: 60vh;
-  padding: 0;
+  max-height: calc(min(88vh, 720px) - 112px);
+  padding: 4px 0;
   border: none;
   background: transparent;
   color: inherit;
   font-family: inherit;
-  font-size: 0.9rem;
-  line-height: 1.6;
+  font-size: 1rem;
+  line-height: 1.7;
   resize: none;
   outline: none;
-  overflow-y: auto;
+  overflow-y: hidden;
   box-sizing: border-box;
 }
 
@@ -95,12 +94,12 @@
 
 .tags {
   display: flex;
-  width: 200px;
+  width: 220px;
   flex-direction: column;
   gap: 12px;
   overflow-y: auto;
   border-left: 1px solid var(--color-border-soft);
-  padding: 20px 16px;
+  padding: 28px 20px;
 }
 
 .noteActions {

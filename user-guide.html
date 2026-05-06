@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Keeper User Guide</title>
+    <style>
+      :root {
+        --color-accent: #646cff;
+        --color-accent-hover: #747bff;
+        --color-accent-muted: rgba(100, 108, 255, 0.15);
+        --color-border: rgba(128, 128, 128, 0.3);
+        --color-border-soft: rgba(128, 128, 128, 0.2);
+        --surface-app: #1a1a1a;
+        --surface-card: #2a2a2a;
+        --surface-sidebar: #1e1e2e;
+        --surface-hover: rgba(128, 128, 128, 0.1);
+        --text-main: rgba(255, 255, 255, 0.9);
+        --text-muted: rgba(255, 255, 255, 0.62);
+        --radius-sm: 4px;
+        --radius-md: 6px;
+        --radius-lg: 8px;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text-main);
+        background: var(--surface-app);
+        line-height: 1.55;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html {
+        scroll-behavior: smooth;
+      }
+
+      body {
+        margin: 0;
+        min-width: 320px;
+      }
+
+      a {
+        color: var(--color-accent-hover);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      .shell {
+        display: grid;
+        grid-template-columns: 240px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+
+      .sidebar {
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        padding: 18px 10px;
+        overflow-y: auto;
+        background: var(--surface-sidebar);
+        border-right: 1px solid var(--color-border-soft);
+      }
+
+      .brand {
+        margin: 0 10px 18px;
+        font-size: 1.15rem;
+        font-weight: 700;
+      }
+
+      .toc-title {
+        margin: 0 10px 8px;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+
+      .toc {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .toc a {
+        display: block;
+        padding: 8px 12px;
+        border-radius: var(--radius-md);
+        color: var(--text-main);
+        font-size: 0.92rem;
+      }
+
+      .toc a:hover {
+        background: var(--surface-hover);
+        color: var(--color-accent-hover);
+        text-decoration: none;
+      }
+
+      main {
+        width: min(920px, 100%);
+        padding: 48px 32px 72px;
+      }
+
+      .intro {
+        margin-bottom: 28px;
+      }
+
+      h1 {
+        margin: 0 0 10px;
+        font-size: clamp(2rem, 4vw, 3.2rem);
+        line-height: 1.05;
+      }
+
+      .subtitle {
+        max-width: 720px;
+        margin: 0;
+        color: var(--text-muted);
+        font-size: 1.05rem;
+      }
+
+      .quick-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 18px;
+      }
+
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: var(--color-accent-muted);
+        color: var(--color-accent-hover);
+        font-size: 0.82rem;
+        font-weight: 600;
+      }
+
+      section {
+        margin-top: 18px;
+        padding: 20px;
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-lg);
+        background: var(--surface-card);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      }
+
+      section h2 {
+        margin: 0 0 8px;
+        font-size: 1.24rem;
+        line-height: 1.25;
+      }
+
+      section p {
+        margin: 0 0 12px;
+        color: var(--text-muted);
+      }
+
+      section p:last-child,
+      section ul:last-child {
+        margin-bottom: 0;
+      }
+
+      ul {
+        margin: 0 0 12px;
+        padding-left: 1.2rem;
+        color: var(--text-muted);
+      }
+
+      li + li {
+        margin-top: 6px;
+      }
+
+      code,
+      kbd {
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-sm);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text-main);
+        font-family: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+        font-size: 0.88em;
+      }
+
+      code {
+        padding: 0.08rem 0.32rem;
+      }
+
+      kbd {
+        padding: 0.1rem 0.34rem;
+      }
+
+      .callout {
+        margin-top: 12px;
+        padding: 12px 14px;
+        border-left: 3px solid var(--color-accent);
+        border-radius: var(--radius-md);
+        background: var(--color-accent-muted);
+        color: var(--text-main);
+      }
+
+      .feature-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 12px;
+      }
+
+      .mini-card {
+        padding: 12px;
+        border: 1px solid var(--color-border-soft);
+        border-radius: var(--radius-md);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .mini-card h3 {
+        margin: 0 0 4px;
+        font-size: 0.98rem;
+      }
+
+      .mini-card p {
+        margin: 0;
+        font-size: 0.92rem;
+      }
+
+      @media (prefers-color-scheme: light) {
+        :root {
+          --surface-app: #f5f5f5;
+          --surface-card: #ffffff;
+          --surface-sidebar: #eef0f4;
+          --surface-hover: rgba(100, 108, 255, 0.08);
+          --text-main: #213547;
+          --text-muted: rgba(33, 53, 71, 0.68);
+        }
+
+        code,
+        kbd {
+          background: rgba(100, 108, 255, 0.08);
+        }
+
+        section {
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+      }
+
+      @media (max-width: 780px) {
+        .shell {
+          display: block;
+        }
+
+        .sidebar {
+          position: static;
+          height: auto;
+          padding: 16px;
+          border-right: 0;
+          border-bottom: 1px solid var(--color-border-soft);
+        }
+
+        .toc {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        main {
+          padding: 32px 16px 56px;
+        }
+
+        section {
+          padding: 16px;
+        }
+
+        .feature-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <p class="brand">Keeper</p>
+        <p class="toc-title">Contents</p>
+        <nav aria-label="Table of contents">
+          <ol class="toc">
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="#quick-add">Quick Add</a></li>
+            <li><a href="#notes">Notes</a></li>
+            <li><a href="#views">Views</a></li>
+            <li><a href="#search">Search</a></li>
+            <li><a href="#tags">Tags</a></li>
+            <li><a href="#bulk-actions">Bulk Actions</a></li>
+            <li><a href="#export">Export</a></li>
+            <li><a href="#autotag">Autotag Rules</a></li>
+            <li><a href="#settings">Settings</a></li>
+            <li><a href="#chat">Chat</a></li>
+            <li><a href="#extension">Browser Extension</a></li>
+          </ol>
+        </nav>
+      </aside>
+
+      <main>
+        <header class="intro">
+          <h1>Keeper User Guide</h1>
+          <p class="subtitle">
+            Keeper is an inbox-first place for quick notes, links, snippets, screenshots, and loose thoughts.
+            Capture quickly, organize when useful, then export or archive notes when they have served their purpose.
+          </p>
+          <div class="quick-list" aria-label="Core ideas">
+            <span class="chip">Fast capture</span>
+            <span class="chip">Inbox first</span>
+            <span class="chip">Tags and smart views</span>
+            <span class="chip">Export and burn</span>
+          </div>
+        </header>
+
+        <section id="overview">
+          <h2>Overview</h2>
+          <p>
+            The main screen is built around a note stream. The sidebar switches between views, the top bar
+            handles selection and bulk tools, and the note grid shows your current set of notes in a card layout.
+          </p>
+          <p>
+            Keeper works well as a temporary holding area: toss things into the Inbox, find them again with search
+            or tags, archive notes that are handled, and export selected material when it needs to move elsewhere.
+          </p>
+        </section>
+
+        <section id="quick-add">
+          <h2>Quick Add</h2>
+          <p>
+            The Quick Add field is focused when the app opens. Type a note and press <kbd>Enter</kbd> to save it.
+            Use <kbd>Shift</kbd> + <kbd>Enter</kbd> for a new line.
+          </p>
+          <p>
+            If you click away from the field, Keeper saves any non-empty text automatically and returns focus to
+            the capture flow.
+          </p>
+        </section>
+
+        <section id="notes">
+          <h2>Notes</h2>
+          <p>
+            Click a note card to open the editor. Notes can have an optional title, Markdown body text, tags,
+            images, links, and checklist-style content.
+          </p>
+          <ul>
+            <li>Use the note actions to copy, pin, archive, restore, or delete a note.</li>
+            <li>Emptying a note body and closing the editor deletes that note.</li>
+            <li>Pasted images are stored with the note and inserted as Markdown image references.</li>
+            <li>Markdown checkboxes can be toggled from the rendered preview.</li>
+            <li>Bullet lists continue automatically when you press <kbd>Enter</kbd> after a list item.</li>
+          </ul>
+          <div class="callout">
+            Links inside rendered note previews open as links, while clicking the rest of the card opens the note.
+          </div>
+        </section>
+
+        <section id="views">
+          <h2>Views</h2>
+          <p>
+            The sidebar changes which notes are displayed. Each view is its own workspace for a particular kind
+            of cleanup or browsing.
+          </p>
+          <div class="feature-grid">
+            <div class="mini-card">
+              <h3>Inbox</h3>
+              <p>Shows active notes, newest first. Pinned notes stay grouped above the rest.</p>
+            </div>
+            <div class="mini-card">
+              <h3>Tag Views</h3>
+              <p>Click any tag in the sidebar to show notes carrying that tag.</p>
+            </div>
+            <div class="mini-card">
+              <h3>Untagged</h3>
+              <p>Shows notes without tags, useful for review sessions and cleanup.</p>
+            </div>
+            <div class="mini-card">
+              <h3>Links</h3>
+              <p>Shows linked notes: anything Keeper detects as containing a URL.</p>
+            </div>
+            <div class="mini-card">
+              <h3>Archive</h3>
+              <p>Shows notes that have been archived out of the Inbox. You can open and restore them.</p>
+            </div>
+            <div class="mini-card">
+              <h3>Trash</h3>
+              <p>Shows deleted notes that can be restored or deleted permanently depending on the action.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="search">
+          <h2>Search</h2>
+          <p>
+            Search filters notes by text content. It works across the note body and helps narrow large inboxes
+            quickly, especially when combined with a view-specific cleanup habit.
+          </p>
+          <p>
+            When a search has no matches, Keeper shows a no-results state instead of the first-run empty state.
+          </p>
+        </section>
+
+        <section id="tags">
+          <h2>Tags</h2>
+          <p>
+            Tags are the main lightweight organization tool. Add tags from the note editor or from the label
+            button on a note card. Selected notes can also be labeled in bulk from the top bar.
+          </p>
+          <ul>
+            <li>Tag chips appear on note cards and inside the note editor.</li>
+            <li>Existing tags appear in the sidebar as filters.</li>
+            <li>Double-click a sidebar tag name to rename it across notes.</li>
+            <li>Use the tag icon button in the sidebar to choose a custom icon.</li>
+            <li>Hover a sidebar tag to reveal the delete button for removing that tag.</li>
+          </ul>
+        </section>
+
+        <section id="bulk-actions">
+          <h2>Bulk Actions</h2>
+          <p>
+            Select notes when you want to label, archive, delete, or export several at once. The top bar shows
+            the count and available actions after selection begins.
+          </p>
+          <ul>
+            <li>Use the card selection control, <kbd>Ctrl</kbd>/<kbd>Cmd</kbd>-click, or long press to toggle selection.</li>
+            <li>Use <kbd>Shift</kbd>-click to select a range between the last selected note and the clicked note.</li>
+            <li>Drag across empty grid space to select multiple cards with a selection rectangle.</li>
+            <li>Use Select All or Deselect All for the current displayed set.</li>
+          </ul>
+        </section>
+
+        <section id="export">
+          <h2>Export</h2>
+          <p>
+            Export appears after selecting notes. The export dialog previews exactly what will be copied or
+            downloaded before you commit.
+          </p>
+          <ul>
+            <li><strong>Text mode</strong> joins selected note bodies with either compact or spaced separators.</li>
+            <li><strong>URLs mode</strong> extracts unique links from the selected notes and can sort them alphabetically.</li>
+            <li>Use Copy to clipboard or Download .txt to move the output elsewhere.</li>
+            <li>After a successful copy or download, Keeper offers to permanently delete the exported notes.</li>
+          </ul>
+          <div class="callout">
+            The delete-after-export action only appears after export succeeds, so review the preview first and then burn intentionally.
+          </div>
+        </section>
+
+        <section id="autotag">
+          <h2>Autotag Rules</h2>
+          <p>
+            Autotag rules apply tags to notes based on URL patterns. Open Settings, choose Autotag Rules, enter a
+            URL regular expression, add one or more tags, and create the rule.
+          </p>
+          <ul>
+            <li>Rules are matched case-insensitively, shown as <code>/pattern/i</code>.</li>
+            <li>The tag input suggests existing tags as you type.</li>
+            <li>Rules can be edited or deleted from the rule list.</li>
+            <li>The top-bar autotag button runs rules against notes and reports how many matched.</li>
+            <li>Running rules from the toolbar can archive matching Inbox notes after applying their tags.</li>
+          </ul>
+        </section>
+
+        <section id="settings">
+          <h2>Settings</h2>
+          <p>
+            Open Settings from the gear button at the bottom of the sidebar. Settings are grouped into tabs so
+            capture, link handling, backups, and AI features stay separate.
+          </p>
+          <div class="feature-grid">
+            <div class="mini-card">
+              <h3>API Key</h3>
+              <p>Configure the OpenRouter key used by the Chat view.</p>
+            </div>
+            <div class="mini-card">
+              <h3>Notes</h3>
+              <p>Control note behavior such as active-tag capture, title badge settings, and tag suggestions.</p>
+            </div>
+            <div class="mini-card">
+              <h3>Link Previews</h3>
+              <p>Enable fetching and displaying previews for notes that contain URLs.</p>
+            </div>
+            <div class="mini-card">
+              <h3>Backup &amp; Import</h3>
+              <p>Download a Keeper archive with SQLite data and optional media, or restore from an archive.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="chat">
+          <h2>Chat</h2>
+          <p>
+            Chat lets you talk with an AI assistant about your notes. It requires an OpenRouter API key in
+            Settings before use.
+          </p>
+          <ul>
+            <li>Choose a model from the model selector.</li>
+            <li>Ask questions in the input bar; press <kbd>Enter</kbd> to send or <kbd>Shift</kbd> + <kbd>Enter</kbd> for a new line.</li>
+            <li>Assistant replies render as Markdown and stream while they are being generated.</li>
+            <li>Potentially destructive actions, such as deleting notes, ask for confirmation.</li>
+            <li>Use the new conversation button to clear the current chat.</li>
+          </ul>
+        </section>
+
+        <section id="extension">
+          <h2>Browser Extension</h2>
+          <p>
+            Keeper includes a browser extension for quick web capture. Extension-created notes appear in the app,
+            and Keeper can show an unseen-note count in the tab title when that setting is enabled.
+          </p>
+          <p>
+            This makes Keeper useful as a web inbox: save links or snippets during browsing, then process them
+            later from the Inbox, Links, Untagged, or tag views.
+          </p>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

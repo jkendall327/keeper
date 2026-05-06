@@ -4,6 +4,8 @@ import { tagDisplayIcon, type NoteId, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import styles from './TagApplier.module.css';
 
+const POPOVER_VIEWPORT_PADDING = 8;
+
 interface TagApplierProps {
   /** IDs of the notes to tag (supports single or bulk) */
   noteIds: NoteId[];
@@ -37,15 +39,24 @@ export function TagApplier({
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Position the popover relative to the anchor button on mount
+  // Position the popover relative to the anchor button on mount.
   useLayoutEffect(() => {
     const anchor = anchorRef?.current;
     const panel = panelRef.current;
     if (anchor === null || anchor === undefined || panel === null) return;
     const rect = anchor.getBoundingClientRect();
     const top = direction === 'down' ? rect.bottom + window.scrollY : rect.top + window.scrollY;
+    const panelWidth = panel.offsetWidth;
+    const viewportLeft = window.scrollX + POPOVER_VIEWPORT_PADDING;
+    const viewportRight = window.scrollX + document.documentElement.clientWidth - POPOVER_VIEWPORT_PADDING;
+    const preferredLeft = rect.left + window.scrollX;
+    const fallbackLeft = rect.right + window.scrollX - panelWidth;
+    const left = preferredLeft + panelWidth <= viewportRight
+      ? preferredLeft
+      : Math.max(viewportLeft, fallbackLeft);
+
     panel.style.top = `${String(top)}px`;
-    panel.style.left = `${String(rect.left + window.scrollX)}px`;
+    panel.style.left = `${String(left)}px`;
   }, [anchorRef, direction]);
 
   // Focus input on mount

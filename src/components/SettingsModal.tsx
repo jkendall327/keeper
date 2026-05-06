@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import { clsx } from 'clsx';
 import { Icon } from './Icon.tsx';
 import { getApiKey, setApiKey, clearApiKey, isLLMConfigured } from '../llm/client.ts';
 import { getDB } from '../db/db-client.ts';
@@ -14,11 +15,6 @@ import {
 } from '../db/types.ts';
 import { normalizeExtensionTitleMaxLength } from '../utils/extension-title.ts';
 import styles from './SettingsModal.module.css';
-
-// TODO: clsx?
-function cx(...classes: (string | false | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
 
 interface SettingsModalProps {
   allTags: Tag[];
@@ -243,16 +239,16 @@ export function SettingsModal({
         </div>
 
         <div className={styles.tabs} role="tablist" aria-label="Settings sections">
-          <button className={cx(styles.tab, activeTab === 'api' && styles.tabActive)} onClick={() => { setActiveTab('api'); }} role="tab" aria-selected={activeTab === 'api'}>
+          <button className={clsx(styles.tab, activeTab === 'api' && styles.tabActive)} onClick={() => { setActiveTab('api'); }} role="tab" aria-selected={activeTab === 'api'}>
             API Key
           </button>
-          <button className={cx(styles.tab, activeTab === 'autotag' && styles.tabActive)} onClick={() => { setActiveTab('autotag'); }} role="tab" aria-selected={activeTab === 'autotag'}>
+          <button className={clsx(styles.tab, activeTab === 'autotag' && styles.tabActive)} onClick={() => { setActiveTab('autotag'); }} role="tab" aria-selected={activeTab === 'autotag'}>
             Autotag Rules
           </button>
-          <button className={cx(styles.tab, activeTab === 'notes' && styles.tabActive)} onClick={() => { setActiveTab('notes'); }} role="tab" aria-selected={activeTab === 'notes'}>
+          <button className={clsx(styles.tab, activeTab === 'notes' && styles.tabActive)} onClick={() => { setActiveTab('notes'); }} role="tab" aria-selected={activeTab === 'notes'}>
             Notes
           </button>
-          <button className={cx(styles.tab, activeTab === 'link-previews' && styles.tabActive)} onClick={() => { setActiveTab('link-previews'); }} role="tab" aria-selected={activeTab === 'link-previews'}>
+          <button className={clsx(styles.tab, activeTab === 'link-previews' && styles.tabActive)} onClick={() => { setActiveTab('link-previews'); }} role="tab" aria-selected={activeTab === 'link-previews'}>
             Link Previews
           </button>
         </div>

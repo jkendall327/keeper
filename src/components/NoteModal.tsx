@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { clsx } from 'clsx';
 import { tagDisplayIcon, type NoteWithTags, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
@@ -7,10 +8,6 @@ import { getDB } from '../db/db-client.ts';
 import { getImageUrl } from '../utils/image-url.ts';
 import type { NoteCommands } from './note-commands.ts';
 import styles from './NoteModal.module.css';
-
-function cx(...classes: (string | false | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
 
 interface NoteModalProps {
   note: NoteWithTags;
@@ -483,7 +480,7 @@ export function NoteModal({
             {pendingTagNames.map((tagName) => (
               <span
                 key={`pending-${tagName}`}
-                className={cx(styles.tagChip, styles.pendingTagChip)}
+                className={clsx(styles.tagChip, styles.pendingTagChip)}
               >
                 <Icon
                   name={tagDisplayIcon(allTags.find((tag) => tag.name === tagName) ?? { id: -1, name: tagName, icon: null })}

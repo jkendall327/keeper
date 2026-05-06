@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { clsx } from 'clsx';
 import type { Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { TagApplier } from './TagApplier.tsx';
@@ -33,7 +34,6 @@ export function AppHeader({
   onRemoveTagFromNotes,
   onToggleSidebar,
 }: AppHeaderProps) {
-  const cx = (...classes: (string | false | undefined)[]) => classes.filter(Boolean).join(' ');
   const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
   const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
   const {
@@ -158,7 +158,7 @@ export function AppHeader({
               </button>
             )}
             <button
-              className={cx(styles.actionButton, styles.deleteButton)}
+              className={clsx(styles.actionButton, styles.deleteButton)}
               onClick={() => { void handleBulkDelete(); }}
               title="Delete"
             >

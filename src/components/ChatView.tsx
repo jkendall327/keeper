@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
+import { clsx } from 'clsx';
 import type { LLMClient } from '@motioneffector/llm';
 import { markdown } from '@motioneffector/markdown';
 import { useChatLoop, type ChatMessage } from '../llm/useChatLoop.ts';
@@ -76,10 +77,6 @@ function renderMarkdownSafe(input: string): string {
   }
 }
 
-function cx(...classes: (string | false)[]) {
-  return classes.filter(Boolean).join(' ');
-}
-
 function MessageBubble({ msg }: { msg: ChatMessage }) {
   const html = useMemo(() => {
     if (msg.role === 'assistant') {
@@ -90,7 +87,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
   if (msg.role === 'tool') {
     return (
-      <div className={cx(styles.message, styles.toolMessage)}>
+      <div className={clsx(styles.message, styles.toolMessage)}>
         <div className={styles.toolLabel}>
           <Icon name="build" size={14} />
           {msg.toolResult.name}
@@ -102,9 +99,9 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 
   if (msg.role === 'assistant' && html !== null) {
     return (
-      <div className={cx(styles.message, styles.assistantMessage)}>
+      <div className={clsx(styles.message, styles.assistantMessage)}>
         <div
-          className={cx(styles.messageContent, markdownStyles.root)}
+          className={clsx(styles.messageContent, markdownStyles.root)}
           dangerouslySetInnerHTML={{ __html: html }}
         />
       </div>
@@ -112,7 +109,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   }
 
   return (
-    <div className={cx(styles.message, msg.role === 'user' && styles.userMessage)}>
+    <div className={clsx(styles.message, msg.role === 'user' && styles.userMessage)}>
       <div className={styles.messageContent}>{msg.content}</div>
     </div>
   );
@@ -227,9 +224,9 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
           </div>
         )}
         {streaming !== '' && (
-          <div className={cx(styles.message, styles.assistantMessage, styles.streamingMessage)}>
+          <div className={clsx(styles.message, styles.assistantMessage, styles.streamingMessage)}>
             <div
-              className={cx(styles.messageContent, markdownStyles.root)}
+              className={clsx(styles.messageContent, markdownStyles.root)}
               dangerouslySetInnerHTML={{ __html: streamingHtml }}
             />
             <span className={styles.cursor} />

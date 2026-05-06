@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react';
+import { clsx } from 'clsx';
 import { tagDisplayIcon, type NoteWithTags, type Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
@@ -20,10 +21,6 @@ interface NoteCardProps {
   isSelected?: boolean;
   showLinkPreviews: boolean;
   isTrashView?: boolean;
-}
-
-function cx(...classes: (string | false)[]) {
-  return classes.filter(Boolean).join(' ');
 }
 
 export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, isSelected, showLinkPreviews, isTrashView }: NoteCardProps) {
@@ -85,7 +82,7 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
 
   return (
     <div
-      className={cx(
+      className={clsx(
         styles.card,
         note.pinned && styles.pinned,
         isSelected === true && styles.selected,

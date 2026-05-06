@@ -1,4 +1,5 @@
 import { useMemo, useRef, useEffect } from 'react';
+import { clsx } from 'clsx';
 import { markdown } from '@motioneffector/markdown';
 import styles from './MarkdownPreview.module.css';
 
@@ -6,10 +7,6 @@ interface MarkdownPreviewProps {
   content: string;
   onCheckboxToggle?: (newContent: string) => void;
   className?: string;
-}
-
-function cx(...classes: (string | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
 }
 
 export function MarkdownPreview({
@@ -104,7 +101,7 @@ export function MarkdownPreview({
   return (
     <div
       ref={containerRef}
-      className={cx(styles.root, className)}
+      className={clsx(styles.root, className)}
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clsx } from 'clsx';
 import type { NoteWithTags } from '../db/types.ts';
 import { extractUrls } from '../db/url-detect.ts';
 import styles from './ExportModal.module.css';
@@ -9,10 +10,6 @@ interface ExportModalProps {
   notes: NoteWithTags[];
   onClose: () => void;
   onDelete: () => void;
-}
-
-function cx(...classes: (string | false)[]) {
-  return classes.filter(Boolean).join(' ');
 }
 
 export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
@@ -67,13 +64,13 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
       <div className={styles.modal} role="dialog" aria-label="Export notes">
         <div className={styles.tabs}>
           <button
-            className={cx(styles.tab, mode === 'text' && styles.tabActive)}
+            className={clsx(styles.tab, mode === 'text' && styles.tabActive)}
             onClick={() => { setMode('text'); }}
           >
             Text
           </button>
           <button
-            className={cx(styles.tab, mode === 'urls' && styles.tabActive)}
+            className={clsx(styles.tab, mode === 'urls' && styles.tabActive)}
             onClick={() => { setMode('urls'); }}
           >
             URLs
@@ -122,14 +119,14 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
         />
 
         <div className={styles.actions}>
-          <button className={cx(styles.actionButton, styles.copyButton)} onClick={() => { void handleCopy(); }}>
+          <button className={clsx(styles.actionButton, styles.copyButton)} onClick={() => { void handleCopy(); }}>
             {copied ? 'Copied!' : copyFailed ? 'Copy failed' : 'Copy to clipboard'}
           </button>
           <button className={styles.actionButton} onClick={handleDownload}>
             Download .txt
           </button>
           {exportCompleted && (
-            <button className={cx(styles.actionButton, styles.burnButton)} onClick={handleBurn}>
+            <button className={clsx(styles.actionButton, styles.burnButton)} onClick={handleBurn}>
               Permanently delete {notes.length === 1 ? 'this note' : `these ${String(notes.length)} notes`}
             </button>
           )}

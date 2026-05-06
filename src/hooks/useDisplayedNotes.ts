@@ -4,6 +4,7 @@ import type { NoteWithTags } from '../db/types.ts';
 import type { useDB } from './useDB.ts';
 
 type DB = ReturnType<typeof useDB>;
+const EMPTY_NOTES: NoteWithTags[] = [];
 
 interface UseDisplayedNotesOptions {
   activeFilter: FilterType;
@@ -28,19 +29,24 @@ export function useDisplayedNotes({
   search,
   searchQuery,
 }: UseDisplayedNotesOptions) {
-  const [displayedNotes, setDisplayedNotes] = useState<NoteWithTags[]>(dbNotes);
+  const trimmedSearchQuery = searchQuery.trim();
+  const asyncRequestKey = getAsyncRequestKey(activeFilter, trimmedSearchQuery);
+  const [asyncNotesState, setAsyncNotesState] = useState<{
+    key: string;
+    sourceNotes: NoteWithTags[] | null;
+    notes: NoteWithTags[];
+  }>({ key: '', sourceNotes: null, notes: EMPTY_NOTES });
 
   useEffect(() => {
+    if (asyncRequestKey === null) return;
+
     let cancelled = false;
     const loadNotes = async () => {
       let notes: NoteWithTags[];
-      if (searchQuery.trim() !== '') {
-        notes = await search(searchQuery);
+      if (trimmedSearchQuery !== '') {
+        notes = await search(trimmedSearchQuery);
       } else {
         switch (activeFilter.type) {
-          case 'all':
-            notes = dbNotes;
-            break;
           case 'untagged':
             notes = await getUntaggedNotes();
             break;
@@ -56,13 +62,13 @@ export function useDisplayedNotes({
           case 'tag':
             notes = await getNotesForTag(activeFilter.tagId);
             break;
+          case 'all':
           case 'chat':
-            notes = [];
-            break;
+            return;
         }
       }
       if (cancelled) return;
-      setDisplayedNotes(notes);
+      setAsyncNotesState({ key: asyncRequestKey, sourceNotes: dbNotes, notes });
     };
     void loadNotes();
     return () => {
@@ -70,6 +76,7 @@ export function useDisplayedNotes({
     };
   }, [
     activeFilter,
+    asyncRequestKey,
     dbNotes,
     getArchivedNotes,
     getLinkedNotes,
@@ -77,8 +84,44 @@ export function useDisplayedNotes({
     getTrashedNotes,
     getUntaggedNotes,
     search,
-    searchQuery,
+    trimmedSearchQuery,
   ]);
 
-  return displayedNotes;
+  if (trimmedSearchQuery === '') {
+    switch (activeFilter.type) {
+      case 'all':
+        return dbNotes;
+      case 'chat':
+        return EMPTY_NOTES;
+      case 'untagged':
+      case 'archive':
+      case 'trash':
+      case 'links':
+      case 'tag':
+        break;
+    }
+  }
+
+  return asyncRequestKey !== null &&
+    asyncNotesState.key === asyncRequestKey &&
+    asyncNotesState.sourceNotes === dbNotes
+    ? asyncNotesState.notes
+    : EMPTY_NOTES;
+}
+
+function getAsyncRequestKey(activeFilter: FilterType, searchQuery: string) {
+  if (searchQuery !== '') return `search:${searchQuery}`;
+
+  switch (activeFilter.type) {
+    case 'all':
+    case 'chat':
+      return null;
+    case 'tag':
+      return `tag:${String(activeFilter.tagId)}`;
+    case 'untagged':
+    case 'archive':
+    case 'trash':
+    case 'links':
+      return activeFilter.type;
+  }
 }

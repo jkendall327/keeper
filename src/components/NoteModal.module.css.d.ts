@@ -4,7 +4,9 @@ declare const styles: {
   readonly "closeButton": string;
   readonly "editor": string;
   readonly "emptyWarning": string;
+  readonly "filledIcon": string;
   readonly "header": string;
+  readonly "iconButton": string;
   readonly "imagePreviewButton": string;
   readonly "lightboxBackdrop": string;
   readonly "lightboxCloseButton": string;

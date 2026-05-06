@@ -545,6 +545,8 @@ export function NoteModal({
           <NoteActions
             note={note}
             className={styles.noteActions}
+            buttonClassName={styles.iconButton}
+            filledIconClassName={styles.filledIcon}
             copyText={body}
             includePin
             noteCommands={noteCommands}

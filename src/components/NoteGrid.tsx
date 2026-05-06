@@ -227,6 +227,7 @@ export function NoteGrid({
           note={note}
           allTags={allTags}
           onSelect={handleNoteClick}
+          onSelectionToggle={handleLongPress}
           onLongPress={handleLongPress}
           noteCommands={noteCommands}
           isSelected={selectedNoteIds.has(note.id)}

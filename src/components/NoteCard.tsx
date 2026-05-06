@@ -16,6 +16,7 @@ interface NoteCardProps {
   note: NoteWithTags;
   allTags: Tag[];
   onSelect: (note: NoteWithTags, e?: React.MouseEvent) => void;
+  onSelectionToggle: (note: NoteWithTags) => void;
   onLongPress: (note: NoteWithTags) => void;
   noteCommands: NoteCommands;
   isSelected?: boolean;
@@ -23,7 +24,7 @@ interface NoteCardProps {
   isTrashView?: boolean;
 }
 
-export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, isSelected, showLinkPreviews, isTrashView }: NoteCardProps) {
+export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isTrashView }: NoteCardProps) {
   const [showTagApplier, setShowTagApplier] = useState(false);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const closeTagApplier = () => { setShowTagApplier(false); };
@@ -103,14 +104,27 @@ export function NoteCard({ note, allTags, onSelect, onLongPress, noteCommands, i
         }
       }}
     >
-      {isSelected === true && (
-        <span className={styles.selectionCheck} aria-label="Selected">
+      <button
+        type="button"
+        className={styles.selectionCheck}
+        aria-label={isSelected === true ? 'Selected' : 'Select note'}
+        title={isSelected === true ? 'Deselect note' : 'Select note'}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelectionToggle(note);
+        }}
+      >
+        {isSelected === true ? (
           <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
             <circle cx="10" cy="10" r="10" fill="#646cff" />
             <path d="M6 10l3 3 5-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
-        </span>
-      )}
+        ) : (
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="8.5" />
+          </svg>
+        )}
+      </button>
       <div className={styles.topActions}>
         <button
           className={styles.iconButton}

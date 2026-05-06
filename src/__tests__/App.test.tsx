@@ -67,6 +67,7 @@ function getSidebarTagButton(name: string) {
 describe('App Integration Tests', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     mockDB.reset();
     localStorage.clear();
     document.title = 'keeper';
@@ -1448,6 +1449,53 @@ describe('App Integration Tests', () => {
       });
       await expect(mockDB.getAppSettings()).resolves.toMatchObject({ extensionBadgeEnabled: false });
       expect(toggle).not.toBeChecked();
+    });
+
+    it('downloads a backup from settings', async () => {
+      const user = userEvent.setup();
+      const fetchMock = vi.fn(() => Promise.resolve(new Response(new Blob(['backup-bytes']), { status: 200 })));
+      vi.stubGlobal('fetch', fetchMock);
+      const createObjectUrl = vi.fn(() => 'blob:keeper-backup');
+      const revokeObjectUrl = vi.fn();
+      Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectUrl });
+      Object.defineProperty(URL, 'revokeObjectURL', { configurable: true, value: revokeObjectUrl });
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
+      await renderApp();
+
+      await user.click(screen.getByLabelText('Open settings'));
+      await user.click(screen.getByRole('tab', { name: 'Backup & Import' }));
+      await user.click(screen.getByRole('button', { name: /Download Backup/ }));
+
+      await screen.findByText('Backup download started.');
+      expect(fetchMock).toHaveBeenCalledWith('/api/backup?includeMedia=true');
+      expect(createObjectUrl).toHaveBeenCalled();
+      expect(revokeObjectUrl).toHaveBeenCalledWith('blob:keeper-backup');
+    });
+
+    it('uploads a backup archive for restore after confirmation', async () => {
+      const user = userEvent.setup();
+      const fetchMock = vi.fn(() => Promise.resolve(Response.json({
+        preRestoreBackupPath: '/data/backups/pre-restore-test.keeper.zip',
+      })));
+      vi.stubGlobal('fetch', fetchMock);
+      const confirmMock = vi.fn(() => true);
+      vi.stubGlobal('confirm', confirmMock);
+      await renderApp();
+
+      await user.click(screen.getByLabelText('Open settings'));
+      await user.click(screen.getByRole('tab', { name: 'Backup & Import' }));
+      await user.upload(
+        screen.getByLabelText('Backup archive'),
+        new File(['backup-bytes'], 'keeper-backup.keeper.zip', { type: 'application/zip' }),
+      );
+      await user.click(screen.getByRole('button', { name: /Restore Backup/ }));
+
+      await screen.findByText(/Restore complete/);
+      expect(confirmMock).toHaveBeenCalled();
+      expect(fetchMock).toHaveBeenCalledWith('/api/restore', {
+        method: 'POST',
+        body: expect.any(FormData) as FormData,
+      });
     });
   });
 

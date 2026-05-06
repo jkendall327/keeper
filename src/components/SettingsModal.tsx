@@ -3,12 +3,13 @@ import { clsx } from 'clsx';
 import { Icon } from './Icon.tsx';
 import { ApiKeySettings } from './settings/ApiKeySettings.tsx';
 import { AutotagSettings } from './settings/AutotagSettings.tsx';
+import { BackupImportSettings } from './settings/BackupImportSettings.tsx';
 import { LinkPreviewSettings } from './settings/LinkPreviewSettings.tsx';
 import { NotesSettings } from './settings/NotesSettings.tsx';
 import type { AppSettings, Tag } from '../db/types.ts';
 import styles from './SettingsModal.module.css';
 
-type SettingsTab = 'api' | 'autotag' | 'notes' | 'link-previews';
+type SettingsTab = 'api' | 'autotag' | 'notes' | 'link-previews' | 'backup-import';
 
 interface SettingsModalProps {
   allTags: Tag[];
@@ -29,6 +30,7 @@ const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'autotag', label: 'Autotag Rules' },
   { id: 'notes', label: 'Notes' },
   { id: 'link-previews', label: 'Link Previews' },
+  { id: 'backup-import', label: 'Backup & Import' },
 ];
 
 export function SettingsModal({
@@ -94,6 +96,7 @@ export function SettingsModal({
             onAppSettingsChange={onAppSettingsChange}
           />
         )}
+        {activeTab === 'backup-import' && <BackupImportSettings />}
       </div>
     </div>
   );

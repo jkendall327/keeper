@@ -6,6 +6,7 @@ declare const styles: {
   readonly "clearBtn": string;
   readonly "closeBtn": string;
   readonly "error": string;
+  readonly "fileInput": string;
   readonly "header": string;
   readonly "hint": string;
   readonly "keyActions": string;
@@ -20,9 +21,11 @@ declare const styles: {
   readonly "ruleTags": string;
   readonly "saveBtn": string;
   readonly "section": string;
+  readonly "settingBlock": string;
   readonly "status": string;
   readonly "statusNone": string;
   readonly "statusOk": string;
+  readonly "subheading": string;
   readonly "tab": string;
   readonly "tabActive": string;
   readonly "tabs": string;

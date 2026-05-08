@@ -12,10 +12,9 @@ interface NoteActionsProps {
   includePin?: boolean;
   noteCommands: NoteCommands;
   isTrashView?: boolean;
-  onBeforeArchive?: () => Promise<void>;
-  onBeforePin?: () => Promise<void>;
-  onAfterArchive?: () => void;
-  onAfterDelete?: () => void;
+  onArchive?: () => Promise<void>;
+  onDelete?: () => Promise<void>;
+  onPin?: () => Promise<void>;
 }
 
 export function NoteActions({
@@ -27,10 +26,9 @@ export function NoteActions({
   includePin = false,
   noteCommands,
   isTrashView,
-  onBeforeArchive,
-  onBeforePin,
-  onAfterArchive,
-  onAfterDelete,
+  onArchive,
+  onDelete,
+  onPin,
 }: NoteActionsProps) {
   const [copied, setCopied] = useState(false);
 
@@ -45,19 +43,27 @@ export function NoteActions({
   };
 
   const handleArchive = async () => {
-    await onBeforeArchive?.();
+    if (onArchive !== undefined) {
+      await onArchive();
+      return;
+    }
     await noteCommands.archiveOrRestore(note.id);
-    onAfterArchive?.();
   };
 
   const handleDelete = async () => {
+    if (onDelete !== undefined) {
+      await onDelete();
+      return;
+    }
     const result = await noteCommands.delete(note.id);
     if (result === false) return;
-    onAfterDelete?.();
   };
 
   const handlePin = async () => {
-    await onBeforePin?.();
+    if (onPin !== undefined) {
+      await onPin();
+      return;
+    }
     await noteCommands.togglePin(note.id);
   };
 

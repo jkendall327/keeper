@@ -6,27 +6,35 @@ import { NoteActions } from '../NoteActions.tsx';
 import type { NoteCommands } from '../note-commands.ts';
 import styles from './NoteModalTags.module.css';
 
+interface NoteModalTagEditor {
+  input: string;
+  pendingNames: string[];
+  showSuggestions: boolean;
+  suggestions: Tag[];
+  showTagSuggestions: () => void;
+  handleInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  handleInputBlur: () => void;
+  handleKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
+  stage: (name: string) => void;
+  removePending: (name: string) => void;
+}
+
+interface NoteModalActions {
+  archive: () => Promise<void>;
+  delete: () => Promise<void>;
+  pin: () => Promise<void>;
+  removeExistingTag: (name: string) => Promise<void>;
+}
+
 interface NoteModalTagsProps {
   note: NoteWithTags;
   allTags: Tag[];
   body: string;
   noteCommands: NoteCommands;
-  tagInput: string;
-  pendingTagNames: string[];
-  showSuggestions: boolean;
-  suggestions: Tag[];
+  tagEditor: NoteModalTagEditor;
   tagInputRef: RefObject<HTMLInputElement | null>;
+  actions: NoteModalActions;
   isTrashView?: boolean;
-  onShowSuggestions: () => void;
-  onTagInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
-  onTagInputBlur: () => void;
-  onTagInputKeyDown: (e: KeyboardEvent<HTMLInputElement>) => void;
-  onStageTag: (name: string) => void;
-  onRemovePendingTag: (name: string) => void;
-  onBeforeArchive: () => Promise<void>;
-  onBeforePin: () => Promise<void>;
-  onAfterArchive: () => void;
-  onAfterDelete: () => void;
 }
 
 export function NoteModalTags({
@@ -34,22 +42,10 @@ export function NoteModalTags({
   allTags,
   body,
   noteCommands,
-  tagInput,
-  pendingTagNames,
-  showSuggestions,
-  suggestions,
+  tagEditor,
   tagInputRef,
+  actions,
   isTrashView,
-  onShowSuggestions,
-  onTagInputChange,
-  onTagInputBlur,
-  onTagInputKeyDown,
-  onStageTag,
-  onRemovePendingTag,
-  onBeforeArchive,
-  onBeforePin,
-  onAfterArchive,
-  onAfterDelete,
 }: NoteModalTagsProps) {
   return (
     <div className={styles.tags}>
@@ -61,14 +57,14 @@ export function NoteModalTags({
             {tag.name}
             <button
               className={styles.removeButton}
-              onClick={() => { void noteCommands.removeTag(note.id, tag.name); }}
+              onClick={() => { void actions.removeExistingTag(tag.name); }}
               aria-label={`Remove tag ${tag.name}`}
             >
               <Icon name="close" size={14} />
             </button>
           </span>
         ))}
-        {pendingTagNames.map((tagName) => (
+        {tagEditor.pendingNames.map((tagName) => (
           <span
             key={`pending-${tagName}`}
             className={clsx(styles.chip, styles.pendingChip)}
@@ -80,7 +76,7 @@ export function NoteModalTags({
             {tagName}
             <button
               className={styles.removeButton}
-              onClick={() => { onRemovePendingTag(tagName); }}
+              onClick={() => { tagEditor.removePending(tagName); }}
               aria-label={`Remove tag ${tagName}`}
             >
               <Icon name="close" size={14} />
@@ -94,22 +90,22 @@ export function NoteModalTags({
           className={styles.input}
           type="text"
           placeholder="Add tag..."
-          value={tagInput}
-          onChange={onTagInputChange}
-          onFocus={onShowSuggestions}
-          onBlur={onTagInputBlur}
-          onKeyDown={onTagInputKeyDown}
+          value={tagEditor.input}
+          onChange={tagEditor.handleInputChange}
+          onFocus={tagEditor.showTagSuggestions}
+          onBlur={tagEditor.handleInputBlur}
+          onKeyDown={tagEditor.handleKeyDown}
         />
-        {showSuggestions && suggestions.length > 0 && (
+        {tagEditor.showSuggestions && tagEditor.suggestions.length > 0 && (
           <ul className={styles.suggestions} role="listbox" aria-label="Tag suggestions">
-            {suggestions.map((tag) => (
+            {tagEditor.suggestions.map((tag) => (
               <li
                 key={tag.id}
                 className={styles.suggestion}
                 role="option"
                 onMouseDown={(e) => { e.preventDefault(); }}
                 onClick={() => {
-                  onStageTag(tag.name);
+                  tagEditor.stage(tag.name);
                   tagInputRef.current?.blur();
                 }}
               >
@@ -127,10 +123,9 @@ export function NoteModalTags({
         copyText={body}
         includePin
         noteCommands={noteCommands}
-        onBeforeArchive={onBeforeArchive}
-        onBeforePin={onBeforePin}
-        onAfterArchive={onAfterArchive}
-        onAfterDelete={onAfterDelete}
+        onArchive={actions.archive}
+        onDelete={actions.delete}
+        onPin={actions.pin}
         {...(isTrashView !== undefined ? { isTrashView } : {})}
       />
     </div>

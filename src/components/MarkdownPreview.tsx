@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { markdown } from '@motioneffector/markdown';
 import styles from './MarkdownPreview.module.css';
@@ -16,32 +16,26 @@ export function MarkdownPreview({
 }: MarkdownPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Render markdown to HTML
-  const rawHtml = useMemo(() => {
-    try {
-      return markdown(content, {
-        breaks: true,
-        linkTarget: '_blank',
-        gfm: true,
-      });
-    } catch (err: unknown) {
-      console.warn('Markdown rendering failed, showing raw content:', err);
-      return content;
-    }
-  }, [content]);
+  let rawHtml: string;
+  try {
+    rawHtml = markdown(content, {
+      breaks: true,
+      linkTarget: '_blank',
+      gfm: true,
+    });
+  } catch (err: unknown) {
+    console.warn('Markdown rendering failed, showing raw content:', err);
+    rawHtml = content;
+  }
 
-  // Post-process HTML: replace media:// URLs with API URLs and add rel attributes
-  const html = useMemo(() => {
-    let result = rawHtml.replaceAll(
-      /media:\/\/([a-f0-9-]+)/gi,
-      '/api/media/$1',
-    );
-    // Ensure all links open in a new tab with safe rel.
-    // First strip any target the library already added, then add uniformly.
-    result = result.replaceAll(' target="_blank"', '');
-    result = result.replaceAll('<a href=', '<a target="_blank" rel="noopener noreferrer" href=');
-    return result;
-  }, [rawHtml]);
+  let html = rawHtml.replaceAll(
+    /media:\/\/([a-f0-9-]+)/gi,
+    '/api/media/$1',
+  );
+  // Ensure all links open in a new tab with safe rel.
+  // First strip any target the library already added, then add uniformly.
+  html = html.replaceAll(' target="_blank"', '');
+  html = html.replaceAll('<a href=', '<a target="_blank" rel="noopener noreferrer" href=');
 
   // Add checkbox interactivity
   useEffect(() => {

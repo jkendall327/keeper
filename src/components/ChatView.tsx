@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { clsx } from 'clsx';
 import type { LLMClient } from '@motioneffector/llm';
 import { markdown } from '@motioneffector/markdown';
@@ -78,12 +78,7 @@ function renderMarkdownSafe(input: string): string {
 }
 
 function MessageBubble({ msg }: { msg: ChatMessage }) {
-  const html = useMemo(() => {
-    if (msg.role === 'assistant') {
-      return renderMarkdownSafe(msg.content);
-    }
-    return null;
-  }, [msg.role, msg.content]);
+  const html = msg.role === 'assistant' ? renderMarkdownSafe(msg.content) : null;
 
   if (msg.role === 'tool') {
     return (
@@ -128,10 +123,7 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
     onMutation,
   });
 
-  const streamingHtml = useMemo(() => {
-    if (streaming === '') return '';
-    return renderMarkdownSafe(streaming);
-  }, [streaming]);
+  const streamingHtml = streaming === '' ? '' : renderMarkdownSafe(streaming);
 
   // Fetch available models
   useEffect(() => {

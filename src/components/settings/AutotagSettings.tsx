@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../Icon.tsx';
 import { getDB } from '../../db/db-client.ts';
 import type { AutoTagRule, Tag } from '../../db/types.ts';
@@ -20,17 +20,16 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
   const [ruleError, setRuleError] = useState('');
 
   const normalizedPattern = pattern.trim();
-  const patternValid = useMemo(() => {
-    if (normalizedPattern === '') return false;
+  let patternValid = false;
+  if (normalizedPattern !== '') {
     try {
       new RegExp(normalizedPattern, 'i');
-      return true;
+      patternValid = true;
     } catch {
-      return false;
+      patternValid = false;
     }
-  }, [normalizedPattern]);
+  }
   const canSaveRule = patternValid && tagNames.length > 0;
-  const selectedTagNames = useMemo(() => new Set(tagNames), [tagNames]);
   const tagSuggestions =
     tagDraft.trim() === ''
       ? []
@@ -38,7 +37,7 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
         .filter(
           (tag) =>
             tag.name.toLowerCase().includes(tagDraft.trim().toLowerCase()) &&
-            !selectedTagNames.has(tag.name),
+            !tagNames.includes(tag.name),
         )
         .slice(0, 8);
 

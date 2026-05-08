@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { getNoteCardByText, mockDB, renderApp } from './app-test-utils';
+import { getNoteCardByText, getTestDB, renderApp } from './app-test-utils';
 
 describe('App selection, export, and toolbar actions', () => {
 it('ctrl-click toggles note selection without opening modal', async () => {
@@ -203,7 +203,7 @@ it('burn button appears only after export and deletes notes on click', async () 
 
 it('runs autotag rules from the toolbar and archives matching notes', async () => {
   const user = userEvent.setup();
-  await mockDB.createAutoTagRule({ pattern: 'example\\.com', tagNames: ['web'] });
+  await getTestDB().createAutoTagRule({ pattern: 'example\\.com', tagNames: ['web'] });
   await renderApp();
 
   const input = await screen.findByPlaceholderText('Take a note...');

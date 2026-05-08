@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { getNoteCardByText, mockDB, renderApp } from './app-test-utils';
+import { getNoteCardByText, getTestDB, renderApp } from './app-test-utils';
 
 describe('App note tags', () => {
 it('adds and removes tags', async () => {
@@ -52,7 +52,7 @@ it('stages a new tag on blur and creates it when the note modal closes', async (
   await user.click(screen.getByPlaceholderText('Note'));
 
   expect(await screen.findByLabelText('Remove tag halfway')).toBeInTheDocument();
-  await expect(mockDB.getAllTags()).resolves.toEqual([]);
+  await expect(getTestDB().getAllTags()).resolves.toEqual([]);
 
   await user.keyboard('{Escape}');
 
@@ -60,10 +60,10 @@ it('stages a new tag on blur and creates it when the note modal closes', async (
     expect(screen.queryByPlaceholderText('Add tag...')).not.toBeInTheDocument();
   });
 
-  await expect(mockDB.getAllTags()).resolves.toMatchObject([
+  await expect(getTestDB().getAllTags()).resolves.toMatchObject([
     { name: 'halfway' },
   ]);
-  const notes = await mockDB.getAllNotes();
+  const notes = await getTestDB().getAllNotes();
   expect(notes.find((note) => note.body === 'Prospective tag note')?.tags.map((tag) => tag.name)).toEqual(['halfway']);
 });
 
@@ -98,7 +98,7 @@ it('suggests popular tags in an empty note tag input until typing filters sugges
   await user.type(limitInput, '2');
   await user.click(within(limitInput.closest('div')?.nextElementSibling as HTMLElement).getByText('Save'));
   await waitFor(async () => {
-    await expect(mockDB.getAppSettings()).resolves.toMatchObject({ popularTagSuggestionLimit: 2 });
+    await expect(getTestDB().getAppSettings()).resolves.toMatchObject({ popularTagSuggestionLimit: 2 });
   });
   await user.click(screen.getByLabelText('Close settings'));
 
@@ -140,7 +140,7 @@ it('suggests popular tags in an empty note tag input until typing filters sugges
   await user.click(screen.getByRole('tab', { name: 'Notes' }));
   await user.click(screen.getByRole('checkbox', { name: /Suggest popular tags in empty tag fields/ }));
   await waitFor(async () => {
-    await expect(mockDB.getAppSettings()).resolves.toMatchObject({ popularTagSuggestionsEnabled: false });
+    await expect(getTestDB().getAppSettings()).resolves.toMatchObject({ popularTagSuggestionsEnabled: false });
   });
   await user.click(screen.getByLabelText('Close settings'));
 

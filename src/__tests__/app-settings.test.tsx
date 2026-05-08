@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { mockDB, renderApp } from './app-test-utils';
+import { getTestDB, renderApp, useFileBackedTestApp } from './app-test-utils';
 
 describe('App settings', () => {
 it('settings button renders the settings icon glyph', async () => {
@@ -164,14 +164,13 @@ it('settings button renders the settings icon glyph', async () => {
     await waitFor(() => {
       expect(toggle).not.toBeChecked();
     });
-    await expect(mockDB.getAppSettings()).resolves.toMatchObject({ extensionBadgeEnabled: false });
+    await expect(getTestDB().getAppSettings()).resolves.toMatchObject({ extensionBadgeEnabled: false });
     expect(toggle).not.toBeChecked();
   });
 
   it('downloads a backup from settings', async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn(() => Promise.resolve(new Response(new Blob(['backup-bytes']), { status: 200 })));
-    vi.stubGlobal('fetch', fetchMock);
+    await useFileBackedTestApp();
     const createObjectUrl = vi.fn(() => 'blob:keeper-backup');
     const revokeObjectUrl = vi.fn();
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: createObjectUrl });
@@ -184,17 +183,15 @@ it('settings button renders the settings icon glyph', async () => {
     await user.click(screen.getByRole('button', { name: /Download Backup/ }));
 
     await screen.findByText('Backup download started.');
-    expect(fetchMock).toHaveBeenCalledWith('/api/backup?includeMedia=true');
     expect(createObjectUrl).toHaveBeenCalled();
     expect(revokeObjectUrl).toHaveBeenCalledWith('blob:keeper-backup');
   });
 
   it('uploads a backup archive for restore after confirmation', async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn(() => Promise.resolve(Response.json({
-      preRestoreBackupPath: '/data/backups/pre-restore-test.keeper.zip',
-    })));
-    vi.stubGlobal('fetch', fetchMock);
+    await useFileBackedTestApp();
+    const backupResponse = await fetch('/api/backup?includeMedia=true');
+    const backupBlob = await backupResponse.blob();
     const confirmMock = vi.fn(() => true);
     vi.stubGlobal('confirm', confirmMock);
     await renderApp();
@@ -203,15 +200,11 @@ it('settings button renders the settings icon glyph', async () => {
     await user.click(screen.getByRole('tab', { name: 'Backup & Import' }));
     await user.upload(
       screen.getByLabelText('Backup archive'),
-      new File(['backup-bytes'], 'keeper-backup.keeper.zip', { type: 'application/zip' }),
+      new File([backupBlob], 'keeper-backup.keeper.zip', { type: 'application/zip' }),
     );
     await user.click(screen.getByRole('button', { name: /Restore Backup/ }));
 
     await screen.findByText(/Restore complete/);
     expect(confirmMock).toHaveBeenCalled();
-    expect(fetchMock).toHaveBeenCalledWith('/api/restore', {
-      method: 'POST',
-      body: expect.any(FormData) as FormData,
-    });
   });
 });

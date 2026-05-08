@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { getSidebar, getSidebarTagButton, mockDB, renderApp } from './app-test-utils';
+import { getSidebar, getSidebarTagButton, getTestDB, renderApp } from './app-test-utils';
 
 describe('App sidebar filters and tag management', () => {
 it('Links sidebar filter shows only notes containing URLs', async () => {
@@ -201,7 +201,7 @@ it('applies the active tag to notes created from a tag view when enabled', async
   await user.keyboard('{Enter}');
 
   expect(await screen.findByText('New kitten thought')).toBeInTheDocument();
-  const allNotes = await mockDB.getAllNotes();
+  const allNotes = await getTestDB().getAllNotes();
   const created = allNotes.find((note) => note.body === 'New kitten thought');
   expect(created?.tags.map((tag) => tag.name)).toEqual(['cats']);
 });
@@ -233,7 +233,7 @@ it('does not apply the active tag to new tag-view notes when disabled', async ()
   await waitFor(() => {
     expect(screen.queryByText('Loose kitten thought')).not.toBeInTheDocument();
   });
-  const allNotes = await mockDB.getAllNotes();
+  const allNotes = await getTestDB().getAllNotes();
   const created = allNotes.find((note) => note.body === 'Loose kitten thought');
   expect(created?.tags).toEqual([]);
 });

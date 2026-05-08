@@ -2,12 +2,15 @@ import { useState, useCallback, useEffect, use } from 'react';
 import { getDB } from '../db/db-client.ts';
 import type { NoteId, NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput } from '../db/types.ts';
 
-const initialLoad: Promise<[NoteWithTags[], Tag[]]> = Promise.all([
-  getDB().getAllNotes(),
-  getDB().getAllTags(),
-]);
+function loadInitialDBState(): Promise<[NoteWithTags[], Tag[]]> {
+  return Promise.all([
+    getDB().getAllNotes(),
+    getDB().getAllTags(),
+  ]);
+}
 
 export function useDB() {
+  const [initialLoad] = useState(loadInitialDBState);
   const [initialNotes, initialTags] = use(initialLoad);
   const [notes, setNotes] = useState<NoteWithTags[]>(initialNotes);
   const [allTags, setAllTags] = useState<Tag[]>(initialTags);

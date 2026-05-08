@@ -16,7 +16,7 @@ import { WorkspaceContent } from './components/app/WorkspaceContent.tsx';
 import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
 import type { FilterType } from './components/Sidebar.tsx';
 
-function App() {
+function KeeperApp() {
   const db = useDB();
   const {
     createNote: createSharedNote,
@@ -157,6 +157,14 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function App() {
+  return (
+    <Suspense fallback={<p className={styles.loading}>Loading...</p>}>
+      <KeeperApp />
+    </Suspense>
   );
 }
 

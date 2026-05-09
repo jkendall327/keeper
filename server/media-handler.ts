@@ -45,15 +45,22 @@ export async function createMediaHandler(
       const id = randomUUID();
       const ext = mimeToExt(input.mimeType);
       const filename = `${id}.${ext}`;
+      const path = join(mediaDir, filename);
 
-      await writeFile(join(mediaDir, filename), Buffer.from(input.data));
+      await writeFile(path, Buffer.from(input.data));
 
       const now = new Date().toISOString().replace("T", " ").slice(0, 19);
-      db.run(
-        `INSERT INTO media (id, note_id, mime_type, filename, created_at)
-         VALUES (?, ?, ?, ?, ?)`,
-        [id, input.noteId, input.mimeType, filename, now],
-      );
+
+      try {
+        db.run(
+          `INSERT INTO media (id, note_id, mime_type, filename, created_at)
+          VALUES (?, ?, ?, ?, ?)`,
+          [id, input.noteId, input.mimeType, filename, now],
+        );
+      } catch (err: unknown) {
+        await unlink(path);
+        throw err;
+      }
 
       return {
         id,

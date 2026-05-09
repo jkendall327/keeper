@@ -151,6 +151,7 @@ function KeeperApp() {
                 linkPreviewDisplayEnabled={appSettings.linkPreviewDisplayEnabled}
                 popularTagSuggestionsEnabled={appSettings.popularTagSuggestionsEnabled}
                 popularTagSuggestionLimit={appSettings.popularTagSuggestionLimit}
+                quickAddAutofocusEnabled={appSettings.quickAddAutofocusEnabled}
               />
             )}
           >
@@ -173,6 +174,7 @@ function KeeperApp() {
                 linkPreviewDisplayEnabled: appSettings.linkPreviewDisplayEnabled,
                 popularTagSuggestionsEnabled: appSettings.popularTagSuggestionsEnabled,
                 popularTagSuggestionLimit: appSettings.popularTagSuggestionLimit,
+                quickAddAutofocusEnabled: appSettings.quickAddAutofocusEnabled,
                 showSettings,
               }}
             />

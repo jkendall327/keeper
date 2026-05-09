@@ -116,6 +116,7 @@ export interface AppSettings {
   linkPreviewDisplayEnabled: boolean;
   popularTagSuggestionsEnabled: boolean;
   popularTagSuggestionLimit: number;
+  quickAddAutofocusEnabled: boolean;
 }
 
 export interface UpdateAppSettingsInput {
@@ -125,6 +126,7 @@ export interface UpdateAppSettingsInput {
   linkPreviewDisplayEnabled?: boolean;
   popularTagSuggestionsEnabled?: boolean;
   popularTagSuggestionLimit?: number;
+  quickAddAutofocusEnabled?: boolean;
 }
 
 // ── Input types ─────────────────────────────────────────────

@@ -35,6 +35,7 @@ export function createAppSettingsMethods(ctx: KeeperDBContext): Pick<
       const popularTagSuggestionLimit = input.popularTagSuggestionLimit === undefined
         ? current.popularTagSuggestionLimit
         : normalizePopularTagSuggestionLimit(input.popularTagSuggestionLimit);
+      const quickAddAutofocusEnabled = input.quickAddAutofocusEnabled ?? current.quickAddAutofocusEnabled;
 
       upsertSetting("extensionTitleMaxLength", String(extensionTitleMaxLength));
       upsertSetting("extensionBadgeEnabled", String(extensionBadgeEnabled));
@@ -42,6 +43,7 @@ export function createAppSettingsMethods(ctx: KeeperDBContext): Pick<
       upsertSetting("linkPreviewDisplayEnabled", String(linkPreviewDisplayEnabled));
       upsertSetting("popularTagSuggestionsEnabled", String(popularTagSuggestionsEnabled));
       upsertSetting("popularTagSuggestionLimit", String(popularTagSuggestionLimit));
+      upsertSetting("quickAddAutofocusEnabled", String(quickAddAutofocusEnabled));
 
       return Promise.resolve({
         extensionTitleMaxLength,
@@ -50,6 +52,7 @@ export function createAppSettingsMethods(ctx: KeeperDBContext): Pick<
         linkPreviewDisplayEnabled,
         popularTagSuggestionsEnabled,
         popularTagSuggestionLimit,
+        quickAddAutofocusEnabled,
       });
     },
   };

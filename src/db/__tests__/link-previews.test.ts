@@ -66,6 +66,7 @@ describe('Link previews', () => {
       linkPreviewDisplayEnabled: true,
       popularTagSuggestionsEnabled: true,
       popularTagSuggestionLimit: 5,
+      quickAddAutofocusEnabled: true,
     });
 
     await api.updateAppSettings({
@@ -74,6 +75,7 @@ describe('Link previews', () => {
       linkPreviewDisplayEnabled: false,
       popularTagSuggestionsEnabled: false,
       popularTagSuggestionLimit: 7,
+      quickAddAutofocusEnabled: false,
     });
 
     await expect(api.getAppSettings()).resolves.toMatchObject({
@@ -82,6 +84,7 @@ describe('Link previews', () => {
       linkPreviewDisplayEnabled: false,
       popularTagSuggestionsEnabled: false,
       popularTagSuggestionLimit: 7,
+      quickAddAutofocusEnabled: false,
     });
   });
 });

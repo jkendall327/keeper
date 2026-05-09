@@ -168,6 +168,23 @@ it('settings button renders the settings icon glyph', async () => {
     expect(toggle).not.toBeChecked();
   });
 
+  it('toggles quick add autofocus', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    await user.click(screen.getByLabelText('Open settings'));
+    await user.click(screen.getByRole('tab', { name: 'Notes' }));
+
+    const toggle = screen.getByRole('checkbox', { name: /Focus quick add automatically/ });
+    expect(toggle).toBeChecked();
+
+    await user.click(toggle);
+    await waitFor(() => {
+      expect(toggle).not.toBeChecked();
+    });
+    await expect(getTestDB().getAppSettings()).resolves.toMatchObject({ quickAddAutofocusEnabled: false });
+  });
+
   it('downloads a backup from settings', async () => {
     const user = userEvent.setup();
     await useFileBackedTestApp();

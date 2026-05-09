@@ -16,6 +16,7 @@ interface NotesSettingsProps {
   extensionBadgeEnabled: boolean;
   popularTagSuggestionsEnabled: boolean;
   popularTagSuggestionLimit: number;
+  quickAddAutofocusEnabled: boolean;
   onAutoApplyActiveTagChange: (enabled: boolean) => void;
 }
 
@@ -25,6 +26,7 @@ export function NotesSettings({
   extensionBadgeEnabled,
   popularTagSuggestionsEnabled,
   popularTagSuggestionLimit,
+  quickAddAutofocusEnabled,
   onAutoApplyActiveTagChange,
 }: NotesSettingsProps) {
   const updateAppSettings = useUpdateAppSettings();
@@ -37,7 +39,7 @@ export function NotesSettings({
   const [settingsError, setSettingsError] = useState('');
 
   const saveBooleanSetting = async (
-    setting: 'extensionBadgeEnabled' | 'popularTagSuggestionsEnabled',
+    setting: 'extensionBadgeEnabled' | 'popularTagSuggestionsEnabled' | 'quickAddAutofocusEnabled',
     enabled: boolean,
   ) => {
     setSettingsError('');
@@ -98,6 +100,18 @@ export function NotesSettings({
         <span>
           <span className={styles.label}>Show extension note count in tab title</span>
           <span className={styles.hint}>Notes saved from the browser extension add to the count until this tab is focused.</span>
+        </span>
+      </label>
+      <label className={styles.toggleRow} htmlFor="quick-add-autofocus-enabled">
+        <input
+          id="quick-add-autofocus-enabled"
+          type="checkbox"
+          checked={quickAddAutofocusEnabled}
+          onChange={(e) => { void saveBooleanSetting('quickAddAutofocusEnabled', e.target.checked); }}
+        />
+        <span>
+          <span className={styles.label}>Focus quick add automatically</span>
+          <span className={styles.hint}>Place the cursor in the quick add field when Keeper opens a notes view.</span>
         </span>
       </label>
       <label className={styles.toggleRow} htmlFor="popular-tag-suggestions-enabled">

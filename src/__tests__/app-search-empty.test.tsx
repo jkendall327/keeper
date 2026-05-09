@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { act, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { getNoteCardByText, renderApp } from './app-test-utils';
+import { getNoteCardByText, getTestDB, renderApp } from './app-test-utils';
 
 describe('App search, keyboard shortcuts, and empty states', () => {
 it('Ctrl+/ focuses the search input', async () => {
@@ -19,6 +19,14 @@ it('Ctrl+/ focuses the search input', async () => {
   });
 
   expect(document.activeElement).toBe(searchInput);
+});
+
+it('does not autofocus quick add on inbox load when disabled in settings', async () => {
+  await getTestDB().updateAppSettings({ quickAddAutofocusEnabled: false });
+  await renderApp();
+
+  const quickAdd = await screen.findByPlaceholderText('Take a note...');
+  expect(document.activeElement).not.toBe(quickAdd);
 });
 
 it('Ctrl+N returns focus to quick add and clears transient state', async () => {

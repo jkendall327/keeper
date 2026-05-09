@@ -3,11 +3,12 @@ import type { CreateNoteInput } from '../db/types.ts';
 import styles from './QuickAdd.module.css';
 
 interface QuickAddProps {
+  autoFocus: boolean;
   onCreate: (input: CreateNoteInput) => Promise<void>;
 }
 
 export const QuickAdd = forwardRef<HTMLTextAreaElement, QuickAddProps>(
-  function QuickAdd({ onCreate }, ref) {
+  function QuickAdd({ autoFocus, onCreate }, ref) {
     const [body, setBody] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     useImperativeHandle(ref, () => {
@@ -48,7 +49,7 @@ export const QuickAdd = forwardRef<HTMLTextAreaElement, QuickAddProps>(
           onBlur={() => { void save(); }}
           onKeyDown={handleKeyDown}
           rows={1}
-          autoFocus
+          autoFocus={autoFocus}
         />
       </div>
     );

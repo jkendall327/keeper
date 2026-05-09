@@ -256,7 +256,7 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
 
   function getAppSettingsSync(): AppSettings {
     const rows = db.query(
-      "SELECT key, value FROM app_settings WHERE key IN (?, ?, ?, ?, ?, ?)",
+      "SELECT key, value FROM app_settings WHERE key IN (?, ?, ?, ?, ?, ?, ?)",
       [
         "extensionTitleMaxLength",
         "extensionBadgeEnabled",
@@ -264,6 +264,7 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
         "linkPreviewDisplayEnabled",
         "popularTagSuggestionsEnabled",
         "popularTagSuggestionLimit",
+        "quickAddAutofocusEnabled",
       ],
     );
     const values = new Map<string, string>();
@@ -281,6 +282,7 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
       popularTagSuggestionLimit: popularTagSuggestionLimitValue === undefined
         ? DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT
         : normalizePopularTagSuggestionLimit(Number(popularTagSuggestionLimitValue)),
+      quickAddAutofocusEnabled: values.get("quickAddAutofocusEnabled") !== "false",
     };
   }
 

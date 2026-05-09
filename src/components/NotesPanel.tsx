@@ -33,6 +33,7 @@ interface NotesPanelProps {
   linkPreviewDisplayEnabled: boolean;
   popularTagSuggestionsEnabled: boolean;
   popularTagSuggestionLimit: number;
+  quickAddAutofocusEnabled: boolean;
   showSettings: boolean;
 }
 
@@ -60,6 +61,7 @@ export function NotesPanel({
   linkPreviewDisplayEnabled,
   popularTagSuggestionsEnabled,
   popularTagSuggestionLimit,
+  quickAddAutofocusEnabled,
   showSettings,
 }: NotesPanelProps) {
   const quickAddRef = useRef<HTMLTextAreaElement>(null);
@@ -149,7 +151,11 @@ export function NotesPanel({
                   : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
               </p>
             )}
-            <QuickAdd ref={quickAddRef} onCreate={handleCreateNote} />
+            <QuickAdd
+              ref={quickAddRef}
+              autoFocus={quickAddAutofocusEnabled}
+              onCreate={handleCreateNote}
+            />
           </>
         )}
       />

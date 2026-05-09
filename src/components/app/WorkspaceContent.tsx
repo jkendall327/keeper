@@ -18,7 +18,10 @@ export interface NoteViewState {
 
 export interface WorkspaceSettings extends Pick<
   AppSettings,
-  'linkPreviewDisplayEnabled' | 'popularTagSuggestionsEnabled' | 'popularTagSuggestionLimit'
+  | 'linkPreviewDisplayEnabled'
+  | 'popularTagSuggestionsEnabled'
+  | 'popularTagSuggestionLimit'
+  | 'quickAddAutofocusEnabled'
 > {
   autoApplyActiveTag: boolean;
   showSettings: boolean;
@@ -73,6 +76,7 @@ export function WorkspaceContent({
       linkPreviewDisplayEnabled={settings.linkPreviewDisplayEnabled}
       popularTagSuggestionsEnabled={settings.popularTagSuggestionsEnabled}
       popularTagSuggestionLimit={settings.popularTagSuggestionLimit}
+      quickAddAutofocusEnabled={settings.quickAddAutofocusEnabled}
       showSettings={settings.showSettings}
     />
   );

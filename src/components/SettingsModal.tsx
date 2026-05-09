@@ -22,6 +22,7 @@ interface SettingsModalProps {
   linkPreviewDisplayEnabled: boolean;
   popularTagSuggestionsEnabled: boolean;
   popularTagSuggestionLimit: number;
+  quickAddAutofocusEnabled: boolean;
 }
 
 const tabs: { id: SettingsTab; label: string }[] = [
@@ -43,6 +44,7 @@ export function SettingsModal({
   linkPreviewDisplayEnabled,
   popularTagSuggestionsEnabled,
   popularTagSuggestionLimit,
+  quickAddAutofocusEnabled,
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('api');
 
@@ -83,6 +85,7 @@ export function SettingsModal({
             extensionBadgeEnabled={extensionBadgeEnabled}
             popularTagSuggestionsEnabled={popularTagSuggestionsEnabled}
             popularTagSuggestionLimit={popularTagSuggestionLimit}
+            quickAddAutofocusEnabled={quickAddAutofocusEnabled}
             onAutoApplyActiveTagChange={onAutoApplyActiveTagChange}
           />
         )}

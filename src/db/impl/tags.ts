@@ -76,24 +76,33 @@ export function createTagMethods(
       const existingRows = db.query("SELECT id FROM tags WHERE name = ?", [
         newName,
       ]);
+
       if (existingRows.length > 0) {
         const oldRows = db.query("SELECT id FROM tags WHERE name = ?", [
           oldName,
         ]);
+
         const oldRow = oldRows[0];
+
         if (oldRow === undefined) throw new Error(`Tag not found: ${oldName}`);
+
         const oldTagId = oldRow["id"] as number;
         const existingRow = existingRows[0];
+
         if (existingRow === undefined)
           throw new Error("Unreachable: checked length > 0");
+
         const newTagId = existingRow["id"] as number;
 
-        db.run("UPDATE OR IGNORE note_tags SET tag_id = ? WHERE tag_id = ?", [
-          newTagId,
-          oldTagId,
-        ]);
-        db.run("DELETE FROM note_tags WHERE tag_id = ?", [oldTagId]);
-        db.run("DELETE FROM tags WHERE id = ?", [oldTagId]);
+        db.transaction(() => {
+          db.run("UPDATE OR IGNORE note_tags SET tag_id = ? WHERE tag_id = ?", [
+            newTagId,
+            oldTagId,
+          ]);
+
+          db.run("DELETE FROM note_tags WHERE tag_id = ?", [oldTagId]);
+          db.run("DELETE FROM tags WHERE id = ?", [oldTagId]);
+        });
       } else {
         db.run("UPDATE tags SET name = ? WHERE name = ?", [newName, oldName]);
       }

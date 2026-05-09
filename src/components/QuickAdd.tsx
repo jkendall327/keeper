@@ -21,9 +21,9 @@ export const QuickAdd = forwardRef<HTMLTextAreaElement, QuickAddProps>(
       const trimmed = body.trim();
       if (trimmed === '') return;
       setBody('');
-      textareaRef.current?.focus();
       try {
         await onCreate({ body: trimmed });
+        textareaRef.current?.blur();
       } catch (error) {
         setBody(trimmed);
         throw error;

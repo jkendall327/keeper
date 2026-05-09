@@ -40,6 +40,18 @@
   font-weight: 500;
 }
 
+.viewTab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.2;
+}
+
+.viewTab > span {
+  flex-shrink: 0;
+  line-height: 1;
+}
+
 .tagItem {
   position: relative;
   display: flex;

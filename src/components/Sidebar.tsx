@@ -61,7 +61,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
     >
       <nav className={styles.nav}>
         <button
-          className={clsx(styles.tab, isActive({ type: 'all' }) && styles.tabActive)}
+          className={clsx(styles.tab, styles.viewTab, isActive({ type: 'all' }) && styles.tabActive)}
           onClick={() => { onFilterChange({ type: 'all' }); }}
         >
           <Icon name="notes" size={18} /> Inbox
@@ -143,35 +143,35 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
         ))}
 
         <button
-          className={clsx(styles.tab, isActive({ type: 'untagged' }) && styles.tabActive)}
+          className={clsx(styles.tab, styles.viewTab, isActive({ type: 'untagged' }) && styles.tabActive)}
           onClick={() => { onFilterChange({ type: 'untagged' }); }}
         >
           <Icon name="label_off" size={18} /> Untagged
         </button>
 
         <button
-          className={clsx(styles.tab, isActive({ type: 'links' }) && styles.tabActive)}
+          className={clsx(styles.tab, styles.viewTab, isActive({ type: 'links' }) && styles.tabActive)}
           onClick={() => { onFilterChange({ type: 'links' }); }}
         >
           <Icon name="link" size={18} /> Links
         </button>
 
         <button
-          className={clsx(styles.tab, isActive({ type: 'archive' }) && styles.tabActive)}
+          className={clsx(styles.tab, styles.viewTab, isActive({ type: 'archive' }) && styles.tabActive)}
           onClick={() => { onFilterChange({ type: 'archive' }); }}
         >
           <Icon name="archive" size={18} /> Archive
         </button>
 
         <button
-          className={clsx(styles.tab, isActive({ type: 'trash' }) && styles.tabActive)}
+          className={clsx(styles.tab, styles.viewTab, isActive({ type: 'trash' }) && styles.tabActive)}
           onClick={() => { onFilterChange({ type: 'trash' }); }}
         >
           <Icon name="delete" size={18} /> Trash
         </button>
 
         <button
-          className={clsx(styles.tab, isActive({ type: 'chat' }) && styles.tabActive)}
+          className={clsx(styles.tab, styles.viewTab, isActive({ type: 'chat' }) && styles.tabActive)}
           onClick={() => { onFilterChange({ type: 'chat' }); }}
         >
           <Icon name="chat" size={18} /> Chat

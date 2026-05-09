@@ -12,6 +12,7 @@ declare const styles: {
   readonly "tagInput": string;
   readonly "tagItem": string;
   readonly "tagName": string;
+  readonly "viewTab": string;
 };
 export = styles;
 

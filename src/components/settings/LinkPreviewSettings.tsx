@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { getDB } from '../../db/db-client.ts';
+import { useKeeperServices } from '../../services.ts';
 import type { AppSettings } from '../../db/types.ts';
 import styles from '../SettingsModal.module.css';
 
@@ -14,6 +14,7 @@ export function LinkPreviewSettings({
   linkPreviewDisplayEnabled,
   onAppSettingsChange,
 }: LinkPreviewSettingsProps) {
+  const { db } = useKeeperServices();
   const [settingsError, setSettingsError] = useState('');
 
   const saveBooleanSetting = async (
@@ -22,7 +23,7 @@ export function LinkPreviewSettings({
   ) => {
     setSettingsError('');
     try {
-      const settings = await getDB().updateAppSettings({ [setting]: enabled });
+      const settings = await db.updateAppSettings({ [setting]: enabled });
       onAppSettingsChange(settings);
     } catch (error) {
       setSettingsError(error instanceof Error ? error.message : 'Unable to save setting');

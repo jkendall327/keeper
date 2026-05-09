@@ -1,16 +1,17 @@
 import { useState, useCallback, useEffect, use } from 'react';
-import { getDB } from '../db/db-client.ts';
-import type { NoteId, NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput } from '../db/types.ts';
+import { useKeeperServices } from '../services.ts';
+import type { KeeperDB, NoteId, NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput } from '../db/types.ts';
 
-function loadInitialDBState(): Promise<[NoteWithTags[], Tag[]]> {
+function loadInitialDBState(db: KeeperDB): Promise<[NoteWithTags[], Tag[]]> {
   return Promise.all([
-    getDB().getAllNotes(),
-    getDB().getAllTags(),
+    db.getAllNotes(),
+    db.getAllTags(),
   ]);
 }
 
 export function useDB() {
-  const [initialLoad] = useState(loadInitialDBState);
+  const { db } = useKeeperServices();
+  const [initialLoad] = useState(() => loadInitialDBState(db));
   const [initialNotes, initialTags] = use(initialLoad);
   const [notes, setNotes] = useState<NoteWithTags[]>(initialNotes);
   const [allTags, setAllTags] = useState<Tag[]>(initialTags);
@@ -18,12 +19,12 @@ export function useDB() {
 
   const refresh = useCallback(async () => {
     const [freshNotes, freshTags] = await Promise.all([
-      getDB().getAllNotes(),
-      getDB().getAllTags(),
+      db.getAllNotes(),
+      db.getAllTags(),
     ]);
     setNotes(freshNotes);
     setAllTags(freshTags);
-  }, []);
+  }, [db]);
 
   // Listen for server-sent events so external changes (e.g. browser extension)
   // automatically refresh the UI without a manual page reload.
@@ -51,36 +52,36 @@ export function useDB() {
     [refresh],
   );
 
-  const createNote = useCallback((input: CreateNoteInput) => mutateWithResult(() => getDB().createNote(input)), [mutateWithResult]);
-  const updateNote = useCallback((input: UpdateNoteInput) => mutate(() => getDB().updateNote(input)), [mutate]);
-  const deleteNote = useCallback((id: NoteId) => mutate(() => getDB().deleteNote(id)), [mutate]);
-  const deleteNotes = useCallback((ids: NoteId[]) => mutate(() => getDB().deleteNotes(ids)), [mutate]);
-  const archiveNotes = useCallback((ids: NoteId[]) => mutate(() => getDB().archiveNotes(ids)), [mutate]);
-  const togglePinNote = useCallback((id: NoteId) => mutate(() => getDB().togglePinNote(id)), [mutate]);
-  const addTag = useCallback((noteId: NoteId, tagName: string) => mutate(() => getDB().addTag(noteId, tagName)), [mutate]);
-  const removeTag = useCallback((noteId: NoteId, tagName: string) => mutate(() => getDB().removeTag(noteId, tagName)), [mutate]);
-  const renameTag = useCallback((oldName: string, newName: string) => mutate(() => getDB().renameTag(oldName, newName)), [mutate]);
-  const updateTagIcon = useCallback((tagId: number, icon: string | null) => mutate(() => getDB().updateTagIcon(tagId, icon)), [mutate]);
-  const deleteTag = useCallback((tagId: number) => mutate(() => getDB().deleteTag(tagId)), [mutate]);
-  const trashNote = useCallback((id: NoteId) => mutate(() => getDB().trashNote(id)), [mutate]);
-  const trashNotes = useCallback((ids: NoteId[]) => mutate(() => getDB().trashNotes(ids)), [mutate]);
-  const restoreNote = useCallback((id: NoteId) => mutate(() => getDB().restoreNote(id)), [mutate]);
-  const restoreNotes = useCallback((ids: NoteId[]) => mutate(() => getDB().restoreNotes(ids)), [mutate]);
-  const addTagToNotes = useCallback((noteIds: NoteId[], tagName: string) => mutate(() => getDB().addTagToNotes(noteIds, tagName)), [mutate]);
-  const removeTagFromNotes = useCallback((noteIds: NoteId[], tagName: string) => mutate(() => getDB().removeTagFromNotes(noteIds, tagName)), [mutate]);
-  const toggleArchiveNote = useCallback((id: NoteId) => mutate(() => getDB().toggleArchiveNote(id)), [mutate]);
-  const createAutoTagRule = useCallback((input: Parameters<ReturnType<typeof getDB>['createAutoTagRule']>[0]) => mutate(() => getDB().createAutoTagRule(input)), [mutate]);
-  const updateAutoTagRule = useCallback((input: Parameters<ReturnType<typeof getDB>['updateAutoTagRule']>[0]) => mutate(() => getDB().updateAutoTagRule(input)), [mutate]);
-  const deleteAutoTagRule = useCallback((id: number) => mutate(() => getDB().deleteAutoTagRule(id)), [mutate]);
-  const runAutoTagRules = useCallback(() => getDB().runAutoTagRules().then(async (result) => { await refresh(); return result; }), [refresh]);
+  const createNote = useCallback((input: CreateNoteInput) => mutateWithResult(() => db.createNote(input)), [db, mutateWithResult]);
+  const updateNote = useCallback((input: UpdateNoteInput) => mutate(() => db.updateNote(input)), [db, mutate]);
+  const deleteNote = useCallback((id: NoteId) => mutate(() => db.deleteNote(id)), [db, mutate]);
+  const deleteNotes = useCallback((ids: NoteId[]) => mutate(() => db.deleteNotes(ids)), [db, mutate]);
+  const archiveNotes = useCallback((ids: NoteId[]) => mutate(() => db.archiveNotes(ids)), [db, mutate]);
+  const togglePinNote = useCallback((id: NoteId) => mutate(() => db.togglePinNote(id)), [db, mutate]);
+  const addTag = useCallback((noteId: NoteId, tagName: string) => mutate(() => db.addTag(noteId, tagName)), [db, mutate]);
+  const removeTag = useCallback((noteId: NoteId, tagName: string) => mutate(() => db.removeTag(noteId, tagName)), [db, mutate]);
+  const renameTag = useCallback((oldName: string, newName: string) => mutate(() => db.renameTag(oldName, newName)), [db, mutate]);
+  const updateTagIcon = useCallback((tagId: number, icon: string | null) => mutate(() => db.updateTagIcon(tagId, icon)), [db, mutate]);
+  const deleteTag = useCallback((tagId: number) => mutate(() => db.deleteTag(tagId)), [db, mutate]);
+  const trashNote = useCallback((id: NoteId) => mutate(() => db.trashNote(id)), [db, mutate]);
+  const trashNotes = useCallback((ids: NoteId[]) => mutate(() => db.trashNotes(ids)), [db, mutate]);
+  const restoreNote = useCallback((id: NoteId) => mutate(() => db.restoreNote(id)), [db, mutate]);
+  const restoreNotes = useCallback((ids: NoteId[]) => mutate(() => db.restoreNotes(ids)), [db, mutate]);
+  const addTagToNotes = useCallback((noteIds: NoteId[], tagName: string) => mutate(() => db.addTagToNotes(noteIds, tagName)), [db, mutate]);
+  const removeTagFromNotes = useCallback((noteIds: NoteId[], tagName: string) => mutate(() => db.removeTagFromNotes(noteIds, tagName)), [db, mutate]);
+  const toggleArchiveNote = useCallback((id: NoteId) => mutate(() => db.toggleArchiveNote(id)), [db, mutate]);
+  const createAutoTagRule = useCallback((input: Parameters<KeeperDB['createAutoTagRule']>[0]) => mutate(() => db.createAutoTagRule(input)), [db, mutate]);
+  const updateAutoTagRule = useCallback((input: Parameters<KeeperDB['updateAutoTagRule']>[0]) => mutate(() => db.updateAutoTagRule(input)), [db, mutate]);
+  const deleteAutoTagRule = useCallback((id: number) => mutate(() => db.deleteAutoTagRule(id)), [db, mutate]);
+  const runAutoTagRules = useCallback(() => db.runAutoTagRules().then(async (result) => { await refresh(); return result; }), [db, refresh]);
 
-  const search = useCallback((query: string) => getDB().search(query), []);
-  const getAutoTagRules = useCallback(() => getDB().getAutoTagRules(), []);
-  const getTrashedNotes = useCallback(() => getDB().getTrashedNotes(), []);
-  const getArchivedNotes = useCallback(() => getDB().getArchivedNotes(), []);
-  const getUntaggedNotes = useCallback(() => getDB().getUntaggedNotes(), []);
-  const getNotesForTag = useCallback((tagId: number) => getDB().getNotesForTag(tagId), []);
-  const getLinkedNotes = useCallback(() => getDB().getLinkedNotes(), []);
+  const search = useCallback((query: string) => db.search(query), [db]);
+  const getAutoTagRules = useCallback(() => db.getAutoTagRules(), [db]);
+  const getTrashedNotes = useCallback(() => db.getTrashedNotes(), [db]);
+  const getArchivedNotes = useCallback(() => db.getArchivedNotes(), [db]);
+  const getUntaggedNotes = useCallback(() => db.getUntaggedNotes(), [db]);
+  const getNotesForTag = useCallback((tagId: number) => db.getNotesForTag(tagId), [db]);
+  const getLinkedNotes = useCallback(() => db.getLinkedNotes(), [db]);
 
   return {
     notes,

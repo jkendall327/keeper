@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../Icon.tsx';
-import { getDB } from '../../db/db-client.ts';
+import { useKeeperServices } from '../../services.ts';
 import type { AutoTagRule, Tag } from '../../db/types.ts';
 import styles from '../SettingsModal.module.css';
 
@@ -9,6 +9,7 @@ interface AutotagSettingsProps {
 }
 
 export function AutotagSettings({ allTags }: AutotagSettingsProps) {
+  const { db } = useKeeperServices();
   const [rules, setRules] = useState<AutoTagRule[]>([]);
   const [rulesLoading, setRulesLoading] = useState(true);
   const [pattern, setPattern] = useState('');
@@ -44,7 +45,7 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
   const loadRules = async () => {
     setRulesLoading(true);
     try {
-      setRules(await getDB().getAutoTagRules());
+      setRules(await db.getAutoTagRules());
     } finally {
       setRulesLoading(false);
     }
@@ -52,8 +53,7 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
 
   useEffect(() => {
     let cancelled = false;
-    void getDB()
-      .getAutoTagRules()
+    void db.getAutoTagRules()
       .then((nextRules) => {
         if (!cancelled) {
           setRules(nextRules);
@@ -67,7 +67,7 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [db]);
 
   const addTagName = (name: string) => {
     const trimmed = name.trim();
@@ -96,9 +96,9 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
     setRuleError('');
     try {
       if (editingId === null) {
-        await getDB().createAutoTagRule({ pattern: normalizedPattern, tagNames });
+        await db.createAutoTagRule({ pattern: normalizedPattern, tagNames });
       } else {
-        await getDB().updateAutoTagRule({ id: editingId, pattern: normalizedPattern, tagNames });
+        await db.updateAutoTagRule({ id: editingId, pattern: normalizedPattern, tagNames });
       }
       resetRuleForm();
       await loadRules();
@@ -118,7 +118,7 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
 
   const deleteRule = async (rule: AutoTagRule) => {
     if (!window.confirm(`Delete autotag rule /${rule.pattern}/?`)) return;
-    await getDB().deleteAutoTagRule(rule.id);
+    await db.deleteAutoTagRule(rule.id);
     if (editingId === rule.id) resetRuleForm();
     await loadRules();
   };

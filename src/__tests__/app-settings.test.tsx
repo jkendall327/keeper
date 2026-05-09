@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { getTestDB, renderApp, useFileBackedTestApp } from './app-test-utils';
+import { getTestApiFetch, getTestDB, renderApp, useFileBackedTestApp } from './app-test-utils';
 
 describe('App settings', () => {
 it('settings button renders the settings icon glyph', async () => {
@@ -190,7 +190,7 @@ it('settings button renders the settings icon glyph', async () => {
   it('uploads a backup archive for restore after confirmation', async () => {
     const user = userEvent.setup();
     await useFileBackedTestApp();
-    const backupResponse = await fetch('/api/backup?includeMedia=true');
+    const backupResponse = await getTestApiFetch()('/api/backup?includeMedia=true');
     const backupBlob = await backupResponse.blob();
     const confirmMock = vi.fn(() => true);
     vi.stubGlobal('confirm', confirmMock);

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { NoteWithTags } from '../../db/types.ts';
-import { getDB } from '../../db/db-client.ts';
+import { useKeeperServices } from '../../services.ts';
 import { MarkdownPreview } from '../MarkdownPreview.tsx';
 import type { NoteCommands } from '../note-commands.ts';
 import { NoteModalImagePreview } from './NoteModalImagePreview.tsx';
@@ -30,6 +30,7 @@ export function NoteModalEditor({
   onBodyChange,
   onOpenImage,
 }: NoteModalEditorProps) {
+  const { db } = useKeeperServices();
   const bodyHistoryRef = useRef<string[]>([note.body]);
   const bodyHistoryIndexRef = useRef(0);
   const bodyNextCheckpointRef = useRef(false);
@@ -55,7 +56,6 @@ export function NoteModalEditor({
 
     e.preventDefault();
 
-    const db = getDB();
     const insertions: string[] = [];
 
     for (const item of imageItems) {

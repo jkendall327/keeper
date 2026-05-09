@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, within, act, cleanup } from '@testing-library/react';
 import { createFileBackedTestApp, createTestApp, type TestApp } from '../../server/__tests__/test-app.ts';
+import { createHttpDB } from '../db/db-client.ts';
 import type { KeeperDB } from '../db/types.ts';
+import { KeeperServicesProvider } from '../KeeperServicesProvider.tsx';
 
 let currentTestApp: TestApp | null = null;
 const nativeFetch = globalThis.fetch.bind(globalThis);
@@ -46,13 +48,26 @@ export function getTestDB(): KeeperDB {
 export async function useFileBackedTestApp() {
   await closeCurrentTestApp();
   currentTestApp = await createFileBackedTestApp();
-  installFetchBridge(currentTestApp);
 }
 
 export async function renderApp() {
+  if (currentTestApp === null) throw new Error('Test app has not been created');
   const { default: App } = await import('../App');
+  const apiFetch = createFetchBridge(currentTestApp);
+  const db = createHttpDB(apiFetch);
   // eslint-disable-next-line @typescript-eslint/require-await
-  await act(async () => { render(<App />); });
+  await act(async () => {
+    render(
+      <KeeperServicesProvider value={{ db, apiFetch }}>
+        <App />
+      </KeeperServicesProvider>,
+    );
+  });
+}
+
+export function getTestApiFetch(): typeof fetch {
+  if (currentTestApp === null) throw new Error('Test app has not been created');
+  return createFetchBridge(currentTestApp);
 }
 
 export function getNoteCardByText(text: string | RegExp) {
@@ -77,7 +92,6 @@ beforeEach(async () => {
   TestEventSource.instances = [];
   globalThis.EventSource = TestEventSource as unknown as typeof EventSource;
   currentTestApp = await createTestApp();
-  installFetchBridge(currentTestApp);
   testVisibilityState = 'visible';
   testDocumentHasFocus = true;
   Object.defineProperty(document, 'visibilityState', {
@@ -99,8 +113,8 @@ async function closeCurrentTestApp() {
   currentTestApp = null;
 }
 
-function installFetchBridge(testApp: TestApp) {
-  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+export function createFetchBridge(testApp: TestApp): typeof fetch {
+  return async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const request = input instanceof Request ? input : null;
     const url = getRequestUrl(input);
     if (!url.startsWith('/api/')) {

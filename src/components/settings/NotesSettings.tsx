@@ -7,7 +7,7 @@ import {
   normalizePopularTagSuggestionLimit,
   type AppSettings,
 } from '../../db/types.ts';
-import { getDB } from '../../db/db-client.ts';
+import { useKeeperServices } from '../../services.ts';
 import { normalizeExtensionTitleMaxLength } from '../../utils/extension-title.ts';
 import styles from '../SettingsModal.module.css';
 
@@ -30,6 +30,7 @@ export function NotesSettings({
   onAutoApplyActiveTagChange,
   onAppSettingsChange,
 }: NotesSettingsProps) {
+  const { db } = useKeeperServices();
   const [extensionTitleMaxLength, setExtensionTitleMaxLength] = useState(String(savedExtensionTitleMaxLength));
   const [extensionTitleSaved, setExtensionTitleSaved] = useState(false);
   const [extensionTitleError, setExtensionTitleError] = useState('');
@@ -44,7 +45,7 @@ export function NotesSettings({
   ) => {
     setSettingsError('');
     try {
-      const settings = await getDB().updateAppSettings({ [setting]: enabled });
+      const settings = await db.updateAppSettings({ [setting]: enabled });
       onAppSettingsChange(settings);
     } catch (error) {
       setSettingsError(error instanceof Error ? error.message : 'Unable to save setting');
@@ -55,7 +56,7 @@ export function NotesSettings({
     setExtensionTitleError('');
     try {
       const normalized = normalizeExtensionTitleMaxLength(Number(extensionTitleMaxLength));
-      const settings = await getDB().updateAppSettings({ extensionTitleMaxLength: normalized });
+      const settings = await db.updateAppSettings({ extensionTitleMaxLength: normalized });
       setExtensionTitleMaxLength(String(settings.extensionTitleMaxLength));
       onAppSettingsChange(settings);
       setExtensionTitleSaved(true);
@@ -69,7 +70,7 @@ export function NotesSettings({
     setPopularTagLimitError('');
     try {
       const normalized = normalizePopularTagSuggestionLimit(Number(popularTagLimitDraft));
-      const settings = await getDB().updateAppSettings({ popularTagSuggestionLimit: normalized });
+      const settings = await db.updateAppSettings({ popularTagSuggestionLimit: normalized });
       setPopularTagLimitDraft(String(settings.popularTagSuggestionLimit));
       onAppSettingsChange(settings);
       setPopularTagLimitSaved(true);

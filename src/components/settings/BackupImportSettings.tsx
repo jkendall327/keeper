@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { useKeeperServices } from '../../services.ts';
 import { Icon } from '../Icon.tsx';
 import styles from '../SettingsModal.module.css';
 
@@ -9,6 +10,7 @@ interface RestoreResult {
 }
 
 export function BackupImportSettings() {
+  const { apiFetch } = useKeeperServices();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [includeMedia, setIncludeMedia] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -23,7 +25,7 @@ export function BackupImportSettings() {
     setStatus('');
     setError('');
     try {
-      const response = await fetch(`/api/backup?includeMedia=${String(includeMedia)}`);
+      const response = await apiFetch(`/api/backup?includeMedia=${String(includeMedia)}`);
       if (!response.ok) throw new Error(await readResponseError(response, 'Unable to create backup'));
 
       const blob = await response.blob();
@@ -57,7 +59,7 @@ export function BackupImportSettings() {
     try {
       const form = new FormData();
       form.append('backup', selectedFile);
-      const response = await fetch('/api/restore', { method: 'POST', body: form });
+      const response = await apiFetch('/api/restore', { method: 'POST', body: form });
       if (!response.ok) throw new Error(await readResponseError(response, 'Unable to restore backup'));
 
       const result = await response.json() as RestoreResult;

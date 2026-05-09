@@ -193,9 +193,3 @@ export function createHttpDB(fetchFn: FetchFn = (...args) => globalThis.fetch(..
     fetchJson<LinkPreview>(fetchFn, "/api/link-previews", jsonOpts("PUT", input)),
   };
 }
-
-const db: KeeperDB = createHttpDB();
-
-export function getDB(): KeeperDB {
-  return db;
-}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { getDB } from '../db/db-client.ts';
+import { useKeeperServices } from '../services.ts';
 import {
   DEFAULT_EXTENSION_TITLE_MAX_LENGTH,
   DEFAULT_POPULAR_TAG_SUGGESTION_LIMIT,
@@ -16,6 +16,7 @@ const DEFAULT_APP_SETTINGS: AppSettings = {
 };
 
 export function useAppSettings() {
+  const { db } = useKeeperServices();
   const [appSettings, setAppSettings] = useState<AppSettings>(DEFAULT_APP_SETTINGS);
   const [appSettingsLoaded, setAppSettingsLoaded] = useState(false);
 
@@ -27,7 +28,7 @@ export function useAppSettings() {
   useEffect(() => {
     let cancelled = false;
     const loadSettings = async () => {
-      const settings = await getDB().getAppSettings();
+      const settings = await db.getAppSettings();
       if (!cancelled) {
         setAppSettings(settings);
         setAppSettingsLoaded(true);
@@ -37,7 +38,7 @@ export function useAppSettings() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [db]);
 
   return {
     appSettings,

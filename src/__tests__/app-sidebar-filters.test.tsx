@@ -67,6 +67,52 @@ it('tag sidebar filter shows notes with the selected tag', async () => {
   });
 });
 
+it('opens filter and search state from the URL', async () => {
+  const db = getTestDB();
+  const tagged = await db.createNote({ body: 'Deep linked work note' });
+  await db.addTag(tagged.id, 'deep');
+  await db.createNote({ body: 'Plain unlinked note' });
+  const deepTag = (await db.getAllTags()).find((tag) => tag.name === 'deep');
+  if (deepTag === undefined) throw new Error('deep tag was not created');
+
+  await renderApp(`/tag/${String(deepTag.id)}?q=work`);
+
+  expect(await screen.findByDisplayValue('work')).toBeInTheDocument();
+  expect(await screen.findByText('Deep linked work note')).toBeInTheDocument();
+  expect(screen.queryByText('Plain unlinked note')).not.toBeInTheDocument();
+});
+
+it('updates browser history when switching filters', async () => {
+  const user = userEvent.setup();
+  await renderApp();
+
+  await user.click(screen.getByText('Links'));
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/links');
+  });
+
+  window.history.back();
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/inbox');
+  });
+});
+
+it('redirects missing tag routes back to inbox', async () => {
+  await renderApp('/tag/999999');
+
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/inbox');
+  });
+});
+
+it('redirects unknown routes back to inbox', async () => {
+  await renderApp('/definitely-not-a-keeper-route');
+
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/inbox');
+  });
+});
+
 it('archives tagged notes from the inbox header only', async () => {
   const user = userEvent.setup();
   await renderApp();

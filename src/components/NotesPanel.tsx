@@ -23,9 +23,9 @@ interface NotesPanelProps {
   trashNote: (id: NoteId) => Promise<void>;
   restoreNote: (id: NoteId) => Promise<void>;
   activeFilter: FilterType;
-  setActiveFilter: React.Dispatch<React.SetStateAction<FilterType>>;
+  navigateToFilter: (filter: FilterType) => void;
   searchQuery: string;
-  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  setSearchQuery: (query: string) => void;
   displayedNotes: NoteWithTags[];
   selectedNoteIds: Set<NoteId>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
@@ -49,7 +49,7 @@ export function NotesPanel({
   trashNote,
   restoreNote,
   activeFilter,
-  setActiveFilter,
+  navigateToFilter,
   searchQuery,
   setSearchQuery,
   displayedNotes,
@@ -82,7 +82,7 @@ export function NotesPanel({
     quickAddRef,
     searchInputRef,
     selectedNote,
-    setActiveFilter,
+    navigateToFilter,
     setSearchQuery,
     showSettings,
   });

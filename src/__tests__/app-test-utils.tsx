@@ -50,8 +50,9 @@ export async function useFileBackedTestApp() {
   currentTestApp = await createFileBackedTestApp();
 }
 
-export async function renderApp() {
+export async function renderApp(route = '/inbox') {
   if (currentTestApp === null) throw new Error('Test app has not been created');
+  window.history.replaceState({}, '', route);
   const { default: App } = await import('../App');
   const apiFetch = createFetchBridge(currentTestApp);
   const client = createHttpClient(apiFetch);

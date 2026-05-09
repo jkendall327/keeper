@@ -6,9 +6,9 @@ import type { AppSettings, NoteId, NoteWithTags, Tag } from '../../db/types.ts';
 
 export interface NoteViewState {
   activeFilter: FilterType;
-  setActiveFilter: React.Dispatch<React.SetStateAction<FilterType>>;
+  navigateToFilter: (filter: FilterType) => void;
   searchQuery: string;
-  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  setSearchQuery: (query: string) => void;
   displayedNotes: NoteWithTags[];
   selectedNoteIds: Set<NoteId>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
@@ -60,7 +60,7 @@ export function WorkspaceContent({
       trashNote={noteMutations.trashNote}
       restoreNote={noteMutations.restoreNote}
       activeFilter={view.activeFilter}
-      setActiveFilter={view.setActiveFilter}
+      navigateToFilter={view.navigateToFilter}
       searchQuery={view.searchQuery}
       setSearchQuery={view.setSearchQuery}
       displayedNotes={view.displayedNotes}

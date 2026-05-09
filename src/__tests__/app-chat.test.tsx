@@ -44,6 +44,13 @@ describe('App chat view', () => {
     });
   });
 
+  it('opens chat from a direct URL', async () => {
+    await renderApp('/chat');
+
+    expect(await screen.findByText('API key required')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Take a note...')).not.toBeInTheDocument();
+  });
+
   it('returns to notes view when switching back from Chat', async () => {
     const user = userEvent.setup();
     await renderApp();

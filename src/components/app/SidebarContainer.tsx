@@ -7,9 +7,9 @@ interface SidebarContainerProps {
   allTags: Tag[];
   clearSelectedNotes: () => void;
   isMobile: boolean;
+  navigateToFilter: (filter: FilterType) => void;
   onOpenSettings: () => void;
   onSidebarClose: () => void;
-  setActiveFilter: React.Dispatch<React.SetStateAction<FilterType>>;
   sidebarOpen: boolean;
 }
 
@@ -18,9 +18,9 @@ export function SidebarContainer({
   allTags,
   clearSelectedNotes,
   isMobile,
+  navigateToFilter,
   onOpenSettings,
   onSidebarClose,
-  setActiveFilter,
   sidebarOpen,
 }: SidebarContainerProps) {
   const { deleteTag, renameTag, updateTagIcon } = useTagMutations();
@@ -30,7 +30,7 @@ export function SidebarContainer({
       tags={allTags}
       activeFilter={activeFilter}
       onFilterChange={(filter) => {
-        setActiveFilter(filter);
+        navigateToFilter(filter);
         clearSelectedNotes();
         if (isMobile) onSidebarClose();
       }}
@@ -40,9 +40,8 @@ export function SidebarContainer({
         });
       }}
       onDeleteTag={(id) => {
-        // Reset filter if the deleted tag is the active filter
         if (activeFilter.type === 'tag' && activeFilter.tagId === id) {
-          setActiveFilter({ type: 'all' });
+          navigateToFilter({ type: 'all' });
         }
         deleteTag(id).catch((err: unknown) => {
           console.error('Failed to delete tag:', err);

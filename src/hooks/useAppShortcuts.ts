@@ -1,4 +1,4 @@
-import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
+import { useEffect, type RefObject } from 'react';
 import type { FilterType } from '../components/Sidebar.tsx';
 import type { NoteWithTags } from '../db/types.ts';
 
@@ -28,8 +28,8 @@ interface UseQuickCaptureShortcutOptions {
   quickAddRef: RefObject<HTMLTextAreaElement | null>;
   searchInputRef: RefObject<HTMLInputElement | null>;
   selectedNote: NoteWithTags | null;
-  setActiveFilter: Dispatch<SetStateAction<FilterType>>;
-  setSearchQuery: Dispatch<SetStateAction<string>>;
+  navigateToFilter: (filter: FilterType) => void;
+  setSearchQuery: (query: string) => void;
   showSettings: boolean;
 }
 
@@ -38,7 +38,7 @@ export function useQuickCaptureShortcut({
   quickAddRef,
   searchInputRef,
   selectedNote,
-  setActiveFilter,
+  navigateToFilter,
   setSearchQuery,
   showSettings,
 }: UseQuickCaptureShortcutOptions) {
@@ -55,7 +55,7 @@ export function useQuickCaptureShortcut({
       }
 
       e.preventDefault();
-      setActiveFilter({ type: 'all' });
+      navigateToFilter({ type: 'all' });
       setSearchQuery('');
       clearSelection();
       window.setTimeout(() => {
@@ -68,10 +68,10 @@ export function useQuickCaptureShortcut({
     };
   }, [
     clearSelection,
+    navigateToFilter,
     quickAddRef,
     searchInputRef,
     selectedNote,
-    setActiveFilter,
     setSearchQuery,
     showSettings,
   ]);

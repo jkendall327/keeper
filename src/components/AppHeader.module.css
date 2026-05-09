@@ -7,7 +7,7 @@
   gap: 12px;
   box-sizing: border-box;
   min-height: var(--app-header-sticky-height);
-  padding: 24px 24px 8px;
+  padding: 0px 24px 8px;
   background: var(--surface-app);
 }
 

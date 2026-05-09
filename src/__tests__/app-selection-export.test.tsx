@@ -1,9 +1,47 @@
 import { describe, it, expect, vi } from 'vitest';
-import { screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { getNoteCardByText, getTestDB, renderApp } from './app-test-utils';
 
 describe('App selection, export, and toolbar actions', () => {
+it('ctrl-drag rectangle selection adds to the existing selected notes', async () => {
+  const user = userEvent.setup();
+  await renderApp();
+
+  const input = await screen.findByPlaceholderText('Take a note...');
+  for (const text of ['Note A', 'Note B', 'Note C']) {
+    await user.type(input, text);
+    await user.keyboard('{Enter}');
+    await screen.findByText(text);
+  }
+
+  await user.keyboard('{Control>}');
+  await user.click(screen.getByText('Note A'));
+  await user.keyboard('{/Control}');
+  expect(getNoteCardByText('Note A')).toHaveAttribute('aria-pressed', 'true');
+
+  const cardA = getNoteCardByText('Note A');
+  const cardB = getNoteCardByText('Note B');
+  const cardC = getNoteCardByText('Note C');
+  const wrapper = cardA.parentElement?.parentElement;
+  if (wrapper === null || wrapper === undefined) throw new Error('Note grid wrapper not found');
+
+  setElementRect(wrapper, { left: 0, top: 0, right: 500, bottom: 500 });
+  setElementRect(cardA, { left: 10, top: 10, right: 110, bottom: 60 });
+  setElementRect(cardB, { left: 10, top: 80, right: 110, bottom: 130 });
+  setElementRect(cardC, { left: 10, top: 150, right: 110, bottom: 200 });
+
+  fireEvent.mouseDown(wrapper, { button: 0, clientX: 0, clientY: 70, ctrlKey: true });
+  fireEvent.mouseMove(document, { clientX: 120, clientY: 210, ctrlKey: true });
+  fireEvent.mouseUp(document);
+
+  await waitFor(() => {
+    expect(getNoteCardByText('Note A')).toHaveAttribute('aria-pressed', 'true');
+    expect(getNoteCardByText('Note B')).toHaveAttribute('aria-pressed', 'true');
+    expect(getNoteCardByText('Note C')).toHaveAttribute('aria-pressed', 'true');
+  });
+});
+
 it('ctrl-click toggles note selection without opening modal', async () => {
   const user = userEvent.setup();
   await renderApp();
@@ -281,3 +319,16 @@ it('export separator toggle switches between compact and spaced output', async (
   expect(spacedValue).toContain('\n\n');
 });
 });
+
+function setElementRect(element: Element, rect: { left: number; top: number; right: number; bottom: number }) {
+  const width = rect.right - rect.left;
+  const height = rect.bottom - rect.top;
+  element.getBoundingClientRect = () => ({
+    ...rect,
+    width,
+    height,
+    x: rect.left,
+    y: rect.top,
+    toJSON: () => ({}),
+  });
+}

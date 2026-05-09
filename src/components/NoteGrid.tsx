@@ -21,6 +21,8 @@ interface DragState {
   startY: number;
   currentX: number;
   currentY: number;
+  additive: boolean;
+  initialSelectedNoteIds: Set<NoteId>;
 }
 
 const DRAG_THRESHOLD = 5;
@@ -51,6 +53,8 @@ export function NoteGrid({
       startY: wy,
       currentX: wx,
       currentY: wy,
+      additive: e.ctrlKey || e.metaKey,
+      initialSelectedNoteIds: new Set(selectedNoteIds),
     };
     isDraggingRef.current = false;
   };
@@ -121,7 +125,11 @@ export function NoteGrid({
           }
         }
         if (matched.size > 0) {
-          onBulkSelect(matched);
+          const nextSelection = drag.additive ? new Set(drag.initialSelectedNoteIds) : new Set<NoteId>();
+          for (const id of matched) {
+            nextSelection.add(id);
+          }
+          onBulkSelect(nextSelection);
         }
       } else {
         onClearSelection();

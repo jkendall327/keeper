@@ -19,6 +19,9 @@ export interface SqliteDb {
   /** Execute raw SQL string (for multi-statement schema init) */
   execRaw(sql: string): void;
 
+  /** Execute a synchronous callback inside a database transaction. */
+  transaction<T>(fn: () => T): T;
+
   /** Release any native resources held by the adapter. */
   close?(): void;
 }

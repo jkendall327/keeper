@@ -23,6 +23,9 @@ export function createTestDb(): SqliteDb {
     execRaw(sql: string) {
       db.exec(sql);
     },
+    transaction<T>(fn: () => T): T {
+      return db.transaction(fn)();
+    },
     close() {
       db.close();
     },

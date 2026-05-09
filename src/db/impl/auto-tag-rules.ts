@@ -104,52 +104,54 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
         "SELECT * FROM notes WHERE archived = 0 AND trashed = 0 ORDER BY updated_at DESC",
       );
 
-      let matchedNoteCount = 0;
-      let archivedNoteCount = 0;
-      let appliedTagCount = 0;
+      return db.transaction(() => {
+        let matchedNoteCount = 0;
+        let archivedNoteCount = 0;
+        let appliedTagCount = 0;
 
-      for (const row of noteRows) {
-        const note = rowToNote(row);
-        const urls = extractUrls(note.body);
-        if (urls.length === 0) continue;
+        for (const row of noteRows) {
+          const note = rowToNote(row);
+          const urls = extractUrls(note.body);
+          if (urls.length === 0) continue;
 
-        const matchedTagNames = new Set<string>();
-        for (const rule of compiledRules) {
-          if (urls.some((url) => rule.regex.test(url))) {
-            for (const tagName of rule.tagNames) {
-              matchedTagNames.add(tagName);
+          const matchedTagNames = new Set<string>();
+          for (const rule of compiledRules) {
+            if (urls.some((url) => rule.regex.test(url))) {
+              for (const tagName of rule.tagNames) {
+                matchedTagNames.add(tagName);
+              }
             }
           }
+          if (matchedTagNames.size === 0) continue;
+
+          matchedNoteCount++;
+
+          for (const tagName of matchedTagNames) {
+            const tagId = ensureTag(tagName);
+
+            const before = db.query(
+              "SELECT 1 FROM note_tags WHERE note_id = ? AND tag_id = ?",
+              [note.id, tagId],
+            );
+
+            db.run(
+              "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
+              [note.id, tagId],
+            );
+
+            if (before.length === 0) appliedTagCount++;
+          }
+
+          db.run("UPDATE notes SET archived = 1, updated_at = ? WHERE id = ?", [
+            now(),
+            note.id,
+          ]);
+
+          archivedNoteCount++;
         }
-        if (matchedTagNames.size === 0) continue;
 
-        matchedNoteCount++;
-
-        for (const tagName of matchedTagNames) {
-          const tagId = ensureTag(tagName);
-
-          const before = db.query(
-            "SELECT 1 FROM note_tags WHERE note_id = ? AND tag_id = ?",
-            [note.id, tagId],
-          );
-
-          db.run(
-            "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
-            [note.id, tagId],
-          );
-
-          if (before.length === 0) appliedTagCount++;
-        }
-
-        db.run("UPDATE notes SET archived = 1, updated_at = ? WHERE id = ?", [
-          now(),
-          note.id,
-        ]);
-
-        archivedNoteCount++;
-      }
-
-      return { matchedNoteCount, archivedNoteCount, appliedTagCount };
+        return { matchedNoteCount, archivedNoteCount, appliedTagCount };
+      });
     },
   };
 }

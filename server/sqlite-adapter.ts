@@ -37,6 +37,10 @@ export function createSqliteAdapter(filePath: string): ServerSqliteAdapter {
       db.exec(sql);
     },
 
+    transaction<T>(fn: () => T): T {
+      return db.transaction(fn)();
+    },
+
     async backup(destinationPath: string) {
       await db.backup(destinationPath);
     },

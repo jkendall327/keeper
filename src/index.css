@@ -21,6 +21,7 @@
   --surface-hover: rgba(128, 128, 128, 0.1);
   --surface-hover-strong: rgba(128, 128, 128, 0.15);
   --backdrop: rgba(0, 0, 0, 0.5);
+  --app-header-sticky-height: 68px;
   --sidebar-width: 220px;
   --radius-sm: 4px;
   --radius-md: 6px;

@@ -1,8 +1,14 @@
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  box-sizing: border-box;
+  min-height: var(--app-header-sticky-height);
   padding: 24px 24px 8px;
+  background: var(--surface-app);
 }
 
 .left {
@@ -106,5 +112,11 @@
     justify-content: center;
     padding: 6px 8px;
     line-height: 1;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .header {
+    background: #f5f5f5;
   }
 }

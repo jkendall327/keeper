@@ -130,15 +130,17 @@ export function NotesPanel({
 
   return (
     <>
-      <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
-      {searchQuery.trim() !== '' && (
-        <p className={styles.searchResultCount}>
-          {displayedNotes.length === 0
-            ? 'No results found'
-            : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
-        </p>
-      )}
-      <QuickAdd ref={quickAddRef} onCreate={handleCreateNote} />
+      <div className={styles.stickyControls}>
+        <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
+        {searchQuery.trim() !== '' && (
+          <p className={styles.searchResultCount}>
+            {displayedNotes.length === 0
+              ? 'No results found'
+              : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
+          </p>
+        )}
+        <QuickAdd ref={quickAddRef} onCreate={handleCreateNote} />
+      </div>
       {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
         <div className={styles.emptyState} data-testid="notes-empty-state">
           <Icon name="sticky_note_2" size={48} />

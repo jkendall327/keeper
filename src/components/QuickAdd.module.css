@@ -1,9 +1,12 @@
 .container {
-  margin: 16px 0 32px;
+  margin: 8px 0 16px;
 }
 
 .input {
+  --quick-add-collapsed-height: calc(1.5em + 26px);
+
   width: 100%;
+  min-height: var(--quick-add-collapsed-height);
   box-sizing: border-box;
   padding: 12px 16px;
   font-family: inherit;
@@ -15,9 +18,12 @@
   color: inherit;
   resize: none;
   outline: none;
-  transition: border-color 0.15s;
+  transition:
+    border-color 0.15s,
+    min-height 0.15s;
 }
 
 .input:focus {
   border-color: var(--color-accent);
+  min-height: calc(var(--quick-add-collapsed-height) * 2);
 }

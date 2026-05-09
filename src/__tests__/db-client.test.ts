@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { getDB } from "../db/db-client.ts";
+import { describe, expect, it, vi } from "vitest";
+import { createHttpDB } from "../db/db-client.ts";
 import { toNoteId } from "../db/types.ts";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -11,18 +11,17 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 function mockFetch(body: unknown = {}): ReturnType<typeof vi.fn> {
   const fetchMock = vi.fn((..._args: Parameters<typeof fetch>) => Promise.resolve(jsonResponse(body)));
-  globalThis.fetch = fetchMock;
   return fetchMock;
 }
 
-afterEach(() => {
-  vi.restoreAllMocks();
-});
+function asFetch(fetchMock: ReturnType<typeof vi.fn>): typeof fetch {
+  return fetchMock as unknown as typeof fetch;
+}
 
 describe("KeeperDB HTTP client contract", () => {
   it("uses the expected note routes", async () => {
     const fetchMock = mockFetch([]);
-    const db = getDB();
+    const db = createHttpDB(asFetch(fetchMock));
     const n1 = toNoteId("n1");
     const n2 = toNoteId("n2");
 
@@ -53,7 +52,7 @@ describe("KeeperDB HTTP client contract", () => {
 
   it("uses the expected tag and view routes", async () => {
     const fetchMock = mockFetch([]);
-    const db = getDB();
+    const db = createHttpDB(asFetch(fetchMock));
     const n1 = toNoteId("n1");
 
     await db.getAllTags();
@@ -90,12 +89,10 @@ describe("KeeperDB HTTP client contract", () => {
   it("maps 404 nullable reads to null and non-ok responses to errors", async () => {
     const notFound = vi.fn((..._args: Parameters<typeof fetch>) =>
       Promise.resolve(jsonResponse({ error: "missing" }, 404)));
-    globalThis.fetch = notFound;
-    await expect(getDB().getNote(toNoteId("missing"))).resolves.toBeNull();
+    await expect(createHttpDB(asFetch(notFound)).getNote(toNoteId("missing"))).resolves.toBeNull();
 
     const broken = vi.fn((..._args: Parameters<typeof fetch>) =>
       Promise.resolve(jsonResponse({ error: "bad" }, 500)));
-    globalThis.fetch = broken;
-    await expect(getDB().getAllNotes()).rejects.toThrow("GET /api/notes: 500");
+    await expect(createHttpDB(asFetch(broken)).getAllNotes()).rejects.toThrow("GET /api/notes: 500");
   });
 });

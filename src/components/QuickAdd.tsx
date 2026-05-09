@@ -20,9 +20,14 @@ export const QuickAdd = forwardRef<HTMLTextAreaElement, QuickAddProps>(
     const save = async () => {
       const trimmed = body.trim();
       if (trimmed === '') return;
-      await onCreate({ body: trimmed });
       setBody('');
       textareaRef.current?.focus();
+      try {
+        await onCreate({ body: trimmed });
+      } catch (error) {
+        setBody(trimmed);
+        throw error;
+      }
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {

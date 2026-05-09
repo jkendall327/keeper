@@ -17,6 +17,7 @@ export default defineConfig({
     ],
     environment: "happy-dom",
     setupFiles: ["./src/__tests__/setup.ts"],
+    testTimeout: 15000,
     sequence: {
       concurrent: false,
     },

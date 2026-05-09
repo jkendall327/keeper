@@ -80,7 +80,16 @@ export async function createTestApp(): Promise<TestApp> {
   registerRoutes(app, db, media);
   await app.ready();
 
-  return { app, db, sqlDb, media };
+  return {
+    app,
+    db,
+    sqlDb,
+    media,
+    cleanup: () => {
+      sqlDb.close?.();
+      return Promise.resolve();
+    },
+  };
 }
 
 export async function createFileBackedTestApp(): Promise<TestApp> {

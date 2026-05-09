@@ -23,5 +23,8 @@ export function createTestDb(): SqliteDb {
     execRaw(sql: string) {
       db.exec(sql);
     },
+    close() {
+      db.close();
+    },
   };
 }

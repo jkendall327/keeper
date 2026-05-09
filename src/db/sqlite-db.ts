@@ -19,4 +19,7 @@ export interface SqliteDb {
 
   /** Execute raw SQL string (for multi-statement schema init) */
   execRaw(sql: string): void;
+
+  /** Release any native resources held by the adapter. */
+  close?(): void;
 }

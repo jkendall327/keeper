@@ -156,8 +156,9 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
             placeholder="Add tag..."
             value={tagDraft}
             onBlur={() => {
+              const draftAtBlur = tagDraftRef.current;
               setTimeout(() => {
-                addTagName(tagDraftRef.current);
+                addTagName(draftAtBlur);
               }, 150);
             }}
             onChange={(e) => {

@@ -130,23 +130,6 @@ export function NotesPanel({
 
   return (
     <>
-      <div className={styles.stickyControls}>
-        {searchQuery.trim() !== '' && (
-          <p className={styles.searchResultCount}>
-            {displayedNotes.length === 0
-              ? 'No results found'
-              : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
-          </p>
-        )}
-        <QuickAdd ref={quickAddRef} onCreate={handleCreateNote} />
-      </div>
-      {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
-        <div className={styles.emptyState} data-testid="notes-empty-state">
-          <Icon name="sticky_note_2" size={48} />
-          <p className={styles.emptyStateText}>No notes yet</p>
-          <p className={styles.emptyStateHint}>Start typing above to capture a note</p>
-        </div>
-      )}
       <NoteGrid
         notes={displayedNotes}
         allTags={allTags}
@@ -157,7 +140,26 @@ export function NotesPanel({
         onClearSelection={clearSelection}
         showLinkPreviews={linkPreviewDisplayEnabled}
         isTrashView={isTrashView}
+        topContent={(
+          <>
+            {searchQuery.trim() !== '' && (
+              <p className={styles.searchResultCount}>
+                {displayedNotes.length === 0
+                  ? 'No results found'
+                  : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
+              </p>
+            )}
+            <QuickAdd ref={quickAddRef} onCreate={handleCreateNote} />
+          </>
+        )}
       />
+      {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
+        <div className={styles.emptyState} data-testid="notes-empty-state">
+          <Icon name="sticky_note_2" size={48} />
+          <p className={styles.emptyStateText}>No notes yet</p>
+          <p className={styles.emptyStateHint}>Start typing above to capture a note</p>
+        </div>
+      )}
       {currentNote !== null && (
         <NoteModal
           note={currentNote}

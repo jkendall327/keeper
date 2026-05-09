@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, type ReactNode } from 'react';
 import { toNoteId, type NoteId, type NoteWithTags, type Tag } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 import type { NoteCommands } from './note-commands.ts';
@@ -14,6 +14,7 @@ interface NoteGridProps {
   onClearSelection: () => void;
   showLinkPreviews: boolean;
   isTrashView?: boolean;
+  topContent?: ReactNode;
 }
 
 interface DragState {
@@ -29,7 +30,7 @@ const DRAG_THRESHOLD = 5;
 
 export function NoteGrid({
   notes, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
-  showLinkPreviews, isTrashView,
+  showLinkPreviews, isTrashView, topContent,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -41,6 +42,7 @@ export function NoteGrid({
     if (e.button !== 0) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-note-id]') !== null) return;
+    if (target.closest('a, button, input, textarea, select, [contenteditable="true"]') !== null) return;
 
     const wrapper = wrapperRef.current;
     if (wrapper === null) return;
@@ -146,10 +148,6 @@ export function NoteGrid({
 
   const lastClickedRef = useRef<NoteId | null>(null);
 
-  if (notes.length === 0) {
-    return null;
-  }
-
   const pinnedNotes = notes.filter((note) => note.pinned && !note.archived);
   const regularNotes = notes.filter((note) => !note.pinned && !note.archived);
   const archivedNotes = notes.filter((note) => note.archived);
@@ -252,6 +250,7 @@ export function NoteGrid({
       className={styles.wrapper}
       onMouseDown={handleMouseDown}
     >
+      {topContent}
       {pinnedNotes.length > 0 && renderGroup(pinnedNotes)}
       {pinnedNotes.length > 0 && regularNotes.length > 0 && (
         <div className={styles.divider} />

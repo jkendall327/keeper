@@ -1,4 +1,3 @@
-/** SQLite bind value — replaces the @sqlite.org/sqlite-wasm import */
 export type SqlValue = string | number | null | Uint8Array;
 
 /** A row returned by SQLite in object mode */

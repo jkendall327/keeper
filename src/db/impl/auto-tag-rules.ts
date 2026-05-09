@@ -124,22 +124,28 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
         if (matchedTagNames.size === 0) continue;
 
         matchedNoteCount++;
+
         for (const tagName of matchedTagNames) {
           const tagId = ensureTag(tagName);
+
           const before = db.query(
             "SELECT 1 FROM note_tags WHERE note_id = ? AND tag_id = ?",
             [note.id, tagId],
           );
+
           db.run(
             "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
             [note.id, tagId],
           );
+
           if (before.length === 0) appliedTagCount++;
         }
+
         db.run("UPDATE notes SET archived = 1, updated_at = ? WHERE id = ?", [
           now(),
           note.id,
         ]);
+
         archivedNoteCount++;
       }
 

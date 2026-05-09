@@ -23,6 +23,7 @@ export function createSqliteAdapter(filePath: string): ServerSqliteAdapter {
         db.exec(sql);
       }
     },
+
     query(sql: string, bind?: SqlValue[]): SqlRow[] {
       const stmt = db.prepare(sql);
       const rows =
@@ -31,12 +32,15 @@ export function createSqliteAdapter(filePath: string): ServerSqliteAdapter {
           : stmt.all();
       return rows as SqlRow[];
     },
+
     execRaw(sql: string) {
       db.exec(sql);
     },
+
     async backup(destinationPath: string) {
       await db.backup(destinationPath);
     },
+
     async replaceDatabase(sourcePath: string) {
       db.close();
       await removeSqliteSidecars(filePath);
@@ -44,6 +48,7 @@ export function createSqliteAdapter(filePath: string): ServerSqliteAdapter {
       await removeSqliteSidecars(filePath);
       reopen();
     },
+
     close() {
       db.close();
     },

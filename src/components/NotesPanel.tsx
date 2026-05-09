@@ -7,22 +7,21 @@ import { QuickAdd } from './QuickAdd.tsx';
 import { SearchBar } from './SearchBar.tsx';
 import type { FilterType } from './Sidebar.tsx';
 import type { NoteCommands } from './note-commands.ts';
-import type { CreateNoteInput, NoteId, NoteWithTags } from '../db/types.ts';
-import type { useDB } from '../hooks/useDB.ts';
+import type { CreateNoteInput, NoteId, NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
 import styles from './NotesPanel.module.css';
 
 interface NotesPanelProps {
-  allTags: ReturnType<typeof useDB>['allTags'];
+  allTags: Tag[];
   notes: NoteWithTags[];
-  createNote: ReturnType<typeof useDB>['createNote'];
-  updateNote: ReturnType<typeof useDB>['updateNote'];
-  deleteNote: ReturnType<typeof useDB>['deleteNote'];
-  togglePinNote: ReturnType<typeof useDB>['togglePinNote'];
-  addTag: ReturnType<typeof useDB>['addTag'];
-  removeTag: ReturnType<typeof useDB>['removeTag'];
-  toggleArchiveNote: ReturnType<typeof useDB>['toggleArchiveNote'];
-  trashNote: ReturnType<typeof useDB>['trashNote'];
-  restoreNote: ReturnType<typeof useDB>['restoreNote'];
+  createNote: (input: CreateNoteInput) => Promise<NoteWithTags>;
+  updateNote: (input: UpdateNoteInput) => Promise<NoteWithTags>;
+  deleteNote: (id: NoteId) => Promise<void>;
+  togglePinNote: (id: NoteId) => Promise<NoteWithTags>;
+  addTag: (noteId: NoteId, tagName: string) => Promise<NoteWithTags>;
+  removeTag: (noteId: NoteId, tagName: string) => Promise<NoteWithTags>;
+  toggleArchiveNote: (id: NoteId) => Promise<NoteWithTags>;
+  trashNote: (id: NoteId) => Promise<void>;
+  restoreNote: (id: NoteId) => Promise<void>;
   activeFilter: FilterType;
   setActiveFilter: React.Dispatch<React.SetStateAction<FilterType>>;
   searchQuery: string;
@@ -98,7 +97,7 @@ export function NotesPanel({
   const isTrashView = activeFilter.type === 'trash';
 
   const noteCommands = useMemo<NoteCommands>(() => ({
-    update: updateNote,
+    update: async (input) => { await updateNote(input); },
     delete: isTrashView
       ? async (id: NoteId) => {
           if (!window.confirm('Permanently delete this note? This cannot be undone.')) return false;
@@ -106,10 +105,10 @@ export function NotesPanel({
           return true;
         }
       : trashNote,
-    togglePin: togglePinNote,
-    archiveOrRestore: isTrashView ? restoreNote : toggleArchiveNote,
-    addTag,
-    removeTag,
+    togglePin: async (id) => { await togglePinNote(id); },
+    archiveOrRestore: async (id) => { await (isTrashView ? restoreNote(id) : toggleArchiveNote(id)); },
+    addTag: async (noteId, tagName) => { await addTag(noteId, tagName); },
+    removeTag: async (noteId, tagName) => { await removeTag(noteId, tagName); },
   }), [
     addTag,
     deleteNote,

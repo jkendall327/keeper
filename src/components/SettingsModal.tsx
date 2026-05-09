@@ -6,7 +6,7 @@ import { AutotagSettings } from './settings/AutotagSettings.tsx';
 import { BackupImportSettings } from './settings/BackupImportSettings.tsx';
 import { LinkPreviewSettings } from './settings/LinkPreviewSettings.tsx';
 import { NotesSettings } from './settings/NotesSettings.tsx';
-import type { AppSettings, Tag } from '../db/types.ts';
+import type { Tag } from '../db/types.ts';
 import styles from './SettingsModal.module.css';
 
 type SettingsTab = 'api' | 'autotag' | 'notes' | 'link-previews' | 'backup-import';
@@ -22,7 +22,6 @@ interface SettingsModalProps {
   linkPreviewDisplayEnabled: boolean;
   popularTagSuggestionsEnabled: boolean;
   popularTagSuggestionLimit: number;
-  onAppSettingsChange: (settings: AppSettings) => void;
 }
 
 const tabs: { id: SettingsTab; label: string }[] = [
@@ -44,7 +43,6 @@ export function SettingsModal({
   linkPreviewDisplayEnabled,
   popularTagSuggestionsEnabled,
   popularTagSuggestionLimit,
-  onAppSettingsChange,
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('api');
 
@@ -86,14 +84,12 @@ export function SettingsModal({
             popularTagSuggestionsEnabled={popularTagSuggestionsEnabled}
             popularTagSuggestionLimit={popularTagSuggestionLimit}
             onAutoApplyActiveTagChange={onAutoApplyActiveTagChange}
-            onAppSettingsChange={onAppSettingsChange}
           />
         )}
         {activeTab === 'link-previews' && (
           <LinkPreviewSettings
             linkPreviewFetchEnabled={linkPreviewFetchEnabled}
             linkPreviewDisplayEnabled={linkPreviewDisplayEnabled}
-            onAppSettingsChange={onAppSettingsChange}
           />
         )}
         {activeTab === 'backup-import' && <BackupImportSettings />}

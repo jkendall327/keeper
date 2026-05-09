@@ -4,6 +4,7 @@ import { useChatLoop } from '../llm/useChatLoop.ts';
 import type { LLMClient, ChatResponse, Message, ChatOptions } from '@motioneffector/llm';
 import { createTestDb } from '../db/__tests__/test-db.ts';
 import { createKeeperDB } from '../db/db-impl.ts';
+import type { KeeperClient } from '../db/db-client.ts';
 import type { KeeperDB } from '../db/types.ts';
 
 function createMockClient(streamTokens: string[]): LLMClient {
@@ -36,6 +37,7 @@ function createMockClient(streamTokens: string[]): LLMClient {
 
 describe('Streaming', () => {
   let db: KeeperDB;
+  let keeper: KeeperClient;
 
   function setup(streamTokens: string[]) {
     db = createKeeperDB({
@@ -43,6 +45,7 @@ describe('Streaming', () => {
       generateId: () => `test-id-${String(Date.now())}`,
       now: () => '2025-01-15 12:00:00',
     });
+    keeper = localKeeperClient(db);
     const client = createMockClient(streamTokens);
     const onMutation = vi.fn();
     return { client, onMutation };
@@ -51,7 +54,7 @@ describe('Streaming', () => {
   it('streams tokens and produces a final assistant message', async () => {
     const { client, onMutation } = setup(['Hello', ' world', '!']);
     const { result } = renderHook(() =>
-      useChatLoop({ client, db, onMutation }),
+      useChatLoop({ client, keeper, onMutation }),
     );
 
     await act(async () => {
@@ -96,7 +99,7 @@ describe('Streaming', () => {
     };
 
     const { result } = renderHook(() =>
-      useChatLoop({ client, db, onMutation }),
+      useChatLoop({ client, keeper, onMutation }),
     );
 
     await act(async () => {
@@ -124,6 +127,7 @@ describe('Streaming', () => {
       generateId: () => `test-id-${String(Date.now())}`,
       now: () => '2025-01-15 12:00:00',
     });
+    keeper = localKeeperClient(db);
 
     const client: LLMClient = {
       chat: vi.fn<(messages: Message[], options?: ChatOptions) => Promise<ChatResponse>>(),
@@ -151,7 +155,7 @@ describe('Streaming', () => {
     };
 
     const { result } = renderHook(() =>
-      useChatLoop({ client, db, onMutation }),
+      useChatLoop({ client, keeper, onMutation }),
     );
 
     await act(async () => {
@@ -173,6 +177,7 @@ describe('Streaming', () => {
       generateId: () => `test-id-${String(Date.now())}`,
       now: () => '2025-01-15 12:00:00',
     });
+    keeper = localKeeperClient(db);
 
     const client: LLMClient = {
       chat: vi.fn<(messages: Message[], options?: ChatOptions) => Promise<ChatResponse>>(),
@@ -207,7 +212,7 @@ describe('Streaming', () => {
     };
 
     const { result } = renderHook(() =>
-      useChatLoop({ client, db, onMutation }),
+      useChatLoop({ client, keeper, onMutation }),
     );
 
     await act(async () => {
@@ -220,3 +225,62 @@ describe('Streaming', () => {
     expect(assistantMsgs[0]?.content).toBe('Partial response');
   });
 });
+
+function localKeeperClient(db: KeeperDB): KeeperClient {
+  return {
+    notes: {
+      create: (input) => db.createNote(input),
+      list: () => db.getAllNotes(),
+      get: (id) => db.getNote(id),
+      update: (input) => db.updateNote(input),
+      delete: (id) => db.deleteNote(id),
+      deleteMany: (ids) => db.deleteNotes(ids),
+      archiveMany: (ids) => db.archiveNotes(ids),
+      trash: (id) => db.trashNote(id),
+      trashMany: (ids) => db.trashNotes(ids),
+      restore: (id) => db.restoreNote(id),
+      restoreMany: (ids) => db.restoreNotes(ids),
+      togglePin: (id) => db.togglePinNote(id),
+      toggleArchive: (id) => db.toggleArchiveNote(id),
+    },
+    tags: {
+      list: () => db.getAllTags(),
+      addToNote: (noteId, tagName) => db.addTag(noteId, tagName),
+      removeFromNote: (noteId, tagName) => db.removeTag(noteId, tagName),
+      addToNotes: (noteIds, tagName) => db.addTagToNotes(noteIds, tagName),
+      removeFromNotes: (noteIds, tagName) => db.removeTagFromNotes(noteIds, tagName),
+      rename: (oldName, newName) => db.renameTag(oldName, newName),
+      updateIcon: (tagId, icon) => db.updateTagIcon(tagId, icon),
+      delete: (tagId) => db.deleteTag(tagId),
+    },
+    search: { notes: (query) => db.search(query) },
+    views: {
+      untagged: () => db.getUntaggedNotes(),
+      linked: () => db.getLinkedNotes(),
+      archived: () => db.getArchivedNotes(),
+      trashed: () => db.getTrashedNotes(),
+      tag: (tagId) => db.getNotesForTag(tagId),
+    },
+    autoTagRules: {
+      list: () => db.getAutoTagRules(),
+      create: (input) => db.createAutoTagRule(input),
+      update: (input) => db.updateAutoTagRule(input),
+      delete: (id) => db.deleteAutoTagRule(id),
+      run: () => db.runAutoTagRules(),
+    },
+    settings: {
+      get: () => db.getAppSettings(),
+      update: (input) => db.updateAppSettings(input),
+    },
+    media: {
+      store: (input) => db.storeMedia(input),
+      get: (id) => db.getMedia(id),
+      delete: (id) => db.deleteMedia(id),
+      listForNote: (noteId) => db.getMediaForNote(noteId),
+    },
+    linkPreviews: {
+      get: (url) => db.getLinkPreview(url),
+      upsert: (input) => db.upsertLinkPreview(input),
+    },
+  };
+}

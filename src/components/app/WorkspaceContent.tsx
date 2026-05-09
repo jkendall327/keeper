@@ -1,26 +1,8 @@
 import { ChatPanel } from '../ChatPanel.tsx';
 import { NotesPanel } from '../NotesPanel.tsx';
 import type { FilterType } from '../Sidebar.tsx';
-import type { useDB } from '../../hooks/useDB.ts';
-import type { AppSettings, NoteId, NoteWithTags } from '../../db/types.ts';
-
-type DB = ReturnType<typeof useDB>;
-
-type WorkspaceDb = Pick<
-  DB,
-  | 'allTags'
-  | 'notes'
-  | 'refresh'
-  | 'createNote'
-  | 'updateNote'
-  | 'deleteNote'
-  | 'togglePinNote'
-  | 'addTag'
-  | 'removeTag'
-  | 'toggleArchiveNote'
-  | 'trashNote'
-  | 'restoreNote'
->;
+import type { useNoteMutations } from '../../hooks/useKeeperQuery.ts';
+import type { AppSettings, NoteId, NoteWithTags, Tag } from '../../db/types.ts';
 
 export interface NoteViewState {
   activeFilter: FilterType;
@@ -41,7 +23,9 @@ export interface WorkspaceSettings extends Pick<
 }
 
 interface WorkspaceContentProps {
-  db: WorkspaceDb;
+  allTags: Tag[];
+  inboxNotes: NoteWithTags[];
+  noteMutations: ReturnType<typeof useNoteMutations>;
   settings: WorkspaceSettings;
   view: NoteViewState;
 }
@@ -51,28 +35,30 @@ function filterKey(filter: FilterType) {
 }
 
 export function WorkspaceContent({
-  db,
+  allTags,
+  inboxNotes,
+  noteMutations,
   settings,
   view,
 }: WorkspaceContentProps) {
   if (view.activeFilter.type === 'chat') {
-    return <ChatPanel refresh={db.refresh} />;
+    return <ChatPanel />;
   }
 
   return (
     <NotesPanel
       key={filterKey(view.activeFilter)}
-      allTags={db.allTags}
-      notes={db.notes}
-      createNote={db.createNote}
-      updateNote={db.updateNote}
-      deleteNote={db.deleteNote}
-      togglePinNote={db.togglePinNote}
-      addTag={db.addTag}
-      removeTag={db.removeTag}
-      toggleArchiveNote={db.toggleArchiveNote}
-      trashNote={db.trashNote}
-      restoreNote={db.restoreNote}
+      allTags={allTags}
+      notes={inboxNotes}
+      createNote={noteMutations.createNote}
+      updateNote={noteMutations.updateNote}
+      deleteNote={noteMutations.deleteNote}
+      togglePinNote={noteMutations.togglePinNote}
+      addTag={noteMutations.addTag}
+      removeTag={noteMutations.removeTag}
+      toggleArchiveNote={noteMutations.toggleArchiveNote}
+      trashNote={noteMutations.trashNote}
+      restoreNote={noteMutations.restoreNote}
       activeFilter={view.activeFilter}
       setActiveFilter={view.setActiveFilter}
       searchQuery={view.searchQuery}

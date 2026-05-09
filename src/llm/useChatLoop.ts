@@ -3,7 +3,8 @@ import type { Message, LLMClient } from '@motioneffector/llm';
 import { parseMCPResponse } from './mcp-parser.ts';
 import { executeTool, type ToolResult } from './tools.ts';
 import { buildSystemPrompt } from './system-prompt.ts';
-import type { KeeperDB, NoteWithTags, Tag } from '../db/types.ts';
+import type { KeeperClient } from '../db/db-client.ts';
+import type { NoteWithTags, Tag } from '../db/types.ts';
 
 export type ChatMessage =
   | { role: 'user'; content: string }
@@ -17,13 +18,13 @@ interface PendingConfirmation {
 
 interface UseChatLoopOptions {
   client: LLMClient;
-  db: KeeperDB;
+  keeper: KeeperClient;
   onMutation: () => void;
 }
 
 const MAX_TOOL_ITERATIONS = 10;
 
-export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
+export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState('');
@@ -75,7 +76,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
 
     try {
       // Fetch context for the system prompt once per send
-      const [recentNotes, allTags] = await Promise.all([db.getAllNotes(), db.getAllTags()]);
+      const [recentNotes, allTags] = await Promise.all([keeper.notes.list(), keeper.tags.list()]);
 
       while (iterations < MAX_TOOL_ITERATIONS) {
         iterations++;
@@ -109,7 +110,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
         for (const call of toolCalls) {
           let result: ToolResult;
           try {
-            result = await executeTool(db, call);
+            result = await executeTool(keeper, call);
           } catch (toolErr: unknown) {
             const msg = toolErr instanceof Error ? toolErr.message : 'Tool execution failed';
             const errorToolMsg: ChatMessage = {
@@ -167,7 +168,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       setLoading(false);
       abortRef.current = null;
     }
-  }, [messages, loading, streamOnce, db, buildLLMMessages, onMutation]);
+  }, [messages, loading, streamOnce, keeper, buildLLMMessages, onMutation]);
 
   const confirmDelete = useCallback(async (confirmed: boolean) => {
     if (pendingConfirmation === null) return;
@@ -184,7 +185,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
           toolResult: { name: pendingConfirmation.toolResult.name, result: 'Delete cancelled by user.', needsConfirmation: false },
         };
       } else {
-        const result = await executeTool(db, {
+        const result = await executeTool(keeper, {
           name: 'confirm_delete_note',
           args: pendingConfirmation.args,
         });
@@ -197,7 +198,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       setMessages(updatedMessages);
 
       // Send the confirmation result back to the LLM for a follow-up response
-      const [recentNotes, allTags] = await Promise.all([db.getAllNotes(), db.getAllTags()]);
+      const [recentNotes, allTags] = await Promise.all([keeper.notes.list(), keeper.tags.list()]);
       const llmMessages = buildLLMMessages(updatedMessages, recentNotes, allTags);
       const controller = new AbortController();
       abortRef.current = controller;
@@ -225,7 +226,7 @@ export function useChatLoop({ client, db, onMutation }: UseChatLoopOptions) {
       setLoading(false);
       abortRef.current = null;
     }
-  }, [pendingConfirmation, db, onMutation, messages, streamOnce, buildLLMMessages]);
+  }, [pendingConfirmation, keeper, onMutation, messages, streamOnce, buildLLMMessages]);
 
   const clear = useCallback(() => {
     setMessages([]);

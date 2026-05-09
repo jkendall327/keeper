@@ -1,195 +1,202 @@
 import type {
-  KeeperDB,
-  NoteWithTags,
-  Tag,
-  SearchResult,
-  Media,
-  CreateNoteInput,
-  UpdateNoteInput,
+  AppSettings,
   AutoTagRule,
   AutoTagRuleInput,
-  UpdateAutoTagRuleInput,
   AutoTagRunResult,
-  AppSettings,
-  UpdateAppSettingsInput,
+  CreateNoteInput,
   LinkPreview,
+  Media,
   NoteId,
-} from "./types.ts";
-
-// ── HTTP helpers ─────────────────────────────────────────────
+  NoteWithTags,
+  SearchResult,
+  StoreMediaInput,
+  Tag,
+  UpdateAppSettingsInput,
+  UpdateAutoTagRuleInput,
+  UpdateNoteInput,
+} from './types.ts';
 
 type FetchFn = typeof fetch;
+
+export interface RequestOptions {
+  signal?: AbortSignal;
+}
+
+export interface KeeperClient {
+  notes: {
+    create(input: CreateNoteInput): Promise<NoteWithTags>;
+    list(options?: RequestOptions): Promise<NoteWithTags[]>;
+    get(id: NoteId, options?: RequestOptions): Promise<NoteWithTags | null>;
+    update(input: UpdateNoteInput): Promise<NoteWithTags>;
+    delete(id: NoteId): Promise<void>;
+    deleteMany(ids: NoteId[]): Promise<void>;
+    archiveMany(ids: NoteId[]): Promise<void>;
+    trash(id: NoteId): Promise<void>;
+    trashMany(ids: NoteId[]): Promise<void>;
+    restore(id: NoteId): Promise<void>;
+    restoreMany(ids: NoteId[]): Promise<void>;
+    togglePin(id: NoteId): Promise<NoteWithTags>;
+    toggleArchive(id: NoteId): Promise<NoteWithTags>;
+  };
+  tags: {
+    list(options?: RequestOptions): Promise<Tag[]>;
+    addToNote(noteId: NoteId, tagName: string): Promise<NoteWithTags>;
+    removeFromNote(noteId: NoteId, tagName: string): Promise<NoteWithTags>;
+    addToNotes(noteIds: NoteId[], tagName: string): Promise<void>;
+    removeFromNotes(noteIds: NoteId[], tagName: string): Promise<void>;
+    rename(oldName: string, newName: string): Promise<void>;
+    updateIcon(tagId: number, icon: string | null): Promise<void>;
+    delete(tagId: number): Promise<void>;
+  };
+  search: {
+    notes(query: string, options?: RequestOptions): Promise<SearchResult[]>;
+  };
+  views: {
+    untagged(options?: RequestOptions): Promise<NoteWithTags[]>;
+    linked(options?: RequestOptions): Promise<NoteWithTags[]>;
+    archived(options?: RequestOptions): Promise<NoteWithTags[]>;
+    trashed(options?: RequestOptions): Promise<NoteWithTags[]>;
+    tag(tagId: number, options?: RequestOptions): Promise<NoteWithTags[]>;
+  };
+  autoTagRules: {
+    list(options?: RequestOptions): Promise<AutoTagRule[]>;
+    create(input: AutoTagRuleInput): Promise<AutoTagRule>;
+    update(input: UpdateAutoTagRuleInput): Promise<AutoTagRule>;
+    delete(id: number): Promise<void>;
+    run(): Promise<AutoTagRunResult>;
+  };
+  settings: {
+    get(options?: RequestOptions): Promise<AppSettings>;
+    update(input: UpdateAppSettingsInput): Promise<AppSettings>;
+  };
+  media: {
+    store(input: StoreMediaInput): Promise<Media>;
+    get(id: string, options?: RequestOptions): Promise<ArrayBuffer | null>;
+    delete(id: string): Promise<void>;
+    listForNote(noteId: NoteId, options?: RequestOptions): Promise<Media[]>;
+  };
+  linkPreviews: {
+    get(url: string, options?: RequestOptions): Promise<LinkPreview | null>;
+    upsert(input: Pick<LinkPreview, 'url' | 'image_url' | 'status'>): Promise<LinkPreview>;
+  };
+}
 
 async function fetchJson<T>(fetchFn: FetchFn, url: string, init?: RequestInit): Promise<T> {
   const res = await fetchFn(url, init);
   if (!res.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${url}: ${String(res.status)}`);
+    throw new Error(`${init?.method ?? 'GET'} ${url}: ${String(res.status)}`);
   }
   return res.json() as Promise<T>;
 }
 
-async function fetchNullable<T>(fetchFn: FetchFn, url: string): Promise<T | null> {
-  const res = await fetchFn(url);
+async function fetchNullable<T>(fetchFn: FetchFn, url: string, init?: RequestInit): Promise<T | null> {
+  const res = await fetchFn(url, init);
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`GET ${url}: ${String(res.status)}`);
+  if (!res.ok) throw new Error(`${init?.method ?? 'GET'} ${url}: ${String(res.status)}`);
   return res.json() as Promise<T>;
 }
 
 async function fetchVoid(fetchFn: FetchFn, url: string, init?: RequestInit): Promise<void> {
   const res = await fetchFn(url, init);
   if (!res.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${url}: ${String(res.status)}`);
+    throw new Error(`${init?.method ?? 'GET'} ${url}: ${String(res.status)}`);
   }
 }
 
 function jsonOpts(method: string, body: unknown): RequestInit {
   return {
     method,
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   };
 }
 
-// ── KeeperDB HTTP client ────────────────────────────────────
+function withSignal(options?: RequestOptions): RequestInit | undefined {
+  return options?.signal === undefined ? undefined : { signal: options.signal };
+}
 
-export function createHttpDB(fetchFn: FetchFn = (...args) => globalThis.fetch(...args)): KeeperDB {
+export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetch(...args)): KeeperClient {
   return {
-  // Notes CRUD
-  createNote: (input: CreateNoteInput) =>
-    fetchJson<NoteWithTags>(fetchFn, "/api/notes", jsonOpts("POST", input)),
-
-  getAllNotes: () => fetchJson<NoteWithTags[]>(fetchFn, "/api/notes"),
-
-  getNote: (id: NoteId) => fetchNullable<NoteWithTags>(fetchFn, `/api/notes/${id}`),
-
-  updateNote: (input: UpdateNoteInput) =>
-    fetchJson<NoteWithTags>(fetchFn, `/api/notes/${input.id}`, jsonOpts("PUT", input)),
-
-  deleteNote: (id: NoteId) =>
-    fetchVoid(fetchFn, `/api/notes/${id}`, { method: "DELETE" }),
-
-  deleteNotes: (ids: NoteId[]) =>
-    fetchVoid(fetchFn, "/api/notes/delete", jsonOpts("POST", { ids })),
-
-  archiveNotes: (ids: NoteId[]) =>
-    fetchVoid(fetchFn, "/api/notes/archive", jsonOpts("POST", { ids })),
-
-  trashNote: (id: NoteId) =>
-    fetchVoid(fetchFn, `/api/notes/${id}/trash`, { method: "POST" }),
-
-  trashNotes: (ids: NoteId[]) =>
-    fetchVoid(fetchFn, "/api/notes/trash", jsonOpts("POST", { ids })),
-
-  restoreNote: (id: NoteId) =>
-    fetchVoid(fetchFn, `/api/notes/${id}/restore`, { method: "POST" }),
-
-  restoreNotes: (ids: NoteId[]) =>
-    fetchVoid(fetchFn, "/api/notes/restore", jsonOpts("POST", { ids })),
-
-  togglePinNote: (id: NoteId) =>
-    fetchJson<NoteWithTags>(fetchFn, `/api/notes/${id}/pin`, { method: "POST" }),
-
-  toggleArchiveNote: (id: NoteId) =>
-    fetchJson<NoteWithTags>(fetchFn, `/api/notes/${id}/archive`, { method: "POST" }),
-
-  // Tags
-  getAllTags: () => fetchJson<Tag[]>(fetchFn, "/api/tags"),
-
-  addTag: (noteId: NoteId, tagName: string) =>
-    fetchJson<NoteWithTags>(
-      fetchFn,
-      `/api/notes/${noteId}/tags`,
-      jsonOpts("POST", { name: tagName }),
-    ),
-
-  removeTag: (noteId: NoteId, tagName: string) =>
-    fetchJson<NoteWithTags>(
-      fetchFn,
-      `/api/notes/${noteId}/tags/${encodeURIComponent(tagName)}`,
-      { method: "DELETE" },
-    ),
-
-  addTagToNotes: (noteIds: NoteId[], tagName: string) =>
-    fetchVoid(fetchFn, "/api/notes/tags/add", jsonOpts("POST", { noteIds, tagName })),
-
-  removeTagFromNotes: (noteIds: NoteId[], tagName: string) =>
-    fetchVoid(fetchFn, "/api/notes/tags/remove", jsonOpts("POST", { noteIds, tagName })),
-
-  renameTag: (oldName: string, newName: string) =>
-    fetchVoid(fetchFn, "/api/tags/rename", jsonOpts("PUT", { oldName, newName })),
-
-  updateTagIcon: (tagId: number, icon: string | null) =>
-    fetchVoid(fetchFn, `/api/tags/${String(tagId)}/icon`, jsonOpts("PUT", { icon })),
-
-  deleteTag: (tagId: number) =>
-    fetchVoid(fetchFn, `/api/tags/${String(tagId)}`, { method: "DELETE" }),
-
-  // Search
-  search: (query: string) =>
-    fetchJson<SearchResult[]>(
-      fetchFn,
-      `/api/search?q=${encodeURIComponent(query)}`,
-    ),
-
-  // Smart views
-  getUntaggedNotes: () => fetchJson<NoteWithTags[]>(fetchFn, "/api/views/untagged"),
-  getLinkedNotes: () => fetchJson<NoteWithTags[]>(fetchFn, "/api/views/links"),
-  getArchivedNotes: () => fetchJson<NoteWithTags[]>(fetchFn, "/api/views/archived"),
-  getTrashedNotes: () => fetchJson<NoteWithTags[]>(fetchFn, "/api/views/trash"),
-  getNotesForTag: (tagId: number) =>
-    fetchJson<NoteWithTags[]>(fetchFn, `/api/views/tag/${String(tagId)}`),
-
-  // Autotag rules
-  getAutoTagRules: () => fetchJson<AutoTagRule[]>(fetchFn, "/api/auto-tag-rules"),
-
-  createAutoTagRule: (input: AutoTagRuleInput) =>
-    fetchJson<AutoTagRule>(fetchFn, "/api/auto-tag-rules", jsonOpts("POST", input)),
-
-  updateAutoTagRule: (input: UpdateAutoTagRuleInput) =>
-    fetchJson<AutoTagRule>(
-      fetchFn,
-      `/api/auto-tag-rules/${String(input.id)}`,
-      jsonOpts("PUT", input),
-    ),
-
-  deleteAutoTagRule: (id: number) =>
-    fetchVoid(fetchFn, `/api/auto-tag-rules/${String(id)}`, { method: "DELETE" }),
-
-  runAutoTagRules: () =>
-    fetchJson<AutoTagRunResult>(fetchFn, "/api/auto-tag-rules/run", { method: "POST" }),
-
-  // App settings
-  getAppSettings: () => fetchJson<AppSettings>(fetchFn, "/api/settings"),
-
-  updateAppSettings: (input: UpdateAppSettingsInput) =>
-    fetchJson<AppSettings>(fetchFn, "/api/settings", jsonOpts("PUT", input)),
-
-  // Media
-  async storeMedia(input) {
-    const form = new FormData();
-    form.append("noteId", input.noteId);
-    form.append("mimeType", input.mimeType);
-    form.append("file", new Blob([input.data], { type: input.mimeType }));
-    return fetchJson<Media>(fetchFn, "/api/media", { method: "POST", body: form });
-  },
-
-  async getMedia(id: string) {
-    const res = await fetchFn(`/api/media/${id}`);
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`GET /api/media/${id}: ${String(res.status)}`);
-    return res.arrayBuffer();
-  },
-
-  deleteMedia: (id: string) =>
-    fetchVoid(fetchFn, `/api/media/${id}`, { method: "DELETE" }),
-
-  getMediaForNote: (noteId: NoteId) =>
-    fetchJson<Media[]>(fetchFn, `/api/notes/${noteId}/media`),
-
-  getLinkPreview: (url: string) =>
-    fetchNullable<LinkPreview>(fetchFn, `/api/link-preview?url=${encodeURIComponent(url)}`),
-
-  upsertLinkPreview: (input) =>
-    fetchJson<LinkPreview>(fetchFn, "/api/link-previews", jsonOpts("PUT", input)),
+    notes: {
+      create: (input) => fetchJson<NoteWithTags>(fetchFn, '/api/notes', jsonOpts('POST', input)),
+      list: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/notes', withSignal(options)),
+      get: (id, options) => fetchNullable<NoteWithTags>(fetchFn, `/api/notes/${id}`, withSignal(options)),
+      update: (input) => fetchJson<NoteWithTags>(fetchFn, `/api/notes/${input.id}`, jsonOpts('PUT', input)),
+      delete: (id) => fetchVoid(fetchFn, `/api/notes/${id}`, { method: 'DELETE' }),
+      deleteMany: (ids) => fetchVoid(fetchFn, '/api/notes/delete', jsonOpts('POST', { ids })),
+      archiveMany: (ids) => fetchVoid(fetchFn, '/api/notes/archive', jsonOpts('POST', { ids })),
+      trash: (id) => fetchVoid(fetchFn, `/api/notes/${id}/trash`, { method: 'POST' }),
+      trashMany: (ids) => fetchVoid(fetchFn, '/api/notes/trash', jsonOpts('POST', { ids })),
+      restore: (id) => fetchVoid(fetchFn, `/api/notes/${id}/restore`, { method: 'POST' }),
+      restoreMany: (ids) => fetchVoid(fetchFn, '/api/notes/restore', jsonOpts('POST', { ids })),
+      togglePin: (id) => fetchJson<NoteWithTags>(fetchFn, `/api/notes/${id}/pin`, { method: 'POST' }),
+      toggleArchive: (id) => fetchJson<NoteWithTags>(fetchFn, `/api/notes/${id}/archive`, { method: 'POST' }),
+    },
+    tags: {
+      list: (options) => fetchJson<Tag[]>(fetchFn, '/api/tags', withSignal(options)),
+      addToNote: (noteId, tagName) =>
+        fetchJson<NoteWithTags>(fetchFn, `/api/notes/${noteId}/tags`, jsonOpts('POST', { name: tagName })),
+      removeFromNote: (noteId, tagName) =>
+        fetchJson<NoteWithTags>(
+          fetchFn,
+          `/api/notes/${noteId}/tags/${encodeURIComponent(tagName)}`,
+          { method: 'DELETE' },
+        ),
+      addToNotes: (noteIds, tagName) =>
+        fetchVoid(fetchFn, '/api/notes/tags/add', jsonOpts('POST', { noteIds, tagName })),
+      removeFromNotes: (noteIds, tagName) =>
+        fetchVoid(fetchFn, '/api/notes/tags/remove', jsonOpts('POST', { noteIds, tagName })),
+      rename: (oldName, newName) =>
+        fetchVoid(fetchFn, '/api/tags/rename', jsonOpts('PUT', { oldName, newName })),
+      updateIcon: (tagId, icon) =>
+        fetchVoid(fetchFn, `/api/tags/${String(tagId)}/icon`, jsonOpts('PUT', { icon })),
+      delete: (tagId) => fetchVoid(fetchFn, `/api/tags/${String(tagId)}`, { method: 'DELETE' }),
+    },
+    search: {
+      notes: (query, options) =>
+        fetchJson<SearchResult[]>(fetchFn, `/api/search?q=${encodeURIComponent(query)}`, withSignal(options)),
+    },
+    views: {
+      untagged: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/untagged', withSignal(options)),
+      linked: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/links', withSignal(options)),
+      archived: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/archived', withSignal(options)),
+      trashed: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/trash', withSignal(options)),
+      tag: (tagId, options) => fetchJson<NoteWithTags[]>(fetchFn, `/api/views/tag/${String(tagId)}`, withSignal(options)),
+    },
+    autoTagRules: {
+      list: (options) => fetchJson<AutoTagRule[]>(fetchFn, '/api/auto-tag-rules', withSignal(options)),
+      create: (input) => fetchJson<AutoTagRule>(fetchFn, '/api/auto-tag-rules', jsonOpts('POST', input)),
+      update: (input) =>
+        fetchJson<AutoTagRule>(fetchFn, `/api/auto-tag-rules/${String(input.id)}`, jsonOpts('PUT', input)),
+      delete: (id) => fetchVoid(fetchFn, `/api/auto-tag-rules/${String(id)}`, { method: 'DELETE' }),
+      run: () => fetchJson<AutoTagRunResult>(fetchFn, '/api/auto-tag-rules/run', { method: 'POST' }),
+    },
+    settings: {
+      get: (options) => fetchJson<AppSettings>(fetchFn, '/api/settings', withSignal(options)),
+      update: (input) => fetchJson<AppSettings>(fetchFn, '/api/settings', jsonOpts('PUT', input)),
+    },
+    media: {
+      async store(input) {
+        const form = new FormData();
+        form.append('noteId', input.noteId);
+        form.append('mimeType', input.mimeType);
+        form.append('file', new Blob([input.data], { type: input.mimeType }));
+        return fetchJson<Media>(fetchFn, '/api/media', { method: 'POST', body: form });
+      },
+      async get(id, options) {
+        const res = await fetchFn(`/api/media/${id}`, withSignal(options));
+        if (res.status === 404) return null;
+        if (!res.ok) throw new Error(`GET /api/media/${id}: ${String(res.status)}`);
+        return res.arrayBuffer();
+      },
+      delete: (id) => fetchVoid(fetchFn, `/api/media/${id}`, { method: 'DELETE' }),
+      listForNote: (noteId, options) =>
+        fetchJson<Media[]>(fetchFn, `/api/notes/${noteId}/media`, withSignal(options)),
+    },
+    linkPreviews: {
+      get: (url, options) =>
+        fetchNullable<LinkPreview>(fetchFn, `/api/link-preview?url=${encodeURIComponent(url)}`, withSignal(options)),
+      upsert: (input) => fetchJson<LinkPreview>(fetchFn, '/api/link-previews', jsonOpts('PUT', input)),
+    },
   };
 }

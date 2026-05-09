@@ -1,8 +1,8 @@
 import { createContext, useContext } from 'react';
-import type { KeeperDB } from './db/types.ts';
+import type { KeeperClient } from './db/db-client.ts';
 
 export interface KeeperServices {
-  db: KeeperDB;
+  client: KeeperClient;
   apiFetch: typeof fetch;
 }
 

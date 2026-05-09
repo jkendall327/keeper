@@ -2,7 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import { createHttpDB } from './db/db-client.ts'
+import { createHttpClient } from './db/db-client.ts'
 import { KeeperServicesProvider } from './KeeperServicesProvider.tsx'
 
 const rootElement = document.getElementById('root')
@@ -11,11 +11,11 @@ if (rootElement === null) {
 }
 
 const apiFetch: typeof fetch = (...args) => globalThis.fetch(...args)
-const db = createHttpDB(apiFetch)
+const client = createHttpClient(apiFetch)
 
 createRoot(rootElement).render(
   <StrictMode>
-    <KeeperServicesProvider value={{ db, apiFetch }}>
+    <KeeperServicesProvider value={{ client, apiFetch }}>
       <App />
     </KeeperServicesProvider>
   </StrictMode>,

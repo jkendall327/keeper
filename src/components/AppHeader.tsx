@@ -3,11 +3,9 @@ import { clsx } from 'clsx';
 import type { Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { TagApplier } from './TagApplier.tsx';
-import type { useDB } from '../hooks/useDB.ts';
 import type { useBulkNoteActions } from '../hooks/useBulkNoteActions.ts';
+import type { NoteId } from '../db/types.ts';
 import styles from './AppHeader.module.css';
-
-type DB = ReturnType<typeof useDB>;
 
 interface AppHeaderProps {
   allTags: Tag[];
@@ -16,9 +14,9 @@ interface AppHeaderProps {
   isInboxView: boolean;
   isMobile: boolean;
   isTrashView: boolean;
-  onAddTagToNotes: DB['addTagToNotes'];
+  onAddTagToNotes: (noteIds: NoteId[], tagName: string) => Promise<void>;
   onOpenExport: () => void;
-  onRemoveTagFromNotes: DB['removeTagFromNotes'];
+  onRemoveTagFromNotes: (noteIds: NoteId[], tagName: string) => Promise<void>;
   onToggleSidebar: () => void;
 }
 

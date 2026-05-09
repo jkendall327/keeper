@@ -2,15 +2,12 @@ import { ChatView } from './ChatView.tsx';
 import { Icon } from './Icon.tsx';
 import { useKeeperServices } from '../services.ts';
 import { getApiKey, getLLMClient } from '../llm/client.ts';
-import type { useDB } from '../hooks/useDB.ts';
+import { useRefreshKeeperData } from '../hooks/useKeeperQuery.ts';
 import styles from './ChatPanel.module.css';
 
-interface ChatPanelProps {
-  refresh: ReturnType<typeof useDB>['refresh'];
-}
-
-export function ChatPanel({ refresh }: ChatPanelProps) {
-  const { db } = useKeeperServices();
+export function ChatPanel() {
+  const { client } = useKeeperServices();
+  const refresh = useRefreshKeeperData();
   const llmClient = getLLMClient();
   const apiKey = getApiKey();
 
@@ -27,7 +24,7 @@ export function ChatPanel({ refresh }: ChatPanelProps) {
   return (
     <ChatView
       client={llmClient}
-      db={db}
+      keeper={client}
       apiKey={apiKey}
       onMutation={() => { void refresh(); }}
     />

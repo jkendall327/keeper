@@ -1,8 +1,13 @@
 import { Suspense, useState } from 'react';
 import styles from './App.module.css';
-import { useDB } from './hooks/useDB.ts';
-import { useAppSettings } from './hooks/useAppSettings.ts';
-import { useDisplayedNotes } from './hooks/useDisplayedNotes.ts';
+import {
+  useAppSettings,
+  useDisplayedNotes,
+  useExtensionEvents,
+  useInboxNotes,
+  useNoteMutations,
+  useTags,
+} from './hooks/useKeeperQuery.ts';
 import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
 import { useExtensionBadge } from './hooks/useExtensionBadge.ts';
 import { useIsMobile } from './hooks/useIsMobile.ts';
@@ -17,60 +22,39 @@ import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
 import type { FilterType } from './components/Sidebar.tsx';
 
 function KeeperApp() {
-  const db = useDB();
-  const {
-    createNote: createSharedNote,
-    deleteNotes,
-    archiveNotes,
-    trashNotes,
-    restoreNotes,
-    notes: dbNotes,
-    search,
-    getArchivedNotes,
-    getTrashedNotes,
-    getUntaggedNotes,
-    getNotesForTag,
-    getLinkedNotes,
-  } = db;
+  const { data: inboxNotes } = useInboxNotes();
+  const { data: allTags } = useTags();
+  const noteMutations = useNoteMutations();
+  const extensionNoteCreatedCount = useExtensionEvents();
   const [activeFilter, setActiveFilter] = useState<FilterType>({ type: 'all' });
   const [searchQuery, setSearchQuery] = useState('');
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [autoApplyActiveTag, setAutoApplyActiveTagState] = useState(getAutoApplyActiveTag);
-  const { appSettings, appSettingsLoaded, onAppSettingsChange } = useAppSettings();
+  const appSettings = useAppSettings();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   useExtensionBadge({
     enabled: appSettings.extensionBadgeEnabled,
-    extensionNoteCreatedCount: db.extensionNoteCreatedCount,
+    extensionNoteCreatedCount,
   });
 
   const isArchiveView = activeFilter.type === 'archive';
   const isInboxView = activeFilter.type === 'all';
   const isTrashView = activeFilter.type === 'trash';
-  const displayedNotes = useDisplayedNotes({
-    activeFilter,
-    dbNotes,
-    getArchivedNotes,
-    getLinkedNotes,
-    getNotesForTag,
-    getTrashedNotes,
-    getUntaggedNotes,
-    search,
-    searchQuery,
-  });
+  const displayedNotes = useDisplayedNotes(activeFilter, searchQuery);
   const bulkActions = useBulkNoteActions({
-    archiveNotes,
-    deleteNotes,
+    archiveNotes: noteMutations.archiveNotes,
+    deleteNotes: noteMutations.deleteNotes,
     displayedNotes,
-    inboxNotes: dbNotes,
+    inboxNotes,
     isTrashView,
-    restoreNotes,
-    runAutoTagRules: db.runAutoTagRules,
-    trashNotes,
+    restoreNotes: noteMutations.restoreNotes,
+    runAutoTagRules: noteMutations.runAutoTagRules,
+    trashNotes: noteMutations.trashNotes,
   });
   const { handleBulkDelete, selectedNoteIds, selectedNotes, setSelectedNoteIds } = bulkActions;
-  useWebShareTarget({ createNote: createSharedNote });
+  useWebShareTarget({ createNote: noteMutations.createNote });
 
   const handleSidebarClose = () => { setSidebarOpen(false); };
   const handleAutoApplyActiveTagChange = (enabled: boolean) => {
@@ -82,15 +66,15 @@ function KeeperApp() {
   return (
     <div className={styles.app}>
       <AppHeader
-        allTags={db.allTags}
+        allTags={allTags}
         bulkActions={bulkActions}
         isArchiveView={isArchiveView}
         isInboxView={isInboxView}
         isMobile={isMobile}
         isTrashView={isTrashView}
-        onAddTagToNotes={db.addTagToNotes}
+        onAddTagToNotes={noteMutations.addTagToNotes}
         onOpenExport={() => { setShowExportModal(true); }}
-        onRemoveTagFromNotes={db.removeTagFromNotes}
+        onRemoveTagFromNotes={noteMutations.removeTagFromNotes}
         onToggleSidebar={() => { setSidebarOpen((v) => !v); }}
       />
       <main className={styles.main}>
@@ -101,7 +85,7 @@ function KeeperApp() {
             isMobile={isMobile}
             sidebar={(
               <SidebarContainer
-                db={db}
+                allTags={allTags}
                 activeFilter={activeFilter}
                 setActiveFilter={setActiveFilter}
                 clearSelectedNotes={clearSelectedNotes}
@@ -111,9 +95,9 @@ function KeeperApp() {
                 sidebarOpen={sidebarOpen}
               />
             )}
-            settingsModal={showSettings && appSettingsLoaded && (
+            settingsModal={showSettings && (
               <SettingsModal
-                allTags={db.allTags}
+                allTags={allTags}
                 onClose={() => { setShowSettings(false); }}
                 autoApplyActiveTag={autoApplyActiveTag}
                 onAutoApplyActiveTagChange={handleAutoApplyActiveTagChange}
@@ -123,12 +107,13 @@ function KeeperApp() {
                 linkPreviewDisplayEnabled={appSettings.linkPreviewDisplayEnabled}
                 popularTagSuggestionsEnabled={appSettings.popularTagSuggestionsEnabled}
                 popularTagSuggestionLimit={appSettings.popularTagSuggestionLimit}
-                onAppSettingsChange={onAppSettingsChange}
               />
             )}
           >
             <WorkspaceContent
-              db={db}
+              allTags={allTags}
+              inboxNotes={inboxNotes}
+              noteMutations={noteMutations}
               view={{
                 activeFilter,
                 setActiveFilter,

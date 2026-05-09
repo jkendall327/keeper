@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createHttpDB } from "../db/db-client.ts";
+import { createHttpClient } from "../db/db-client.ts";
 import { toNoteId } from "../db/types.ts";
 
 function jsonResponse(body: unknown, status = 200): Response {
@@ -21,24 +21,24 @@ function asFetch(fetchMock: ReturnType<typeof vi.fn>): typeof fetch {
 describe("KeeperDB HTTP client contract", () => {
   it("uses the expected note routes", async () => {
     const fetchMock = mockFetch([]);
-    const db = createHttpDB(asFetch(fetchMock));
+    const client = createHttpClient(asFetch(fetchMock));
     const n1 = toNoteId("n1");
     const n2 = toNoteId("n2");
 
-    await db.getAllNotes();
-    await db.getNote(n1);
-    await db.createNote({ body: "new" });
-    await db.updateNote({ id: n1, body: "changed" });
-    await db.deleteNote(n1);
-    await db.deleteNotes([n1, n2]);
-    await db.archiveNotes([n1]);
-    await db.trashNote(n1);
-    await db.trashNotes([n1]);
-    await db.restoreNote(n1);
-    await db.restoreNotes([n1]);
+    await client.notes.list();
+    await client.notes.get(n1);
+    await client.notes.create({ body: "new" });
+    await client.notes.update({ id: n1, body: "changed" });
+    await client.notes.delete(n1);
+    await client.notes.deleteMany([n1, n2]);
+    await client.notes.archiveMany([n1]);
+    await client.notes.trash(n1);
+    await client.notes.trashMany([n1]);
+    await client.notes.restore(n1);
+    await client.notes.restoreMany([n1]);
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/notes", undefined);
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/notes/n1");
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/notes/n1", undefined);
     expect(fetchMock).toHaveBeenNthCalledWith(3, "/api/notes", expect.objectContaining({ method: "POST" }));
     expect(fetchMock).toHaveBeenNthCalledWith(4, "/api/notes/n1", expect.objectContaining({ method: "PUT" }));
     expect(fetchMock).toHaveBeenNthCalledWith(5, "/api/notes/n1", { method: "DELETE" });
@@ -52,23 +52,23 @@ describe("KeeperDB HTTP client contract", () => {
 
   it("uses the expected tag and view routes", async () => {
     const fetchMock = mockFetch([]);
-    const db = createHttpDB(asFetch(fetchMock));
+    const client = createHttpClient(asFetch(fetchMock));
     const n1 = toNoteId("n1");
 
-    await db.getAllTags();
-    await db.addTag(n1, "work");
-    await db.removeTag(n1, "needs encoding");
-    await db.addTagToNotes([n1], "bulk");
-    await db.removeTagFromNotes([n1], "bulk");
-    await db.renameTag("old", "new");
-    await db.updateTagIcon(7, "star");
-    await db.deleteTag(7);
-    await db.search("hello world");
-    await db.getUntaggedNotes();
-    await db.getLinkedNotes();
-    await db.getArchivedNotes();
-    await db.getTrashedNotes();
-    await db.getNotesForTag(3);
+    await client.tags.list();
+    await client.tags.addToNote(n1, "work");
+    await client.tags.removeFromNote(n1, "needs encoding");
+    await client.tags.addToNotes([n1], "bulk");
+    await client.tags.removeFromNotes([n1], "bulk");
+    await client.tags.rename("old", "new");
+    await client.tags.updateIcon(7, "star");
+    await client.tags.delete(7);
+    await client.search.notes("hello world");
+    await client.views.untagged();
+    await client.views.linked();
+    await client.views.archived();
+    await client.views.trashed();
+    await client.views.tag(3);
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/tags", undefined);
     expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/notes/n1/tags", expect.objectContaining({ method: "POST" }));
@@ -89,10 +89,10 @@ describe("KeeperDB HTTP client contract", () => {
   it("maps 404 nullable reads to null and non-ok responses to errors", async () => {
     const notFound = vi.fn((..._args: Parameters<typeof fetch>) =>
       Promise.resolve(jsonResponse({ error: "missing" }, 404)));
-    await expect(createHttpDB(asFetch(notFound)).getNote(toNoteId("missing"))).resolves.toBeNull();
+    await expect(createHttpClient(asFetch(notFound)).notes.get(toNoteId("missing"))).resolves.toBeNull();
 
     const broken = vi.fn((..._args: Parameters<typeof fetch>) =>
       Promise.resolve(jsonResponse({ error: "bad" }, 500)));
-    await expect(createHttpDB(asFetch(broken)).getAllNotes()).rejects.toThrow("GET /api/notes: 500");
+    await expect(createHttpClient(asFetch(broken)).notes.list()).rejects.toThrow("GET /api/notes: 500");
   });
 });

@@ -30,7 +30,7 @@ export function NoteModalEditor({
   onBodyChange,
   onOpenImage,
 }: NoteModalEditorProps) {
-  const { db } = useKeeperServices();
+  const { client } = useKeeperServices();
   const bodyHistoryRef = useRef<string[]>([note.body]);
   const bodyHistoryIndexRef = useRef(0);
   const bodyNextCheckpointRef = useRef(false);
@@ -63,7 +63,7 @@ export function NoteModalEditor({
       if (file === null) continue;
 
       const buffer = await file.arrayBuffer();
-      const media = await db.storeMedia({
+      const media = await client.media.store({
         noteId: note.id,
         mimeType: file.type,
         data: buffer,

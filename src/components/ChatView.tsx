@@ -4,7 +4,7 @@ import type { LLMClient } from '@motioneffector/llm';
 import { markdown } from '@motioneffector/markdown';
 import { useChatLoop, type ChatMessage } from '../llm/useChatLoop.ts';
 import { Icon } from './Icon.tsx';
-import type { KeeperDB } from '../db/types.ts';
+import type { KeeperClient } from '../db/db-client.ts';
 import markdownStyles from './MarkdownPreview.module.css';
 import styles from './ChatView.module.css';
 
@@ -60,7 +60,7 @@ async function fetchModels(apiKey: string): Promise<FetchModelsResult> {
 
 interface ChatViewProps {
   client: LLMClient;
-  db: KeeperDB;
+  keeper: KeeperClient;
   apiKey: string;
   onMutation: () => void;
 }
@@ -110,7 +110,7 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
   );
 }
 
-export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
+export function ChatView({ client, keeper, apiKey, onMutation }: ChatViewProps) {
   const [input, setInput] = useState('');
   const [models, setModels] = useState<ModelOption[]>([]);
   const [modelError, setModelError] = useState<string | null>(null);
@@ -119,7 +119,7 @@ export function ChatView({ client, db, apiKey, onMutation }: ChatViewProps) {
 
   const { messages, loading, streaming, pendingConfirmation, send, confirmDelete, clear } = useChatLoop({
     client,
-    db,
+    keeper,
     onMutation,
   });
 

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, vi } from 'vitest';
 import { render, screen, within, act, cleanup } from '@testing-library/react';
 import { createFileBackedTestApp, createTestApp, type TestApp } from '../../server/__tests__/test-app.ts';
-import { createHttpDB } from '../db/db-client.ts';
+import { createHttpClient } from '../db/db-client.ts';
 import type { KeeperDB } from '../db/types.ts';
 import { KeeperServicesProvider } from '../KeeperServicesProvider.tsx';
 
@@ -54,11 +54,11 @@ export async function renderApp() {
   if (currentTestApp === null) throw new Error('Test app has not been created');
   const { default: App } = await import('../App');
   const apiFetch = createFetchBridge(currentTestApp);
-  const db = createHttpDB(apiFetch);
+  const client = createHttpClient(apiFetch);
   // eslint-disable-next-line @typescript-eslint/require-await
   await act(async () => {
     render(
-      <KeeperServicesProvider value={{ db, apiFetch }}>
+      <KeeperServicesProvider value={{ client, apiFetch }}>
         <App />
       </KeeperServicesProvider>,
     );

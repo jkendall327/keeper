@@ -1,20 +1,17 @@
 import { useState } from 'react';
-import { useKeeperServices } from '../../services.ts';
-import type { AppSettings } from '../../db/types.ts';
+import { useUpdateAppSettings } from '../../hooks/useKeeperQuery.ts';
 import styles from '../SettingsModal.module.css';
 
 interface LinkPreviewSettingsProps {
   linkPreviewFetchEnabled: boolean;
   linkPreviewDisplayEnabled: boolean;
-  onAppSettingsChange: (settings: AppSettings) => void;
 }
 
 export function LinkPreviewSettings({
   linkPreviewFetchEnabled,
   linkPreviewDisplayEnabled,
-  onAppSettingsChange,
 }: LinkPreviewSettingsProps) {
-  const { db } = useKeeperServices();
+  const updateAppSettings = useUpdateAppSettings();
   const [settingsError, setSettingsError] = useState('');
 
   const saveBooleanSetting = async (
@@ -23,8 +20,7 @@ export function LinkPreviewSettings({
   ) => {
     setSettingsError('');
     try {
-      const settings = await db.updateAppSettings({ [setting]: enabled });
-      onAppSettingsChange(settings);
+      await updateAppSettings({ [setting]: enabled });
     } catch (error) {
       setSettingsError(error instanceof Error ? error.message : 'Unable to save setting');
     }

@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { Icon } from '../Icon.tsx';
-import { useKeeperServices } from '../../services.ts';
+import { useAutoTagRuleMutations, useAutoTagRules } from '../../hooks/useKeeperQuery.ts';
 import type { AutoTagRule, Tag } from '../../db/types.ts';
 import styles from '../SettingsModal.module.css';
 
@@ -9,9 +9,8 @@ interface AutotagSettingsProps {
 }
 
 export function AutotagSettings({ allTags }: AutotagSettingsProps) {
-  const { db } = useKeeperServices();
-  const [rules, setRules] = useState<AutoTagRule[]>([]);
-  const [rulesLoading, setRulesLoading] = useState(true);
+  const { data: rules, isFetching: rulesLoading } = useAutoTagRules();
+  const { createRule, deleteRule: deleteRuleMutation, updateRule } = useAutoTagRuleMutations();
   const [pattern, setPattern] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const tagDraftRef = useRef(tagDraft);
@@ -42,33 +41,6 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
         )
         .slice(0, 8);
 
-  const loadRules = async () => {
-    setRulesLoading(true);
-    try {
-      setRules(await db.getAutoTagRules());
-    } finally {
-      setRulesLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-    void db.getAutoTagRules()
-      .then((nextRules) => {
-        if (!cancelled) {
-          setRules(nextRules);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setRulesLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [db]);
-
   const addTagName = (name: string) => {
     const trimmed = name.trim();
     if (trimmed === '') return;
@@ -96,12 +68,11 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
     setRuleError('');
     try {
       if (editingId === null) {
-        await db.createAutoTagRule({ pattern: normalizedPattern, tagNames });
+        await createRule({ pattern: normalizedPattern, tagNames });
       } else {
-        await db.updateAutoTagRule({ id: editingId, pattern: normalizedPattern, tagNames });
+        await updateRule({ id: editingId, pattern: normalizedPattern, tagNames });
       }
       resetRuleForm();
-      await loadRules();
     } catch (error) {
       setRuleError(error instanceof Error ? error.message : 'Unable to save rule');
     }
@@ -118,9 +89,8 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
 
   const deleteRule = async (rule: AutoTagRule) => {
     if (!window.confirm(`Delete autotag rule /${rule.pattern}/?`)) return;
-    await db.deleteAutoTagRule(rule.id);
+    await deleteRuleMutation(rule.id);
     if (editingId === rule.id) resetRuleForm();
-    await loadRules();
   };
 
   return (

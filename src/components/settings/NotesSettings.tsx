@@ -5,9 +5,8 @@ import {
   MIN_EXTENSION_TITLE_MAX_LENGTH,
   MIN_POPULAR_TAG_SUGGESTION_LIMIT,
   normalizePopularTagSuggestionLimit,
-  type AppSettings,
 } from '../../db/types.ts';
-import { useKeeperServices } from '../../services.ts';
+import { useUpdateAppSettings } from '../../hooks/useKeeperQuery.ts';
 import { normalizeExtensionTitleMaxLength } from '../../utils/extension-title.ts';
 import styles from '../SettingsModal.module.css';
 
@@ -18,7 +17,6 @@ interface NotesSettingsProps {
   popularTagSuggestionsEnabled: boolean;
   popularTagSuggestionLimit: number;
   onAutoApplyActiveTagChange: (enabled: boolean) => void;
-  onAppSettingsChange: (settings: AppSettings) => void;
 }
 
 export function NotesSettings({
@@ -28,9 +26,8 @@ export function NotesSettings({
   popularTagSuggestionsEnabled,
   popularTagSuggestionLimit,
   onAutoApplyActiveTagChange,
-  onAppSettingsChange,
 }: NotesSettingsProps) {
-  const { db } = useKeeperServices();
+  const updateAppSettings = useUpdateAppSettings();
   const [extensionTitleMaxLength, setExtensionTitleMaxLength] = useState(String(savedExtensionTitleMaxLength));
   const [extensionTitleSaved, setExtensionTitleSaved] = useState(false);
   const [extensionTitleError, setExtensionTitleError] = useState('');
@@ -45,8 +42,7 @@ export function NotesSettings({
   ) => {
     setSettingsError('');
     try {
-      const settings = await db.updateAppSettings({ [setting]: enabled });
-      onAppSettingsChange(settings);
+      await updateAppSettings({ [setting]: enabled });
     } catch (error) {
       setSettingsError(error instanceof Error ? error.message : 'Unable to save setting');
     }
@@ -56,9 +52,8 @@ export function NotesSettings({
     setExtensionTitleError('');
     try {
       const normalized = normalizeExtensionTitleMaxLength(Number(extensionTitleMaxLength));
-      const settings = await db.updateAppSettings({ extensionTitleMaxLength: normalized });
+      const settings = await updateAppSettings({ extensionTitleMaxLength: normalized });
       setExtensionTitleMaxLength(String(settings.extensionTitleMaxLength));
-      onAppSettingsChange(settings);
       setExtensionTitleSaved(true);
       setTimeout(() => { setExtensionTitleSaved(false); }, 1500);
     } catch (error) {
@@ -70,9 +65,8 @@ export function NotesSettings({
     setPopularTagLimitError('');
     try {
       const normalized = normalizePopularTagSuggestionLimit(Number(popularTagLimitDraft));
-      const settings = await db.updateAppSettings({ popularTagSuggestionLimit: normalized });
+      const settings = await updateAppSettings({ popularTagSuggestionLimit: normalized });
       setPopularTagLimitDraft(String(settings.popularTagSuggestionLimit));
-      onAppSettingsChange(settings);
       setPopularTagLimitSaved(true);
       setTimeout(() => { setPopularTagLimitSaved(false); }, 1500);
     } catch (error) {

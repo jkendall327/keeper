@@ -4,7 +4,7 @@ import { cleanup } from '@testing-library/react';
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
-// Stub EventSource for jsdom (used by useDB for SSE)
+// Stub EventSource for jsdom (used by query invalidation SSE)
 if (typeof globalThis.EventSource === 'undefined') {
   globalThis.EventSource = class EventSource {
     close() { /* noop stub for jsdom */ }

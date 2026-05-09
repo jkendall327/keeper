@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { NoteId, NoteWithTags, Tag } from '../db/types.ts';
-import type { useDB } from './useDB.ts';
-
-type DB = ReturnType<typeof useDB>;
+import type { AutoTagRunResult, NoteId, NoteWithTags, Tag } from '../db/types.ts';
 
 interface UseBulkNoteActionsOptions {
-  archiveNotes: DB['archiveNotes'];
-  deleteNotes: DB['deleteNotes'];
+  archiveNotes: (ids: NoteId[]) => Promise<void>;
+  deleteNotes: (ids: NoteId[]) => Promise<void>;
   displayedNotes: NoteWithTags[];
   inboxNotes: NoteWithTags[];
   isTrashView: boolean;
-  restoreNotes: DB['restoreNotes'];
-  runAutoTagRules: DB['runAutoTagRules'];
-  trashNotes: DB['trashNotes'];
+  restoreNotes: (ids: NoteId[]) => Promise<void>;
+  runAutoTagRules: () => Promise<AutoTagRunResult>;
+  trashNotes: (ids: NoteId[]) => Promise<void>;
 }
 
 export function useBulkNoteActions({

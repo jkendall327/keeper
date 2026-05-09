@@ -69,6 +69,7 @@
   align-items: center;
   flex-shrink: 0;
   position: relative;
+  margin-left: 8px;
 }
 
 .tagIconButton {
@@ -94,6 +95,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  padding-left: 0;
 }
 
 .tagDelete {

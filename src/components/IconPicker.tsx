@@ -1,7 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Icon } from './Icon.tsx';
 import { getRecentIcons, saveRecentIcon } from './recent-icons.ts';
 import styles from './IconPicker.module.css';
+
+const PICKER_VIEWPORT_PADDING = 8;
 
 const ICON_LIST = [
   'home', 'star', 'favorite', 'bookmark', 'label', 'flag',
@@ -36,9 +39,10 @@ const ICON_LIST = [
 interface IconPickerProps {
   onSelect: (iconName: string) => void;
   onClose: () => void;
+  anchorEl?: HTMLElement | null;
 }
 
-export function IconPicker({ onSelect, onClose }: IconPickerProps) {
+export function IconPicker({ onSelect, onClose, anchorEl }: IconPickerProps) {
   const [search, setSearch] = useState('');
   const [recentIcons] = useState(getRecentIcons);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -53,9 +57,37 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
     searchRef.current?.focus();
   }, []);
 
+  useLayoutEffect(() => {
+    const popover = popoverRef.current;
+    if (anchorEl === undefined || anchorEl === null || popover === null) return;
+
+    const rect = anchorEl.getBoundingClientRect();
+    const pickerWidth = popover.offsetWidth;
+    const pickerHeight = popover.offsetHeight;
+    const viewportLeft = window.scrollX + PICKER_VIEWPORT_PADDING;
+    const viewportRight = window.scrollX + document.documentElement.clientWidth - PICKER_VIEWPORT_PADDING;
+    const viewportTop = window.scrollY + PICKER_VIEWPORT_PADDING;
+    const viewportBottom = window.scrollY + document.documentElement.clientHeight - PICKER_VIEWPORT_PADDING;
+    const preferredTop = rect.bottom + window.scrollY + 4;
+    const fallbackTop = rect.top + window.scrollY - pickerHeight - 4;
+    const preferredLeft = rect.left + window.scrollX;
+    const fallbackLeft = rect.right + window.scrollX - pickerWidth;
+    const top = preferredTop + pickerHeight <= viewportBottom
+      ? preferredTop
+      : Math.max(viewportTop, fallbackTop);
+    const left = preferredLeft + pickerWidth <= viewportRight
+      ? Math.max(viewportLeft, preferredLeft)
+      : Math.max(viewportLeft, fallbackLeft);
+
+    popover.style.top = `${String(top)}px`;
+    popover.style.left = `${String(left)}px`;
+  }, [anchorEl]);
+
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (popoverRef.current !== null && !popoverRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (popoverRef.current !== null && !popoverRef.current.contains(target)) {
+        if (anchorEl?.contains(target) === true) return;
         onClose();
       }
     };
@@ -70,7 +102,7 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [onClose]);
+  }, [onClose, anchorEl]);
 
   const handleSelect = (iconName: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -78,7 +110,7 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
     onSelect(iconName);
   };
 
-  return (
+  const picker = (
     <div className={styles.picker} ref={popoverRef} role="dialog" aria-label="Choose an icon">
       <input
         ref={searchRef}
@@ -126,4 +158,6 @@ export function IconPicker({ onSelect, onClose }: IconPickerProps) {
       </div>
     </div>
   );
+
+  return anchorEl === undefined ? picker : createPortal(picker, document.body);
 }

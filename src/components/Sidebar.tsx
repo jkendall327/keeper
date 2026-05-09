@@ -29,6 +29,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [iconPickerTagId, setIconPickerTagId] = useState<number | null>(null);
+  const [iconPickerAnchor, setIconPickerAnchor] = useState<HTMLButtonElement | null>(null);
 
   const isActive = (filter: FilterType) =>
     activeFilter.type === filter.type &&
@@ -89,7 +90,15 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
                 <div className={styles.tagIconWrapper}>
                   <button
                     className={styles.tagIconButton}
-                    onClick={() => { setIconPickerTagId(iconPickerTagId === tag.id ? null : tag.id); }}
+                    onClick={(e) => {
+                      if (iconPickerTagId === tag.id) {
+                        setIconPickerTagId(null);
+                        setIconPickerAnchor(null);
+                      } else {
+                        setIconPickerTagId(tag.id);
+                        setIconPickerAnchor(e.currentTarget);
+                      }
+                    }}
                     title="Change tag icon"
                     aria-label={`Change icon for ${tag.name}`}
                   >
@@ -100,8 +109,13 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
                       onSelect={(iconName) => {
                         onUpdateTagIcon(tag.id, iconName);
                         setIconPickerTagId(null);
+                        setIconPickerAnchor(null);
                       }}
-                      onClose={() => { setIconPickerTagId(null); }}
+                      onClose={() => {
+                        setIconPickerTagId(null);
+                        setIconPickerAnchor(null);
+                      }}
+                      anchorEl={iconPickerAnchor}
                     />
                   )}
                 </div>

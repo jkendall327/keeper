@@ -250,16 +250,18 @@ export function NoteGrid({
       className={styles.wrapper}
       onMouseDown={handleMouseDown}
     >
-      {topContent}
-      {pinnedNotes.length > 0 && renderGroup(pinnedNotes)}
-      {pinnedNotes.length > 0 && regularNotes.length > 0 && (
-        <div className={styles.divider} />
-      )}
-      {regularNotes.length > 0 && renderGroup(regularNotes)}
-      {(pinnedNotes.length > 0 || regularNotes.length > 0) && archivedNotes.length > 0 && (
-        <div className={styles.divider} />
-      )}
-      {archivedNotes.length > 0 && renderGroup(archivedNotes)}
+      <div className={styles.content}>
+        {topContent}
+        {pinnedNotes.length > 0 && renderGroup(pinnedNotes)}
+        {pinnedNotes.length > 0 && regularNotes.length > 0 && (
+          <div className={styles.divider} />
+        )}
+        {regularNotes.length > 0 && renderGroup(regularNotes)}
+        {(pinnedNotes.length > 0 || regularNotes.length > 0) && archivedNotes.length > 0 && (
+          <div className={styles.divider} />
+        )}
+        {archivedNotes.length > 0 && renderGroup(archivedNotes)}
+      </div>
       {selRect !== null && (
         <div
           className={styles.selectionRectangle}

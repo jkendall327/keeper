@@ -2,16 +2,23 @@ import { useState, useCallback, useEffect, use } from 'react';
 import { useKeeperServices } from '../services.ts';
 import type { KeeperDB, NoteId, NoteWithTags, Tag, CreateNoteInput, UpdateNoteInput } from '../db/types.ts';
 
+const initialLoads = new WeakMap<KeeperDB, Promise<[NoteWithTags[], Tag[]]>>();
+
 function loadInitialDBState(db: KeeperDB): Promise<[NoteWithTags[], Tag[]]> {
-  return Promise.all([
+  const existingLoad = initialLoads.get(db);
+  if (existingLoad !== undefined) return existingLoad;
+
+  const load = Promise.all([
     db.getAllNotes(),
     db.getAllTags(),
   ]);
+  initialLoads.set(db, load);
+  return load;
 }
 
 export function useDB() {
   const { db } = useKeeperServices();
-  const [initialLoad] = useState(() => loadInitialDBState(db));
+  const initialLoad = loadInitialDBState(db);
   const [initialNotes, initialTags] = use(initialLoad);
   const [notes, setNotes] = useState<NoteWithTags[]>(initialNotes);
   const [allTags, setAllTags] = useState<Tag[]>(initialTags);

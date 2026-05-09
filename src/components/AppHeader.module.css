@@ -4,21 +4,21 @@
   z-index: 50;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   box-sizing: border-box;
   min-height: var(--app-header-sticky-height);
   padding: 24px 24px 8px;
   background: var(--surface-app);
 }
 
-.left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.search {
+  min-width: 160px;
+  flex: 1 1 360px;
 }
 
 .actions {
   display: flex;
+  min-width: 0;
   align-items: center;
   gap: 12px;
 }
@@ -78,14 +78,8 @@
   display: inline-block;
 }
 
-.title {
-  font-size: 1.6rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  margin: 0;
-}
-
 .hamburgerButton {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -102,8 +96,18 @@
 }
 
 @media (max-width: 768px) {
-  .title {
-    font-size: 1.3rem;
+  .header {
+    gap: 8px;
+    padding: 16px 8px 8px;
+  }
+
+  .search {
+    min-width: 96px;
+    flex-basis: 160px;
+  }
+
+  .actions {
+    gap: 6px;
   }
 
   .actionButton {

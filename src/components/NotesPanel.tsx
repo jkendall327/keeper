@@ -1,10 +1,9 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState, type RefObject } from 'react';
 import { useQuickCaptureShortcut, useSearchFocusShortcut } from '../hooks/useAppShortcuts.ts';
 import { Icon } from './Icon.tsx';
 import { NoteGrid } from './NoteGrid.tsx';
 import { NoteModal } from './NoteModal.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
-import { SearchBar } from './SearchBar.tsx';
 import type { FilterType } from './Sidebar.tsx';
 import type { NoteCommands } from './note-commands.ts';
 import type { CreateNoteInput, NoteId, NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
@@ -24,6 +23,7 @@ interface NotesPanelProps {
   restoreNote: (id: NoteId) => Promise<void>;
   activeFilter: FilterType;
   navigateToFilter: (filter: FilterType) => void;
+  searchInputRef: RefObject<HTMLInputElement | null>;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   displayedNotes: NoteWithTags[];
@@ -50,6 +50,7 @@ export function NotesPanel({
   restoreNote,
   activeFilter,
   navigateToFilter,
+  searchInputRef,
   searchQuery,
   setSearchQuery,
   displayedNotes,
@@ -61,7 +62,6 @@ export function NotesPanel({
   popularTagSuggestionLimit,
   showSettings,
 }: NotesPanelProps) {
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const quickAddRef = useRef<HTMLTextAreaElement>(null);
   useSearchFocusShortcut(searchInputRef);
 
@@ -131,7 +131,6 @@ export function NotesPanel({
   return (
     <>
       <div className={styles.stickyControls}>
-        <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
         {searchQuery.trim() !== '' && (
           <p className={styles.searchResultCount}>
             {displayedNotes.length === 0

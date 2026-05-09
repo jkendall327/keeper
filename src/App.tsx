@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react';
+import { Suspense, useRef, useState } from 'react';
 import {
   Navigate,
   Outlet,
@@ -45,6 +45,7 @@ function KeeperApp() {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [autoApplyActiveTag, setAutoApplyActiveTagState] = useState(getAutoApplyActiveTag);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const appSettings = useAppSettings();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -115,6 +116,9 @@ function KeeperApp() {
         onAddTagToNotes={noteMutations.addTagToNotes}
         onOpenExport={() => { setShowExportModal(true); }}
         onRemoveTagFromNotes={noteMutations.removeTagFromNotes}
+        searchInputRef={searchInputRef}
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
         onToggleSidebar={() => { setSidebarOpen((v) => !v); }}
       />
       <main className={styles.main}>
@@ -158,6 +162,7 @@ function KeeperApp() {
                 activeFilter,
                 navigateToFilter,
                 searchQuery,
+                searchInputRef,
                 setSearchQuery,
                 displayedNotes,
                 selectedNoteIds,

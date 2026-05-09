@@ -6,10 +6,9 @@ declare const styles: {
   readonly "deleteButton": string;
   readonly "hamburgerButton": string;
   readonly "header": string;
-  readonly "left": string;
+  readonly "search": string;
   readonly "status": string;
   readonly "tagButtonWrap": string;
-  readonly "title": string;
 };
 export = styles;
 

@@ -1,7 +1,8 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { clsx } from 'clsx';
 import type { Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
+import { SearchBar } from './SearchBar.tsx';
 import { TagApplier } from './TagApplier.tsx';
 import type { useBulkNoteActions } from '../hooks/useBulkNoteActions.ts';
 import type { NoteId } from '../db/types.ts';
@@ -18,6 +19,9 @@ interface AppHeaderProps {
   onOpenExport: () => void;
   onRemoveTagFromNotes: (noteIds: NoteId[], tagName: string) => Promise<void>;
   onToggleSidebar: () => void;
+  searchInputRef: RefObject<HTMLInputElement | null>;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 }
 
 export function AppHeader({
@@ -31,6 +35,9 @@ export function AppHeader({
   onOpenExport,
   onRemoveTagFromNotes,
   onToggleSidebar,
+  searchInputRef,
+  searchQuery,
+  setSearchQuery,
 }: AppHeaderProps) {
   const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
   const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
@@ -53,19 +60,22 @@ export function AppHeader({
 
   return (
     <header className={styles.header}>
-      <div className={styles.left}>
-        {isMobile && (
-          <button
-            className={styles.hamburgerButton}
-            onClick={onToggleSidebar}
-            aria-label="Toggle sidebar"
-          >
-            <Icon name="menu" size={24} />
-          </button>
-        )}
-        {!isMobile && <h1 className={styles.title}>Keeper</h1>}
+      {isMobile && (
+        <button
+          className={styles.hamburgerButton}
+          onClick={onToggleSidebar}
+          aria-label="Toggle sidebar"
+        >
+          <Icon name="menu" size={24} />
+        </button>
+      )}
+      <div className={styles.search}>
+        <SearchBar ref={searchInputRef} value={searchQuery} onChange={setSearchQuery} />
       </div>
       <div className={styles.actions}>
+        {selectedNoteIds.size > 0 && (
+          <span className={styles.bulkCount}>{selectedNoteIds.size} selected</span>
+        )}
         {autoTagStatus !== '' && (
           <span className={styles.status} role="status">{autoTagStatus}</span>
         )}
@@ -103,7 +113,6 @@ export function AppHeader({
         )}
         {selectedNoteIds.size > 0 && (
           <div className={styles.bulkActions}>
-            <span className={styles.bulkCount}>{selectedNoteIds.size} selected</span>
             {isTrashView && (
               <button
                 className={styles.actionButton}

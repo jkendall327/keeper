@@ -3,6 +3,7 @@ import type { Message, LLMClient } from '@motioneffector/llm';
 import { parseMCPResponse } from './mcp-parser.ts';
 import { executeTool, type ToolResult } from './tools.ts';
 import { buildSystemPrompt } from './system-prompt.ts';
+import { normalizeAssistantReply } from './chat-formatting.ts';
 import type { KeeperClient } from '../db/db-client.ts';
 import type { NoteWithTags, Tag } from '../db/types.ts';
 
@@ -40,7 +41,7 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
       const now = performance.now();
       if (now - lastFlush >= THROTTLE_MS) {
         lastFlush = now;
-        setStreaming(out.text);
+        setStreaming(normalizeAssistantReply(out.text));
       }
     }
     setStreaming('');
@@ -91,8 +92,9 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
 
         if (toolCalls.length === 0) {
           // No tool calls — stream the final response for display
-          if (text !== '') {
-            const assistantMsg: ChatMessage = { role: 'assistant', content: text };
+          const content = normalizeAssistantReply(text);
+          if (content !== '') {
+            const assistantMsg: ChatMessage = { role: 'assistant', content };
             iterMessages = [...iterMessages, assistantMsg];
             setMessages(iterMessages);
           }
@@ -100,8 +102,9 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
         }
 
         // Add assistant message with tool call indication
-        if (text !== '') {
-          const assistantMsg: ChatMessage = { role: 'assistant', content: text };
+        const content = normalizeAssistantReply(text);
+        if (content !== '') {
+          const assistantMsg: ChatMessage = { role: 'assistant', content };
           iterMessages = [...iterMessages, assistantMsg];
         }
 
@@ -154,8 +157,9 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
       setStreaming('');
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Preserve any partially streamed text as an assistant message
-        if (acc.text !== '') {
-          const partialMsg: ChatMessage = { role: 'assistant', content: acc.text };
+        const content = normalizeAssistantReply(acc.text);
+        if (content !== '') {
+          const partialMsg: ChatMessage = { role: 'assistant', content };
           setMessages([...iterMessages, partialMsg]);
         }
       } else {
@@ -208,8 +212,9 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
 
       if (acc.text !== '') {
         const { text } = parseMCPResponse(acc.text);
-        if (text !== '') {
-          const assistantMsg: ChatMessage = { role: 'assistant', content: text };
+        const content = normalizeAssistantReply(text);
+        if (content !== '') {
+          const assistantMsg: ChatMessage = { role: 'assistant', content };
           setMessages([...updatedMessages, assistantMsg]);
         }
       }

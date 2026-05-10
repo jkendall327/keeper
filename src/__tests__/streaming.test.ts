@@ -69,6 +69,47 @@ describe('Streaming', () => {
     expect(assistantMsgs[0]?.content).toBe('Hello world!');
   });
 
+  it('normalizes extra assistant whitespace without changing code blocks', async () => {
+    const response = [
+      '',
+      'Here is the list:',
+      '',
+      '',
+      '- One',
+      '',
+      '- Two',
+      '',
+      '',
+      '```',
+      'const x = 1;',
+      '',
+      'const y = 2;',
+      '```',
+      '',
+    ].join('\n');
+    const { client, onMutation } = setup([response]);
+    const { result } = renderHook(() =>
+      useChatLoop({ client, keeper, onMutation }),
+    );
+
+    await act(async () => {
+      await result.current.send('Summarise');
+    });
+
+    const assistantMsgs = result.current.messages.filter(m => m.role === 'assistant');
+    expect(assistantMsgs[0]?.content).toBe([
+      'Here is the list:',
+      '- One',
+      '- Two',
+      '',
+      '```',
+      'const x = 1;',
+      '',
+      'const y = 2;',
+      '```',
+    ].join('\n'));
+  });
+
   it('handles stream with tool call block', async () => {
     const toolCallResponse = 'Let me look that up.\n\n```tool_call\n{"name": "list_notes", "args": {}}\n```';
     const finalResponse = 'You have no notes yet.';

@@ -232,6 +232,40 @@
   white-space: pre-wrap;
 }
 
+.assistantMessage .messageContent {
+  white-space: normal;
+}
+
+.assistantMessage .messageContent > :first-child {
+  margin-top: 0;
+}
+
+.assistantMessage .messageContent > :last-child {
+  margin-bottom: 0;
+}
+
+.assistantMessage .messageContent p {
+  margin: 0.35em 0;
+}
+
+.assistantMessage .messageContent ul,
+.assistantMessage .messageContent ol {
+  margin: 0.35em 0 0.6em;
+}
+
+.assistantMessage .messageContent li {
+  margin: 0.1em 0;
+}
+
+.assistantMessage .messageContent h1,
+.assistantMessage .messageContent h2,
+.assistantMessage .messageContent h3,
+.assistantMessage .messageContent h4,
+.assistantMessage .messageContent h5,
+.assistantMessage .messageContent h6 {
+  margin: 0.75em 0 0.35em;
+}
+
 @media (prefers-color-scheme: light) {
   .empty {
     color: rgba(0, 0, 0, 0.3);

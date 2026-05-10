@@ -49,6 +49,16 @@ export function registerRoutes(
     return db.getAllNotes();
   });
 
+  app.post<{ Body: { ids: string[] } }>(
+    "/api/notes/resolve",
+    async (req, reply) => {
+      if (!Array.isArray(req.body.ids) || !req.body.ids.every((id) => typeof id === "string")) {
+        return reply.code(400).send({ error: "ids must be an array of note IDs" });
+      }
+      return db.resolveNotes(toNoteIds(req.body.ids));
+    },
+  );
+
   app.get<{ Params: { id: string } }>(
     "/api/notes/:id",
     async (req, reply) => {

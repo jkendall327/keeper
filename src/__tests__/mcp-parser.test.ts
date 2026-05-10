@@ -77,6 +77,13 @@ After the bad block.`;
     expect(result.toolCalls[0]?.args).toEqual({});
   });
 
+  it('accepts display_notes tool calls', () => {
+    const result = parseMCPResponse('```tool_call\n{"name": "display_notes", "args": {"ids": ["n2", "n1"]}}\n```');
+    expect(result.toolCalls).toHaveLength(1);
+    expect(result.toolCalls[0]?.name).toBe('display_notes');
+    expect(result.toolCalls[0]?.args).toEqual({ ids: ['n2', 'n1'] });
+  });
+
   it('skips blocks with an unknown tool name', () => {
     // Valid tool name is accepted
     const valid = parseMCPResponse('```tool_call\n{"name": "list_notes", "args": {}}\n```');

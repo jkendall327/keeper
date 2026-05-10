@@ -1,5 +1,6 @@
 declare const styles: {
   readonly "assistantMessage": string;
+  readonly "assistantMessageStack": string;
   readonly "blink": string;
   readonly "clearButton": string;
   readonly "confirmNoButton": string;
@@ -7,6 +8,9 @@ declare const styles: {
   readonly "confirmation": string;
   readonly "confirmationActions": string;
   readonly "cursor": string;
+  readonly "editActions": string;
+  readonly "editForm": string;
+  readonly "editTextarea": string;
   readonly "empty": string;
   readonly "header": string;
   readonly "historySelect": string;
@@ -14,7 +18,10 @@ declare const styles: {
   readonly "inputBar": string;
   readonly "loading": string;
   readonly "message": string;
+  readonly "messageActionButton": string;
+  readonly "messageActions": string;
   readonly "messageContent": string;
+  readonly "messageStack": string;
   readonly "messages": string;
   readonly "modelError": string;
   readonly "modelRow": string;
@@ -25,6 +32,7 @@ declare const styles: {
   readonly "toolMessage": string;
   readonly "toolResult": string;
   readonly "userMessage": string;
+  readonly "userMessageStack": string;
   readonly "view": string;
 };
 export = styles;

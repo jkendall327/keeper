@@ -15,7 +15,14 @@ interface NoteDto {
   title: string;
   body: string;
   has_links: boolean;
+  trashed?: boolean;
   tags: TagDto[];
+}
+
+interface NoteResolveDto {
+  id: string;
+  status: "found" | "missing";
+  note: NoteDto | null;
 }
 
 interface ErrorDto {
@@ -161,6 +168,29 @@ describe("Fastify API routes", () => {
     expect(restored.statusCode).toBe(200);
     const restoredTrashNotes = parseJson(await app.inject({ method: "GET", url: "/api/views/trash" })) as NoteDto[];
     expect(restoredTrashNotes).toHaveLength(0);
+  });
+
+  it("resolves notes in request order including trashed notes", async () => {
+    const { app } = await setup();
+    await app.inject({ method: "POST", url: "/api/notes", payload: { body: "one" } });
+    await app.inject({ method: "POST", url: "/api/notes", payload: { body: "two" } });
+    await app.inject({ method: "POST", url: "/api/notes/test-id-2/trash" });
+
+    const resolved = await app.inject({
+      method: "POST",
+      url: "/api/notes/resolve",
+      payload: { ids: ["test-id-2", "missing", "test-id-1"] },
+    });
+
+    expect(resolved.statusCode).toBe(200);
+    const body = parseJson(resolved) as NoteResolveDto[];
+    expect(body.map((item) => [item.id, item.status])).toEqual([
+      ["test-id-2", "found"],
+      ["missing", "missing"],
+      ["test-id-1", "found"],
+    ]);
+    expect(body[0]?.note).toMatchObject({ id: "test-id-2", body: "two", trashed: true });
+    expect(body[1]?.note).toBeNull();
   });
 
   it("supports single and bulk tag operations", async () => {

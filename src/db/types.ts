@@ -73,6 +73,10 @@ export interface NoteWithTags extends Note {
   link_metadata: LinkMetadata[];
 }
 
+export type NoteResolveResult =
+  | { id: NoteId; status: "found"; note: NoteWithTags }
+  | { id: NoteId; status: "missing"; note: null };
+
 /** Default icon for tags without a custom icon */
 export function tagDisplayIcon(tag: Tag): string {
   return tag.icon ?? "label";
@@ -170,6 +174,7 @@ export interface KeeperDB {
   // Notes CRUD
   createNote(input: CreateNoteInput): Promise<NoteWithTags>;
   getNote(id: NoteId): Promise<NoteWithTags | null>;
+  resolveNotes(ids: NoteId[]): Promise<NoteResolveResult[]>;
   getAllNotes(): Promise<NoteWithTags[]>;
   updateNote(input: UpdateNoteInput): Promise<NoteWithTags>;
   deleteNote(id: NoteId): Promise<void>;

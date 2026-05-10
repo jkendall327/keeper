@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { Message, LLMClient } from '@motioneffector/llm';
 import { parseMCPResponse } from './mcp-parser.ts';
-import { executeTool, type ToolResult } from './tools.ts';
+import { executeTool, TOOL_METADATA, type ToolCall, type ToolResult } from './tools.ts';
 import { buildSystemPrompt } from './system-prompt.ts';
 import { normalizeAssistantReply } from './chat-formatting.ts';
 import type { KeeperClient } from '../db/db-client.ts';
@@ -27,12 +27,42 @@ interface UseChatLoopOptions {
 
 const MAX_TOOL_ITERATIONS = 10;
 
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(',')}]`;
+  }
+  if (typeof value === 'object' && value !== null) {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringify(record[key])}`)
+      .join(',')}}`;
+  }
+  if (value === undefined) return 'undefined';
+  return JSON.stringify(value);
+}
+
+function toolCallKey(call: ToolCall): string {
+  return `${call.name}:${stableStringify(call.args)}`;
+}
+
+function uniqueToolCalls(toolCalls: ToolCall[]): ToolCall[] {
+  const seen = new Set<string>();
+  return toolCalls.filter((call) => {
+    const key = toolCallKey(call);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function useChatLoop({ client, keeper, onMutation, initialMessages = [], onMessagesChange }: UseChatLoopOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState('');
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const inFlightRef = useRef(false);
 
   const commitMessages = useCallback((nextMessages: ChatMessage[]) => {
     setMessages(nextMessages);
@@ -77,15 +107,14 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
     return llmMessages;
   }, []);
 
-  const send = useCallback(async (userInput: string) => {
-    if (loading) return;
+  const completeFromMessages = useCallback(async (startingMessages: ChatMessage[]) => {
+    if (loading || inFlightRef.current) return;
+    inFlightRef.current = true;
     setLoading(true);
+    setPendingConfirmation(null);
+    commitMessages(startingMessages);
 
-    const newUserMsg: ChatMessage = { role: 'user', content: userInput };
-    const currentMessages = [...messages, newUserMsg];
-    commitMessages(currentMessages);
-
-    let iterMessages = currentMessages;
+    let iterMessages = startingMessages;
     let iterations = 0;
     // acc is mutated by streamOnce so partial text survives an AbortError throw
     const acc = { text: '' };
@@ -103,7 +132,8 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
         // Stream the response token-by-token
         acc.text = '';
         await streamOnce(llmMessages, controller.signal, acc);
-        const { toolCalls, text } = parseMCPResponse(acc.text);
+        const { toolCalls: parsedToolCalls, text } = parseMCPResponse(acc.text);
+        const toolCalls = uniqueToolCalls(parsedToolCalls);
 
         if (toolCalls.length === 0) {
           // No tool calls — stream the final response for display
@@ -125,7 +155,11 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
 
         // Execute tool calls
         let needsConfirmStop = false;
+        let executedToolCalls = 0;
+        let allExecutedToolsTerminal = true;
         for (const call of toolCalls) {
+          executedToolCalls++;
+          allExecutedToolsTerminal &&= TOOL_METADATA[call.name].terminal;
           let result: ToolResult;
           try {
             result = await executeTool(keeper, call);
@@ -158,6 +192,7 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
         if (needsConfirmStop) return;
 
         commitMessages(iterMessages);
+        if (executedToolCalls > 0 && allExecutedToolsTerminal) break;
       }
 
       // If we exhausted the iteration limit, inform the user
@@ -166,7 +201,7 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
           role: 'assistant',
           content: "I've reached the maximum number of actions. Please try a simpler request.",
         };
-        appendMessage(limitMsg);
+        commitMessages([...iterMessages, limitMsg]);
       }
     } catch (err: unknown) {
       setStreaming('');
@@ -186,8 +221,28 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
     } finally {
       setLoading(false);
       abortRef.current = null;
+      inFlightRef.current = false;
     }
-  }, [messages, loading, commitMessages, streamOnce, keeper, buildLLMMessages, onMutation, appendMessage]);
+  }, [loading, commitMessages, streamOnce, keeper, buildLLMMessages, onMutation]);
+
+  const send = useCallback(async (userInput: string) => {
+    const newUserMsg: ChatMessage = { role: 'user', content: userInput };
+    await completeFromMessages([...messages, newUserMsg]);
+  }, [completeFromMessages, messages]);
+
+  const replaceUserMessageAndRetry = useCallback(async (messageIndex: number, content: string) => {
+    const trimmed = content.trim();
+    if (trimmed === '' || messages[messageIndex]?.role !== 'user') return;
+    await completeFromMessages([
+      ...messages.slice(0, messageIndex),
+      { role: 'user', content: trimmed },
+    ]);
+  }, [completeFromMessages, messages]);
+
+  const regenerateAssistantMessage = useCallback(async (messageIndex: number) => {
+    if (messages[messageIndex]?.role !== 'assistant') return;
+    await completeFromMessages(messages.slice(0, messageIndex));
+  }, [completeFromMessages, messages]);
 
   const confirmDelete = useCallback(async (confirmed: boolean) => {
     if (pendingConfirmation === null) return;
@@ -252,6 +307,7 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
     setMessages([]);
     setPendingConfirmation(null);
     setStreaming('');
+    inFlightRef.current = false;
     if (abortRef.current !== null) {
       abortRef.current.abort();
       abortRef.current = null;
@@ -263,6 +319,7 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
     setPendingConfirmation(null);
     setStreaming('');
     setLoading(false);
+    inFlightRef.current = false;
     if (abortRef.current !== null) {
       abortRef.current.abort();
       abortRef.current = null;
@@ -274,6 +331,7 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
       abortRef.current.abort();
       abortRef.current = null;
     }
+    inFlightRef.current = false;
   }, []);
 
   return {
@@ -282,6 +340,8 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
     streaming,
     pendingConfirmation,
     send,
+    replaceUserMessageAndRetry,
+    regenerateAssistantMessage,
     confirmDelete,
     clear,
     loadMessages,

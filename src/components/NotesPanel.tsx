@@ -5,7 +5,7 @@ import { NoteGrid } from './NoteGrid.tsx';
 import { NoteModal } from './NoteModal.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
 import type { FilterType } from './Sidebar.tsx';
-import type { NoteCommands } from './note-commands.ts';
+import { buildNoteCommands } from './note-commands.ts';
 import type { CreateNoteInput, NoteId, NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
 import styles from './NotesPanel.module.css';
 
@@ -92,19 +92,16 @@ export function NotesPanel({
     : undefined;
   const isTrashView = activeFilter.type === 'trash';
 
-  const noteCommands = useMemo<NoteCommands>(() => ({
-    update: async (input) => { await updateNote(input); },
-    delete: isTrashView
-      ? async (id: NoteId) => {
-          if (!window.confirm('Permanently delete this note? This cannot be undone.')) return false;
-          await deleteNote(id);
-          return true;
-        }
-      : trashNote,
-    togglePin: async (id) => { await togglePinNote(id); },
-    archiveOrRestore: async (id) => { await (isTrashView ? restoreNote(id) : toggleArchiveNote(id)); },
-    addTag: async (noteId, tagName) => { await addTag(noteId, tagName); },
-    removeTag: async (noteId, tagName) => { await removeTag(noteId, tagName); },
+  const noteCommands = useMemo(() => buildNoteCommands({
+    isTrashView,
+    updateNote,
+    deleteNote,
+    togglePinNote,
+    toggleArchiveNote,
+    trashNote,
+    restoreNote,
+    addTag,
+    removeTag,
   }), [
     addTag,
     deleteNote,

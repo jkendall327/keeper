@@ -159,6 +159,67 @@ describe('Streaming', () => {
     expect(assistantMsgs[1]?.content).toBe('You have no notes yet.');
   });
 
+  it('dedupes identical tool calls in one response', async () => {
+    const response = [
+      'Let me check.',
+      '',
+      '```tool_call',
+      '{"name": "search_notes", "args": {"query": "stars"}}',
+      '```',
+      '```tool_call',
+      '{"args": {"query": "stars"}, "name": "search_notes"}',
+      '```',
+    ].join('\n');
+    const finalResponse = 'One match.';
+    const { client, onMutation } = setup([]);
+    const searchSpy = vi.spyOn(keeper.search, 'notes');
+    let callCount = 0;
+    client.stream = (_messages: Message[], _options?: ChatOptions): AsyncIterable<string> => {
+      callCount++;
+      return createMockClient([callCount === 1 ? response : finalResponse]).stream([], {});
+    };
+
+    const { result } = renderHook(() =>
+      useChatLoop({ client, keeper, onMutation }),
+    );
+
+    await act(async () => {
+      await result.current.send('Find stars');
+    });
+
+    expect(searchSpy).toHaveBeenCalledTimes(1);
+    const toolMsgs = result.current.messages.filter(m => m.role === 'tool');
+    expect(toolMsgs).toHaveLength(1);
+  });
+
+  it('stops after terminal display_notes tool calls', async () => {
+    const { client, onMutation } = setup([]);
+    const note = await keeper.notes.create({ body: 'Launch details', title: 'Launch plan' });
+    const response = [
+      'Here is the note.',
+      '',
+      '```tool_call',
+      `{"name": "display_notes", "args": {"ids": ["${note.id}"]}}`,
+      '```',
+    ].join('\n');
+    const streamMock = vi.fn<(_messages: Message[], _options?: ChatOptions) => AsyncIterable<string>>()
+      .mockReturnValue(createMockClient([response]).stream([], {}));
+    client.stream = streamMock;
+
+    const { result } = renderHook(() =>
+      useChatLoop({ client, keeper, onMutation }),
+    );
+
+    await act(async () => {
+      await result.current.send('Show launch');
+    });
+
+    expect(streamMock).toHaveBeenCalledTimes(1);
+    const toolMsgs = result.current.messages.filter(m => m.role === 'tool');
+    expect(toolMsgs).toHaveLength(1);
+    expect(toolMsgs[0]?.toolResult.name).toBe('display_notes');
+  });
+
   it('shows max iterations message when tool loop exhausted', async () => {
     // Every response triggers a tool call, so the loop should exhaust after MAX_TOOL_ITERATIONS (10)
     const toolCallText = '```tool_call\n{"name": "list_notes", "args": {}}\n```';
@@ -310,6 +371,7 @@ function localKeeperClient(db: KeeperDB): KeeperClient {
       create: (input) => db.createNote(input),
       list: () => db.getAllNotes(),
       get: (id) => db.getNote(id),
+      resolve: (ids) => db.resolveNotes(ids),
       update: (input) => db.updateNote(input),
       delete: (id) => db.deleteNote(id),
       deleteMany: (ids) => db.deleteNotes(ids),

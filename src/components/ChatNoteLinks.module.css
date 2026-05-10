@@ -1,0 +1,129 @@
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  min-width: min(360px, 72vw);
+}
+
+.badge {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--color-border-muted);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.badge:hover:not(:disabled) {
+  border-color: var(--color-accent-muted);
+  background: rgba(100, 108, 255, 0.1);
+}
+
+.badge:disabled {
+  cursor: default;
+}
+
+.unavailable {
+  opacity: 0.58;
+  background: transparent;
+}
+
+.trashed {
+  border-style: dashed;
+}
+
+.iconSlot {
+  display: flex;
+  justify-content: center;
+  padding-top: 2px;
+  opacity: 0.78;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 3px;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  gap: 5px;
+}
+
+.title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.state {
+  flex: 0 0 auto;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.68rem;
+  opacity: 0.8;
+}
+
+.preview {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 0.74rem;
+  line-height: 1.35;
+  opacity: 0.74;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 120px;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.68rem;
+  opacity: 0.82;
+}
+
+.tag > span:last-child,
+.tag {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (prefers-color-scheme: light) {
+  .badge {
+    background: #ffffff;
+  }
+
+  .badge:hover:not(:disabled) {
+    background: rgba(100, 108, 255, 0.08);
+  }
+
+  .state,
+  .tag {
+    background: rgba(0, 0, 0, 0.06);
+  }
+}

@@ -4,6 +4,7 @@ const TOOL_NAMES: ReadonlySet<string> = new Set<ToolName>([
   "list_notes",
   "search_notes",
   "get_note",
+  "display_notes",
   "create_note",
   "update_note",
   "delete_note",

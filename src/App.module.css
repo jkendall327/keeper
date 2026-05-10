@@ -30,6 +30,11 @@
   padding: 0 24px 48px;
 }
 
+.chatMain {
+  padding-top: 16px;
+  padding-bottom: 8px;
+}
+
 .loading {
   margin-top: 48px;
   text-align: center;
@@ -50,5 +55,10 @@
 
   .main {
     padding: 0 8px 48px;
+  }
+
+  .chatMain {
+    padding-top: 12px;
+    padding-bottom: 8px;
   }
 }

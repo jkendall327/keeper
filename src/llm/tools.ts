@@ -5,6 +5,7 @@ export type ToolName =
   | "list_notes"
   | "search_notes"
   | "get_note"
+  | "display_notes"
   | "create_note"
   | "update_note"
   | "delete_note"
@@ -22,16 +23,62 @@ export interface ToolCall {
   args: Record<string, unknown>;
 }
 
+export interface ToolMetadata {
+  terminal: boolean;
+}
+
 export interface ToolResult {
   name: ToolName;
   result: string;
   needsConfirmation: boolean;
+  noteLinks?: NoteLink[];
 }
+
+export type NoteLinkStatus = "found" | "missing" | "error";
+
+export interface NoteLinkSnapshot {
+  id: string;
+  title: string;
+  bodyPreview: string;
+  tags: { id: number; name: string; icon: string | null }[];
+  pinned: boolean;
+  archived: boolean;
+  trashed: boolean;
+  updated_at: string;
+}
+
+export interface NoteLink {
+  id: string;
+  status: NoteLinkStatus;
+  note: NoteLinkSnapshot | null;
+}
+
+export const TOOL_METADATA: Record<ToolName, ToolMetadata> = {
+  list_notes: { terminal: false },
+  search_notes: { terminal: false },
+  get_note: { terminal: false },
+  display_notes: { terminal: true },
+  create_note: { terminal: false },
+  update_note: { terminal: false },
+  delete_note: { terminal: false },
+  confirm_delete_note: { terminal: false },
+  add_tag: { terminal: false },
+  remove_tag: { terminal: false },
+  get_notes_for_tag: { terminal: false },
+  get_untagged_notes: { terminal: false },
+  list_tags: { terminal: false },
+  toggle_pin: { terminal: false },
+  toggle_archive: { terminal: false },
+};
 
 // ── Result helpers ──────────────────────────────────────────
 
 function ok(name: ToolName, result: string): ToolResult {
   return { name, result, needsConfirmation: false };
+}
+
+function okWithNoteLinks(name: ToolName, result: string, noteLinks: NoteLink[]): ToolResult {
+  return { name, result, needsConfirmation: false, noteLinks };
 }
 
 function confirm(name: ToolName, result: string): ToolResult {
@@ -99,6 +146,25 @@ function formatTags(tags: Tag[]): string {
     .join("\n");
 }
 
+function truncatePreview(text: string): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length <= 160) return normalized;
+  return `${normalized.slice(0, 157)}...`;
+}
+
+export function snapshotNoteLink(note: NoteWithTags): NoteLinkSnapshot {
+  return {
+    id: note.id,
+    title: note.title,
+    bodyPreview: truncatePreview(note.body),
+    tags: note.tags.map((tag) => ({ id: tag.id, name: tag.name, icon: tag.icon })),
+    pinned: note.pinned,
+    archived: note.archived,
+    trashed: note.trashed,
+    updated_at: note.updated_at,
+  };
+}
+
 // ── Tool executor ───────────────────────────────────────────
 
 export async function executeTool(
@@ -129,6 +195,34 @@ export async function executeTool(
       const note = await keeper.notes.get(toNoteId(id));
       if (note === null) return ok(name, `Note "${id}" not found.`);
       return ok(name, formatNote(note));
+    }
+
+    case "display_notes": {
+      const ids = args["ids"];
+      if (!Array.isArray(ids) || !ids.every((id) => typeof id === "string")) {
+        return ok(name, 'Error: "ids" parameter is required and must be an array of strings.');
+      }
+      const noteIds = ids.map(toNoteId);
+      try {
+        const resolved = await keeper.notes.resolve(noteIds);
+        const links: NoteLink[] = resolved.map((item) => item.status === "found"
+          ? { id: item.id, status: "found", note: snapshotNoteLink(item.note) }
+          : { id: item.id, status: "missing", note: null });
+        const foundCount = links.filter((link) => link.status === "found").length;
+        const missingCount = links.length - foundCount;
+        const summary = [
+          `Displayed ${String(foundCount)} note${foundCount === 1 ? "" : "s"}.`,
+          ...(missingCount > 0 ? [`${String(missingCount)} requested note${missingCount === 1 ? " was" : "s were"} unavailable.`] : []),
+        ].join(" ");
+        return okWithNoteLinks(name, summary, links);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Unable to resolve notes";
+        return okWithNoteLinks(
+          name,
+          `Error displaying notes: ${message}`,
+          ids.map((id) => ({ id, status: "error", note: null })),
+        );
+      }
     }
 
     case "create_note": {

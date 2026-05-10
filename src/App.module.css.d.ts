@@ -1,5 +1,6 @@
 declare const styles: {
   readonly "app": string;
+  readonly "chatMain": string;
   readonly "content": string;
   readonly "layout": string;
   readonly "loading": string;

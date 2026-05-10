@@ -7,6 +7,7 @@ import type {
   LinkMetadata,
   Media,
   NoteId,
+  NoteResolveResult,
   NoteWithTags,
   SearchResult,
   StoreMediaInput,
@@ -27,6 +28,7 @@ export interface KeeperClient {
     create(input: CreateNoteInput): Promise<NoteWithTags>;
     list(options?: RequestOptions): Promise<NoteWithTags[]>;
     get(id: NoteId, options?: RequestOptions): Promise<NoteWithTags | null>;
+    resolve(ids: NoteId[], options?: RequestOptions): Promise<NoteResolveResult[]>;
     update(input: UpdateNoteInput): Promise<NoteWithTags>;
     delete(id: NoteId): Promise<void>;
     deleteMany(ids: NoteId[]): Promise<void>;
@@ -121,6 +123,13 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
       create: (input) => fetchJson<NoteWithTags>(fetchFn, '/api/notes', jsonOpts('POST', input)),
       list: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/notes', withSignal(options)),
       get: (id, options) => fetchNullable<NoteWithTags>(fetchFn, `/api/notes/${id}`, withSignal(options)),
+      resolve: (ids, options) => {
+        const init = jsonOpts('POST', { ids });
+        return fetchJson<NoteResolveResult[]>(fetchFn, '/api/notes/resolve', {
+          ...init,
+          ...(options?.signal === undefined ? {} : { signal: options.signal }),
+        });
+      },
       update: (input) => fetchJson<NoteWithTags>(fetchFn, `/api/notes/${input.id}`, jsonOpts('PUT', input)),
       delete: (id) => fetchVoid(fetchFn, `/api/notes/${id}`, { method: 'DELETE' }),
       deleteMany: (ids) => fetchVoid(fetchFn, '/api/notes/delete', jsonOpts('POST', { ids })),

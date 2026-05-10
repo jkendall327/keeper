@@ -55,6 +55,7 @@ function KeeperApp() {
   });
 
   const isArchiveView = activeFilter.type === 'archive';
+  const isChatView = activeFilter.type === 'chat';
   const isInboxView = activeFilter.type === 'all';
   const isTrashView = activeFilter.type === 'trash';
   const displayedNotes = useDisplayedNotes(activeFilter, searchQuery);
@@ -106,22 +107,24 @@ function KeeperApp() {
 
   return (
     <div className={styles.app}>
-      <AppHeader
-        allTags={allTags}
-        bulkActions={bulkActions}
-        isArchiveView={isArchiveView}
-        isInboxView={isInboxView}
-        isMobile={isMobile}
-        isTrashView={isTrashView}
-        onAddTagToNotes={noteMutations.addTagToNotes}
-        onOpenExport={() => { setShowExportModal(true); }}
-        onRemoveTagFromNotes={noteMutations.removeTagFromNotes}
-        searchInputRef={searchInputRef}
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        onToggleSidebar={() => { setSidebarOpen((v) => !v); }}
-      />
-      <main className={styles.main}>
+      {!isChatView && (
+        <AppHeader
+          allTags={allTags}
+          bulkActions={bulkActions}
+          isArchiveView={isArchiveView}
+          isInboxView={isInboxView}
+          isMobile={isMobile}
+          isTrashView={isTrashView}
+          onAddTagToNotes={noteMutations.addTagToNotes}
+          onOpenExport={() => { setShowExportModal(true); }}
+          onRemoveTagFromNotes={noteMutations.removeTagFromNotes}
+          searchInputRef={searchInputRef}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          onToggleSidebar={() => { setSidebarOpen((v) => !v); }}
+        />
+      )}
+      <main className={isChatView ? `${styles.main} ${styles.chatMain}` : styles.main}>
         <Suspense fallback={<p className={styles.loading}>Loading...</p>}>
           <AppLayout
             sidebarOpen={sidebarOpen}

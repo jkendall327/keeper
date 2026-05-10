@@ -61,6 +61,37 @@ describe('Tool executor', () => {
     expect(result.result).toContain('not found');
   });
 
+  it('display_notes returns ordered note link snapshots for valid and missing IDs', async () => {
+    await db.createNote({ title: 'First', body: 'Visible note body' });
+    await db.createNote({ title: 'Second', body: 'Second body' });
+    await db.addTag(toNoteId('test-id-2'), 'work');
+
+    const result = await executeTool(keeper, {
+      name: 'display_notes',
+      args: { ids: ['test-id-2', 'missing', 'test-id-1'] },
+    });
+
+    expect(result.result).toContain('Displayed 2 notes');
+    expect(result.noteLinks?.map((link) => [link.id, link.status])).toEqual([
+      ['test-id-2', 'found'],
+      ['missing', 'missing'],
+      ['test-id-1', 'found'],
+    ]);
+    expect(result.noteLinks?.[0]?.note).toMatchObject({
+      id: 'test-id-2',
+      title: 'Second',
+      bodyPreview: 'Second body',
+      tags: [expect.objectContaining({ name: 'work' })],
+    });
+    expect(result.noteLinks?.[1]?.note).toBeNull();
+  });
+
+  it('display_notes returns an error for invalid ids argument', async () => {
+    const result = await executeTool(keeper, { name: 'display_notes', args: { ids: 'test-id-1' } });
+    expect(result.result).toContain('Error');
+    expect(result.noteLinks).toBeUndefined();
+  });
+
   it('create_note creates and returns new note', async () => {
     const result = await executeTool(keeper, { name: 'create_note', args: { body: 'New note from AI' } });
     expect(result.result).toContain('Note created');
@@ -215,6 +246,7 @@ function localKeeperClient(db: KeeperDB): KeeperClient {
       create: (input) => db.createNote(input),
       list: () => db.getAllNotes(),
       get: (id) => db.getNote(id),
+      resolve: (ids) => db.resolveNotes(ids),
       update: (input) => db.updateNote(input),
       delete: (id) => db.deleteNote(id),
       deleteMany: (ids) => db.deleteNotes(ids),

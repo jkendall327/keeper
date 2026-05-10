@@ -4,6 +4,7 @@ import type {
   CreateNoteInput,
   KeeperDB,
   NoteId,
+  NoteResolveResult,
   NoteWithTags,
   UpdateNoteInput,
 } from "../types.ts";
@@ -13,6 +14,7 @@ export function createNoteMethods(ctx: KeeperDBContext): Pick<
   KeeperDB,
   | "createNote"
   | "getNote"
+  | "resolveNotes"
   | "getAllNotes"
   | "updateNote"
   | "deleteNote"
@@ -74,6 +76,22 @@ export function createNoteMethods(ctx: KeeperDBContext): Pick<
     },
 
     getNote,
+
+    async resolveNotes(ids: NoteId[]): Promise<NoteResolveResult[]> {
+      const uniqueIds = Array.from(new Set(ids));
+      if (uniqueIds.length === 0) return [];
+      const notes = await Promise.all(uniqueIds.map((id) => getNote(id)));
+      const byId = new Map<NoteId, NoteWithTags>();
+      notes.forEach((note) => {
+        if (note !== null) byId.set(note.id, note);
+      });
+      return ids.map((id) => {
+        const note = byId.get(id);
+        return note === undefined
+          ? { id, status: "missing", note: null }
+          : { id, status: "found", note };
+      });
+    },
 
     getAllNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(

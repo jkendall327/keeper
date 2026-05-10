@@ -1,7 +1,8 @@
 .view {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 120px);
+  flex: 1;
+  height: 100%;
   min-height: 400px;
 }
 
@@ -146,6 +147,29 @@
   font-size: 0.9rem;
   line-height: 1.5;
   word-wrap: break-word;
+  user-select: text;
+}
+
+.messageStack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 85%;
+  min-width: 0;
+}
+
+.messageStack .message {
+  max-width: none;
+}
+
+.assistantMessageStack {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.userMessageStack {
+  align-self: flex-end;
+  align-items: flex-end;
 }
 
 .userMessage {
@@ -181,6 +205,78 @@
   font-size: 0.8rem;
   white-space: pre-wrap;
   opacity: 0.8;
+}
+
+.messageActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.messageActionButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  opacity: 0.48;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+}
+
+.messageActionButton:hover,
+.messageActionButton:focus-visible {
+  border-color: var(--color-border-muted);
+  background: var(--surface-card);
+  opacity: 0.9;
+}
+
+.messageActionButton:disabled {
+  cursor: default;
+  opacity: 0.3;
+}
+
+.editForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(520px, 100%);
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.editTextarea {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-height: 92px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--surface-card);
+  color: inherit;
+  font: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+  outline: none;
+  user-select: text;
+}
+
+.editTextarea:focus {
+  border-color: var(--color-accent);
+}
+
+.editActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
 }
 
 .confirmation {
@@ -296,6 +392,7 @@
 
 .messageContent {
   white-space: pre-wrap;
+  user-select: text;
 }
 
 .assistantMessage .messageContent {

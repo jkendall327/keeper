@@ -28,7 +28,7 @@ import { ExportModal } from './components/ExportModal.tsx';
 import { SidebarContainer } from './components/app/SidebarContainer.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
 import { WorkspaceContent } from './components/app/WorkspaceContent.tsx';
-import { getAutoApplyActiveTag, setAutoApplyActiveTag } from './settings.ts';
+import { useAutoApplyActiveTag } from './settings.ts';
 import type { FilterType } from './components/Sidebar.tsx';
 
 function KeeperApp() {
@@ -44,7 +44,7 @@ function KeeperApp() {
   const activeFilter = filterFromPath(pathname);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [autoApplyActiveTag, setAutoApplyActiveTagState] = useState(getAutoApplyActiveTag);
+  const [autoApplyActiveTag] = useAutoApplyActiveTag();
   const searchInputRef = useRef<HTMLInputElement>(null);
   const appSettings = useAppSettings();
   const isMobile = useIsMobile();
@@ -95,10 +95,6 @@ function KeeperApp() {
       replace: true,
     });
   };
-  const handleAutoApplyActiveTagChange = (enabled: boolean) => {
-    setAutoApplyActiveTag(enabled);
-    setAutoApplyActiveTagState(enabled);
-  };
   const clearSelectedNotes = () => { setSelectedNoteIds(new Set()); };
 
   if (activeFilter.type === 'tag' && !allTags.some((tag) => tag.id === activeFilter.tagId)) {
@@ -146,15 +142,6 @@ function KeeperApp() {
               <SettingsModal
                 allTags={allTags}
                 onClose={() => { setShowSettings(false); }}
-                autoApplyActiveTag={autoApplyActiveTag}
-                onAutoApplyActiveTagChange={handleAutoApplyActiveTagChange}
-                extensionTitleMaxLength={appSettings.extensionTitleMaxLength}
-                extensionBadgeEnabled={appSettings.extensionBadgeEnabled}
-                linkPreviewFetchEnabled={appSettings.linkPreviewFetchEnabled}
-                linkPreviewDisplayEnabled={appSettings.linkPreviewDisplayEnabled}
-                popularTagSuggestionsEnabled={appSettings.popularTagSuggestionsEnabled}
-                popularTagSuggestionLimit={appSettings.popularTagSuggestionLimit}
-                quickAddAutofocusEnabled={appSettings.quickAddAutofocusEnabled}
               />
             )}
           >

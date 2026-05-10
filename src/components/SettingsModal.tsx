@@ -6,15 +6,13 @@ import { AutotagSettings } from './settings/AutotagSettings.tsx';
 import { BackupImportSettings } from './settings/BackupImportSettings.tsx';
 import { LinkPreviewSettings } from './settings/LinkPreviewSettings.tsx';
 import { NotesSettings } from './settings/NotesSettings.tsx';
-import { useAppSettings } from '../hooks/useKeeperQuery.ts';
+import { useAppSettings, useTags } from '../hooks/useKeeperQuery.ts';
 import { useAutoApplyActiveTag } from '../settings.ts';
-import type { Tag } from '../db/types.ts';
 import styles from './SettingsModal.module.css';
 
 type SettingsTab = 'api' | 'autotag' | 'notes' | 'link-previews' | 'backup-import';
 
 interface SettingsModalProps {
-  allTags: Tag[];
   onClose: () => void;
 }
 
@@ -27,11 +25,11 @@ const tabs: { id: SettingsTab; label: string }[] = [
 ];
 
 export function SettingsModal({
-  allTags,
   onClose,
 }: SettingsModalProps) {
   const [activeTab, setActiveTab] = useState<SettingsTab>('api');
   const appSettings = useAppSettings();
+  const { data: allTags } = useTags();
   const [autoApplyActiveTag, setAutoApplyActiveTag] = useAutoApplyActiveTag();
 
   return (

@@ -1,16 +1,15 @@
 import { useRef, useState, type RefObject } from 'react';
 import { clsx } from 'clsx';
-import type { Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { SearchBar } from './SearchBar.tsx';
 import { TagApplier } from './TagApplier.tsx';
 import type { useBulkNoteActions } from '../hooks/useBulkNoteActions.ts';
 import { useKeeperRouteState } from '../hooks/useKeeperRouteState.ts';
+import { useTags } from '../hooks/useKeeperQuery.ts';
 import type { NoteId } from '../db/types.ts';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
-  allTags: Tag[];
   bulkActions: ReturnType<typeof useBulkNoteActions>;
   isMobile: boolean;
   onAddTagToNotes: (noteIds: NoteId[], tagName: string) => Promise<void>;
@@ -21,7 +20,6 @@ interface AppHeaderProps {
 }
 
 export function AppHeader({
-  allTags,
   bulkActions,
   isMobile,
   onAddTagToNotes,
@@ -32,6 +30,7 @@ export function AppHeader({
 }: AppHeaderProps) {
   const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
   const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
+  const { data: allTags } = useTags();
   const { activeFilter, searchQuery, setSearchQuery } = useKeeperRouteState();
   const isArchiveView = activeFilter.type === 'archive';
   const isInboxView = activeFilter.type === 'all';

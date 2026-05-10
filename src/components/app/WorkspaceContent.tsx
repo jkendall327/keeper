@@ -3,7 +3,7 @@ import { useKeeperRouteState } from '../../hooks/useKeeperRouteState.ts';
 import { ChatPanel } from '../ChatPanel.tsx';
 import { NotesPanel } from '../NotesPanel.tsx';
 import type { FilterType } from '../Sidebar.tsx';
-import type { AppSettings, NoteId, NoteWithTags, Tag } from '../../db/types.ts';
+import type { AppSettings, NoteId, NoteWithTags } from '../../db/types.ts';
 
 export interface NoteViewState {
   searchInputRef: RefObject<HTMLInputElement | null>;
@@ -22,7 +22,6 @@ export interface WorkspaceSettings extends Pick<
 }
 
 interface WorkspaceContentProps {
-  allTags: Tag[];
   settings: WorkspaceSettings;
   view: NoteViewState;
 }
@@ -32,7 +31,6 @@ function filterKey(filter: FilterType) {
 }
 
 export function WorkspaceContent({
-  allTags,
   settings,
   view,
 }: WorkspaceContentProps) {
@@ -45,7 +43,6 @@ export function WorkspaceContent({
   return (
     <NotesPanel
       key={filterKey(activeFilter)}
-      allTags={allTags}
       searchInputRef={view.searchInputRef}
       displayedNotes={view.displayedNotes}
       selectedNoteIds={view.selectedNoteIds}

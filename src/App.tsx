@@ -74,7 +74,6 @@ function KeeperApp() {
     <div className={styles.app}>
       {!isChatView && (
         <AppHeader
-          allTags={allTags}
           bulkActions={bulkActions}
           isMobile={isMobile}
           onAddTagToNotes={noteMutations.addTagToNotes}
@@ -92,7 +91,6 @@ function KeeperApp() {
             isMobile={isMobile}
             sidebar={(
               <SidebarContainer
-                allTags={allTags}
                 clearSelectedNotes={clearSelectedNotes}
                 isMobile={isMobile}
                 onOpenSettings={() => { setShowSettings(true); }}
@@ -102,13 +100,11 @@ function KeeperApp() {
             )}
             settingsModal={showSettings && (
               <SettingsModal
-                allTags={allTags}
                 onClose={() => { setShowSettings(false); }}
               />
             )}
           >
             <WorkspaceContent
-              allTags={allTags}
               view={{
                 searchInputRef,
                 displayedNotes,

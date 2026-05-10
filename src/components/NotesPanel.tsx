@@ -2,16 +2,15 @@ import { useCallback, useRef, useState, type RefObject } from 'react';
 import { useQuickCaptureShortcut, useSearchFocusShortcut } from '../hooks/useAppShortcuts.ts';
 import { useKeeperRouteState } from '../hooks/useKeeperRouteState.ts';
 import { useNoteCommands } from '../hooks/useNoteCommands.ts';
-import { useNoteMutations } from '../hooks/useKeeperQuery.ts';
+import { useNoteMutations, useTags } from '../hooks/useKeeperQuery.ts';
 import { Icon } from './Icon.tsx';
 import { NoteGrid } from './NoteGrid.tsx';
 import { NoteModal } from './NoteModal.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
-import type { CreateNoteInput, NoteId, NoteWithTags, Tag } from '../db/types.ts';
+import type { CreateNoteInput, NoteId, NoteWithTags } from '../db/types.ts';
 import styles from './NotesPanel.module.css';
 
 interface NotesPanelProps {
-  allTags: Tag[];
   searchInputRef: RefObject<HTMLInputElement | null>;
   displayedNotes: NoteWithTags[];
   selectedNoteIds: Set<NoteId>;
@@ -23,7 +22,6 @@ interface NotesPanelProps {
 }
 
 export function NotesPanel({
-  allTags,
   searchInputRef,
   displayedNotes,
   selectedNoteIds,
@@ -35,6 +33,7 @@ export function NotesPanel({
 }: NotesPanelProps) {
   const quickAddRef = useRef<HTMLTextAreaElement>(null);
   const { activeFilter, navigateToFilter, searchQuery, setSearchQuery } = useKeeperRouteState();
+  const { data: allTags } = useTags();
   const { createNote } = useNoteMutations();
   useSearchFocusShortcut(searchInputRef);
 

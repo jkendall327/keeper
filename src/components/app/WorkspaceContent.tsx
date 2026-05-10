@@ -1,16 +1,12 @@
 import type { RefObject } from 'react';
+import { useKeeperRouteState } from '../../hooks/useKeeperRouteState.ts';
 import { ChatPanel } from '../ChatPanel.tsx';
 import { NotesPanel } from '../NotesPanel.tsx';
 import type { FilterType } from '../Sidebar.tsx';
-import type { useNoteMutations } from '../../hooks/useKeeperQuery.ts';
 import type { AppSettings, NoteId, NoteWithTags, Tag } from '../../db/types.ts';
 
 export interface NoteViewState {
-  activeFilter: FilterType;
-  navigateToFilter: (filter: FilterType) => void;
   searchInputRef: RefObject<HTMLInputElement | null>;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
   displayedNotes: NoteWithTags[];
   selectedNoteIds: Set<NoteId>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
@@ -27,7 +23,6 @@ export interface WorkspaceSettings extends Pick<
 
 interface WorkspaceContentProps {
   allTags: Tag[];
-  noteMutations: ReturnType<typeof useNoteMutations>;
   settings: WorkspaceSettings;
   view: NoteViewState;
 }
@@ -38,32 +33,20 @@ function filterKey(filter: FilterType) {
 
 export function WorkspaceContent({
   allTags,
-  noteMutations,
   settings,
   view,
 }: WorkspaceContentProps) {
-  if (view.activeFilter.type === 'chat') {
+  const { activeFilter } = useKeeperRouteState();
+
+  if (activeFilter.type === 'chat') {
     return <ChatPanel />;
   }
 
   return (
     <NotesPanel
-      key={filterKey(view.activeFilter)}
+      key={filterKey(activeFilter)}
       allTags={allTags}
-      createNote={noteMutations.createNote}
-      updateNote={noteMutations.updateNote}
-      deleteNote={noteMutations.deleteNote}
-      togglePinNote={noteMutations.togglePinNote}
-      addTag={noteMutations.addTag}
-      removeTag={noteMutations.removeTag}
-      toggleArchiveNote={noteMutations.toggleArchiveNote}
-      trashNote={noteMutations.trashNote}
-      restoreNote={noteMutations.restoreNote}
-      activeFilter={view.activeFilter}
-      navigateToFilter={view.navigateToFilter}
       searchInputRef={view.searchInputRef}
-      searchQuery={view.searchQuery}
-      setSearchQuery={view.setSearchQuery}
       displayedNotes={view.displayedNotes}
       selectedNoteIds={view.selectedNoteIds}
       setSelectedNoteIds={view.setSelectedNoteIds}

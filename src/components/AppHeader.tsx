@@ -5,42 +5,37 @@ import { Icon } from './Icon.tsx';
 import { SearchBar } from './SearchBar.tsx';
 import { TagApplier } from './TagApplier.tsx';
 import type { useBulkNoteActions } from '../hooks/useBulkNoteActions.ts';
+import { useKeeperRouteState } from '../hooks/useKeeperRouteState.ts';
 import type { NoteId } from '../db/types.ts';
 import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
   allTags: Tag[];
   bulkActions: ReturnType<typeof useBulkNoteActions>;
-  isArchiveView: boolean;
-  isInboxView: boolean;
   isMobile: boolean;
-  isTrashView: boolean;
   onAddTagToNotes: (noteIds: NoteId[], tagName: string) => Promise<void>;
   onOpenExport: () => void;
   onRemoveTagFromNotes: (noteIds: NoteId[], tagName: string) => Promise<void>;
   onToggleSidebar: () => void;
   searchInputRef: RefObject<HTMLInputElement | null>;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
 }
 
 export function AppHeader({
   allTags,
   bulkActions,
-  isArchiveView,
-  isInboxView,
   isMobile,
-  isTrashView,
   onAddTagToNotes,
   onOpenExport,
   onRemoveTagFromNotes,
   onToggleSidebar,
   searchInputRef,
-  searchQuery,
-  setSearchQuery,
 }: AppHeaderProps) {
   const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
   const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
+  const { activeFilter, searchQuery, setSearchQuery } = useKeeperRouteState();
+  const isArchiveView = activeFilter.type === 'archive';
+  const isInboxView = activeFilter.type === 'all';
+  const isTrashView = activeFilter.type === 'trash';
   const {
     autoTagStatus,
     bulkAppliedTags,

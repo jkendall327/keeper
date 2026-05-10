@@ -1,29 +1,27 @@
-import { Sidebar, type FilterType } from '../Sidebar.tsx';
+import { Sidebar } from '../Sidebar.tsx';
+import { useKeeperRouteState } from '../../hooks/useKeeperRouteState.ts';
 import { useTagMutations } from '../../hooks/useKeeperQuery.ts';
 import type { Tag } from '../../db/types.ts';
 
 interface SidebarContainerProps {
-  activeFilter: FilterType;
   allTags: Tag[];
   clearSelectedNotes: () => void;
   isMobile: boolean;
-  navigateToFilter: (filter: FilterType) => void;
   onOpenSettings: () => void;
   onSidebarClose: () => void;
   sidebarOpen: boolean;
 }
 
 export function SidebarContainer({
-  activeFilter,
   allTags,
   clearSelectedNotes,
   isMobile,
-  navigateToFilter,
   onOpenSettings,
   onSidebarClose,
   sidebarOpen,
 }: SidebarContainerProps) {
   const { deleteTag, renameTag, updateTagIcon } = useTagMutations();
+  const { activeFilter, navigateToFilter } = useKeeperRouteState();
 
   return (
     <Sidebar

@@ -6,8 +6,6 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
-  useNavigate,
-  useRouterState,
 } from '@tanstack/react-router';
 import styles from './App.module.css';
 import {
@@ -21,6 +19,7 @@ import {
 import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
 import { useExtensionBadge } from './hooks/useExtensionBadge.ts';
 import { useIsMobile } from './hooks/useIsMobile.ts';
+import { useKeeperRouteState } from './hooks/useKeeperRouteState.ts';
 import { useWebShareTarget } from './hooks/useWebShareTarget.ts';
 import { AppHeader } from './components/AppHeader.tsx';
 import { AppLayout } from './components/app/AppLayout.tsx';
@@ -29,19 +28,13 @@ import { SidebarContainer } from './components/app/SidebarContainer.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
 import { WorkspaceContent } from './components/app/WorkspaceContent.tsx';
 import { useAutoApplyActiveTag } from './settings.ts';
-import type { FilterType } from './components/Sidebar.tsx';
 
 function KeeperApp() {
   const { data: inboxNotes } = useInboxNotes();
   const { data: allTags } = useTags();
   const noteMutations = useNoteMutations();
   const extensionNoteCreatedCount = useExtensionEvents();
-  const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const searchQuery = useRouterState({
-    select: (state) => typeof state.location.search.q === 'string' ? state.location.search.q : '',
-  });
-  const activeFilter = filterFromPath(pathname);
+  const { activeFilter, searchQuery } = useKeeperRouteState();
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [autoApplyActiveTag] = useAutoApplyActiveTag();
@@ -54,9 +47,7 @@ function KeeperApp() {
     extensionNoteCreatedCount,
   });
 
-  const isArchiveView = activeFilter.type === 'archive';
   const isChatView = activeFilter.type === 'chat';
-  const isInboxView = activeFilter.type === 'all';
   const isTrashView = activeFilter.type === 'trash';
   const displayedNotes = useDisplayedNotes(activeFilter, searchQuery);
   const bulkActions = useBulkNoteActions({
@@ -73,28 +64,6 @@ function KeeperApp() {
   useWebShareTarget({ createNote: noteMutations.createNote });
 
   const handleSidebarClose = () => { setSidebarOpen(false); };
-  const navigateToFilter = (filter: FilterType) => {
-    if (filter.type === 'tag') {
-      void navigate({
-        to: '/tag/$tagId',
-        params: { tagId: String(filter.tagId) },
-        search: (previousSearch) => previousSearch,
-      });
-      return;
-    }
-
-    void navigate({
-      to: filterToPath(filter),
-      search: (previousSearch) => previousSearch,
-    });
-  };
-  const setSearchQuery = (query: string) => {
-    void navigate({
-      to: '.',
-      search: (previousSearch) => query === '' ? {} : { ...previousSearch, q: query },
-      replace: true,
-    });
-  };
   const clearSelectedNotes = () => { setSelectedNoteIds(new Set()); };
 
   if (activeFilter.type === 'tag' && !allTags.some((tag) => tag.id === activeFilter.tagId)) {
@@ -107,16 +76,11 @@ function KeeperApp() {
         <AppHeader
           allTags={allTags}
           bulkActions={bulkActions}
-          isArchiveView={isArchiveView}
-          isInboxView={isInboxView}
           isMobile={isMobile}
-          isTrashView={isTrashView}
           onAddTagToNotes={noteMutations.addTagToNotes}
           onOpenExport={() => { setShowExportModal(true); }}
           onRemoveTagFromNotes={noteMutations.removeTagFromNotes}
           searchInputRef={searchInputRef}
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
           onToggleSidebar={() => { setSidebarOpen((v) => !v); }}
         />
       )}
@@ -129,8 +93,6 @@ function KeeperApp() {
             sidebar={(
               <SidebarContainer
                 allTags={allTags}
-                activeFilter={activeFilter}
-                navigateToFilter={navigateToFilter}
                 clearSelectedNotes={clearSelectedNotes}
                 isMobile={isMobile}
                 onOpenSettings={() => { setShowSettings(true); }}
@@ -147,13 +109,8 @@ function KeeperApp() {
           >
             <WorkspaceContent
               allTags={allTags}
-              noteMutations={noteMutations}
               view={{
-                activeFilter,
-                navigateToFilter,
-                searchQuery,
                 searchInputRef,
-                setSearchQuery,
                 displayedNotes,
                 selectedNoteIds,
                 setSelectedNoteIds,
@@ -233,45 +190,6 @@ const router = createRouter({ routeTree });
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
-  }
-}
-
-function filterFromPath(pathname: string): FilterType {
-  if (pathname.startsWith('/tag/')) {
-    return { type: 'tag', tagId: Number(pathname.slice('/tag/'.length)) };
-  }
-
-  switch (pathname) {
-    case '/archive':
-      return { type: 'archive' };
-    case '/chat':
-      return { type: 'chat' };
-    case '/links':
-      return { type: 'links' };
-    case '/trash':
-      return { type: 'trash' };
-    case '/untagged':
-      return { type: 'untagged' };
-    case '/inbox':
-    default:
-      return { type: 'all' };
-  }
-}
-
-function filterToPath(filter: Exclude<FilterType, { type: 'tag' }>) {
-  switch (filter.type) {
-    case 'all':
-      return '/inbox';
-    case 'archive':
-      return '/archive';
-    case 'chat':
-      return '/chat';
-    case 'links':
-      return '/links';
-    case 'trash':
-      return '/trash';
-    case 'untagged':
-      return '/untagged';
   }
 }
 

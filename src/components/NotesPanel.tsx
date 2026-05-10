@@ -1,30 +1,18 @@
-import { useCallback, useMemo, useRef, useState, type RefObject } from 'react';
+import { useCallback, useRef, useState, type RefObject } from 'react';
 import { useQuickCaptureShortcut, useSearchFocusShortcut } from '../hooks/useAppShortcuts.ts';
+import { useKeeperRouteState } from '../hooks/useKeeperRouteState.ts';
+import { useNoteCommands } from '../hooks/useNoteCommands.ts';
+import { useNoteMutations } from '../hooks/useKeeperQuery.ts';
 import { Icon } from './Icon.tsx';
 import { NoteGrid } from './NoteGrid.tsx';
 import { NoteModal } from './NoteModal.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
-import type { FilterType } from './Sidebar.tsx';
-import { buildNoteCommands } from './note-commands.ts';
-import type { CreateNoteInput, NoteId, NoteWithTags, Tag, UpdateNoteInput } from '../db/types.ts';
+import type { CreateNoteInput, NoteId, NoteWithTags, Tag } from '../db/types.ts';
 import styles from './NotesPanel.module.css';
 
 interface NotesPanelProps {
   allTags: Tag[];
-  createNote: (input: CreateNoteInput) => Promise<NoteWithTags>;
-  updateNote: (input: UpdateNoteInput) => Promise<NoteWithTags>;
-  deleteNote: (id: NoteId) => Promise<void>;
-  togglePinNote: (id: NoteId) => Promise<NoteWithTags>;
-  addTag: (noteId: NoteId, tagName: string) => Promise<NoteWithTags>;
-  removeTag: (noteId: NoteId, tagName: string) => Promise<NoteWithTags>;
-  toggleArchiveNote: (id: NoteId) => Promise<NoteWithTags>;
-  trashNote: (id: NoteId) => Promise<void>;
-  restoreNote: (id: NoteId) => Promise<void>;
-  activeFilter: FilterType;
-  navigateToFilter: (filter: FilterType) => void;
   searchInputRef: RefObject<HTMLInputElement | null>;
-  searchQuery: string;
-  setSearchQuery: (query: string) => void;
   displayedNotes: NoteWithTags[];
   selectedNoteIds: Set<NoteId>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
@@ -36,20 +24,7 @@ interface NotesPanelProps {
 
 export function NotesPanel({
   allTags,
-  createNote,
-  updateNote,
-  deleteNote,
-  togglePinNote,
-  addTag,
-  removeTag,
-  toggleArchiveNote,
-  trashNote,
-  restoreNote,
-  activeFilter,
-  navigateToFilter,
   searchInputRef,
-  searchQuery,
-  setSearchQuery,
   displayedNotes,
   selectedNoteIds,
   setSelectedNoteIds,
@@ -59,6 +34,8 @@ export function NotesPanel({
   showSettings,
 }: NotesPanelProps) {
   const quickAddRef = useRef<HTMLTextAreaElement>(null);
+  const { activeFilter, navigateToFilter, searchQuery, setSearchQuery } = useKeeperRouteState();
+  const { createNote } = useNoteMutations();
   useSearchFocusShortcut(searchInputRef);
 
   const [selectedNote, setSelectedNote] = useState<NoteWithTags | null>(null);
@@ -91,28 +68,7 @@ export function NotesPanel({
     ? allTags.find((tag) => tag.id === activeFilter.tagId)
     : undefined;
   const isTrashView = activeFilter.type === 'trash';
-
-  const noteCommands = useMemo(() => buildNoteCommands({
-    isTrashView,
-    updateNote,
-    deleteNote,
-    togglePinNote,
-    toggleArchiveNote,
-    trashNote,
-    restoreNote,
-    addTag,
-    removeTag,
-  }), [
-    addTag,
-    deleteNote,
-    isTrashView,
-    removeTag,
-    restoreNote,
-    toggleArchiveNote,
-    togglePinNote,
-    trashNote,
-    updateNote,
-  ]);
+  const noteCommands = useNoteCommands({ isTrashView });
 
   const handleCreateNote = useCallback(async (input: CreateNoteInput) => {
     if (autoApplyActiveTag && activeTag !== undefined) {

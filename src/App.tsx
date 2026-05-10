@@ -23,11 +23,17 @@ import { useKeeperRouteState } from './hooks/useKeeperRouteState.ts';
 import { useWebShareTarget } from './hooks/useWebShareTarget.ts';
 import { AppHeader } from './components/AppHeader.tsx';
 import { AppLayout } from './components/app/AppLayout.tsx';
+import { ChatPanel } from './components/ChatPanel.tsx';
 import { ExportModal } from './components/ExportModal.tsx';
+import { NotesPanel } from './components/NotesPanel.tsx';
 import { SidebarContainer } from './components/app/SidebarContainer.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
-import { WorkspaceContent } from './components/app/WorkspaceContent.tsx';
+import type { FilterType } from './components/Sidebar.tsx';
 import { useAutoApplyActiveTag } from './settings.ts';
+
+function filterKey(filter: FilterType) {
+  return filter.type === 'tag' ? `tag:${String(filter.tagId)}` : filter.type;
+}
 
 function KeeperApp() {
   const { data: inboxNotes } = useInboxNotes();
@@ -104,20 +110,21 @@ function KeeperApp() {
               />
             )}
           >
-            <WorkspaceContent
-              view={{
-                searchInputRef,
-                displayedNotes,
-                selectedNoteIds,
-                setSelectedNoteIds,
-              }}
-              settings={{
-                autoApplyActiveTag,
-                linkPreviewDisplayEnabled: appSettings.linkPreviewDisplayEnabled,
-                quickAddAutofocusEnabled: appSettings.quickAddAutofocusEnabled,
-                showSettings,
-              }}
-            />
+            {isChatView ? (
+              <ChatPanel />
+            ) : (
+              <NotesPanel
+                key={filterKey(activeFilter)}
+                searchInputRef={searchInputRef}
+                displayedNotes={displayedNotes}
+                selectedNoteIds={selectedNoteIds}
+                setSelectedNoteIds={setSelectedNoteIds}
+                autoApplyActiveTag={autoApplyActiveTag}
+                linkPreviewDisplayEnabled={appSettings.linkPreviewDisplayEnabled}
+                quickAddAutofocusEnabled={appSettings.quickAddAutofocusEnabled}
+                showSettings={showSettings}
+              />
+            )}
           </AppLayout>
         </Suspense>
       </main>

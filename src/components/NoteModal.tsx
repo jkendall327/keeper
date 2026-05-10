@@ -15,8 +15,6 @@ interface NoteModalProps {
   allTags: Tag[];
   noteCommands: NoteCommands;
   showLinkPreviews: boolean;
-  popularTagSuggestionsEnabled: boolean;
-  popularTagSuggestionLimit: number;
   isTrashView?: boolean;
   onClose: () => void;
 }
@@ -26,8 +24,6 @@ export function NoteModal({
   allTags,
   noteCommands,
   showLinkPreviews,
-  popularTagSuggestionsEnabled,
-  popularTagSuggestionLimit,
   isTrashView,
   onClose,
 }: NoteModalProps) {
@@ -38,8 +34,6 @@ export function NoteModal({
     note,
     allTags,
     noteCommands,
-    popularTagSuggestionsEnabled,
-    popularTagSuggestionLimit,
     onClose,
   });
 

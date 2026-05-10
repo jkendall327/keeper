@@ -171,8 +171,6 @@ function KeeperApp() {
               settings={{
                 autoApplyActiveTag,
                 linkPreviewDisplayEnabled: appSettings.linkPreviewDisplayEnabled,
-                popularTagSuggestionsEnabled: appSettings.popularTagSuggestionsEnabled,
-                popularTagSuggestionLimit: appSettings.popularTagSuggestionLimit,
                 quickAddAutofocusEnabled: appSettings.quickAddAutofocusEnabled,
                 showSettings,
               }}

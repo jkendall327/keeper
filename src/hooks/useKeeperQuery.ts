@@ -90,8 +90,12 @@ export function useAppSettings() {
   return data;
 }
 
-export function usePopularTagSuggestions(noteId: NoteId, limit: number, enabled: boolean) {
+export function usePopularTagSuggestions(noteId: NoteId) {
   const { client } = useKeeperServices();
+  const settings = useAppSettings();
+  const enabled = settings.popularTagSuggestionsEnabled;
+  const limit = settings.popularTagSuggestionLimit;
+
   return useQuery({
     queryKey: keeperKeys.popularTagSuggestions(noteId, limit),
     queryFn: ({ signal }) => client.tags.popularSuggestions(noteId, limit, { signal }),

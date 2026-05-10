@@ -8,8 +8,6 @@ interface UseNoteEditorSessionOptions {
   note: NoteWithTags;
   allTags: Tag[];
   noteCommands: NoteCommands;
-  popularTagSuggestionsEnabled: boolean;
-  popularTagSuggestionLimit: number;
   onClose: () => void;
 }
 
@@ -88,8 +86,6 @@ export function useNoteEditorSession({
   note,
   allTags,
   noteCommands,
-  popularTagSuggestionsEnabled,
-  popularTagSuggestionLimit,
   onClose,
 }: UseNoteEditorSessionOptions) {
   const [state, baseDispatch] = useReducer(noteEditorSessionReducer, note, initialState);
@@ -219,18 +215,12 @@ export function useNoteEditorSession({
     ...note.tags.map((tag) => tag.name),
     ...state.pendingTagNames,
   ]);
-  const popularSuggestions = usePopularTagSuggestions(
-    note.id,
-    popularTagSuggestionLimit,
-    popularTagSuggestionsEnabled,
-  );
+  const popularSuggestions = usePopularTagSuggestions(note.id);
 
   const trimmedTagInput = state.tagInput.trim();
   const suggestions =
     trimmedTagInput === ''
-      ? popularTagSuggestionsEnabled
-        ? (popularSuggestions.data ?? []).filter((tag) => !noteTagNames.has(tag.name))
-        : []
+      ? (popularSuggestions.data ?? []).filter((tag) => !noteTagNames.has(tag.name))
       : allTags
           .filter(
             (tag) =>

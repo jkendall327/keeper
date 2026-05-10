@@ -30,8 +30,6 @@ interface NotesPanelProps {
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
   autoApplyActiveTag: boolean;
   linkPreviewDisplayEnabled: boolean;
-  popularTagSuggestionsEnabled: boolean;
-  popularTagSuggestionLimit: number;
   quickAddAutofocusEnabled: boolean;
   showSettings: boolean;
 }
@@ -57,8 +55,6 @@ export function NotesPanel({
   setSelectedNoteIds,
   autoApplyActiveTag,
   linkPreviewDisplayEnabled,
-  popularTagSuggestionsEnabled,
-  popularTagSuggestionLimit,
   quickAddAutofocusEnabled,
   showSettings,
 }: NotesPanelProps) {
@@ -171,8 +167,6 @@ export function NotesPanel({
           allTags={allTags}
           noteCommands={noteCommands}
           showLinkPreviews={linkPreviewDisplayEnabled}
-          popularTagSuggestionsEnabled={popularTagSuggestionsEnabled}
-          popularTagSuggestionLimit={popularTagSuggestionLimit}
           isTrashView={isTrashView}
           onClose={() => { setSelectedNote(null); }}
         />

@@ -5,7 +5,7 @@ import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { NoteActions } from './NoteActions.tsx';
 import { TagApplier } from './TagApplier.tsx';
-import { getImageUrl } from '../utils/image-url.ts';
+import { selectNotePreviewImage } from './link-preview-selection.ts';
 import type { NoteCommands } from './note-commands.ts';
 import styles from './NoteCard.module.css';
 
@@ -140,22 +140,20 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
       </div>
       {note.title !== '' && <h3 className={styles.title}>{note.title}</h3>}
       {(() => {
-        const noteImageUrl = getImageUrl(note.body);
-        const linkPreviewImageUrl =
-          showLinkPreviews && note.link_preview?.status === 'found' ? note.link_preview.image_url : null;
+        const previewImage = selectNotePreviewImage(note, note.body, showLinkPreviews, note.title);
 
-        if (noteImageUrl !== null) {
+        if (previewImage !== null && note.body.trim() === previewImage.url) {
           return (
             <div className={styles.body} data-testid="note-card-body">
-              <img src={noteImageUrl} alt={note.title !== '' ? note.title : 'Image note'} loading="lazy" />
+              <img src={previewImage.url} alt={previewImage.alt} loading="lazy" />
             </div>
           );
         }
 
         return (
           <div className={styles.body} data-testid="note-card-body">
-            {linkPreviewImageUrl !== null && (
-              <img src={linkPreviewImageUrl} alt={note.title !== '' ? note.title : 'Link preview image'} loading="lazy" />
+            {previewImage !== null && (
+              <img src={previewImage.url} alt={previewImage.alt} loading="lazy" />
             )}
             <MarkdownPreview
               content={note.body}

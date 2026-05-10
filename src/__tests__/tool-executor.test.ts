@@ -266,5 +266,8 @@ function localKeeperClient(db: KeeperDB): KeeperClient {
       get: (url) => db.getLinkPreview(url),
       upsert: (input) => db.upsertLinkPreview(input),
     },
+    linkMetadata: {
+      get: (url) => db.getLinkMetadata(url),
+    },
   };
 }

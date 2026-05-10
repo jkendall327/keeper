@@ -1,5 +1,6 @@
 import type { SqliteDb, SqlRow } from "./sqlite-db.ts";
 import { SCHEMA_SQL } from "./schema.ts";
+import { extractUrls } from "./url-detect.ts";
 
 const BASELINE_SCHEMA_VERSION = 1;
 
@@ -9,7 +10,39 @@ interface Migration {
   up: (db: SqliteDb) => void;
 }
 
-const MIGRATIONS: Migration[] = [];
+const MIGRATIONS: Migration[] = [
+  {
+    version: 2,
+    name: "link metadata subsystem",
+    up: (db) => {
+      db.execRaw(SCHEMA_SQL);
+
+      const noteRows = db.query("SELECT id, body FROM notes");
+      for (const noteRow of noteRows) {
+        const noteId = noteRow["id"];
+        const body = noteRow["body"];
+        if (typeof noteId !== "string" || typeof body !== "string") continue;
+        const urls = Array.from(new Set(extractUrls(body)));
+        urls.forEach((url, index) => {
+          db.run(
+            "INSERT OR IGNORE INTO note_links (note_id, url, position) VALUES (?, ?, ?)",
+            [noteId, url, index],
+          );
+        });
+      }
+
+      if (hasTable(db, "link_previews")) {
+        db.execRaw(`
+INSERT OR IGNORE INTO link_metadata (
+  url, image_url, status, fetched_at, updated_at
+)
+SELECT url, image_url, status, fetched_at, updated_at
+FROM link_previews;
+`);
+      }
+    },
+  },
+];
 
 export const CURRENT_SCHEMA_VERSION =
   MIGRATIONS.at(-1)?.version ?? BASELINE_SCHEMA_VERSION;

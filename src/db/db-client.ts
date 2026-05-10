@@ -4,7 +4,7 @@ import type {
   AutoTagRuleInput,
   AutoTagRunResult,
   CreateNoteInput,
-  LinkPreview,
+  LinkMetadata,
   Media,
   NoteId,
   NoteWithTags,
@@ -77,8 +77,11 @@ export interface KeeperClient {
     listForNote(noteId: NoteId, options?: RequestOptions): Promise<Media[]>;
   };
   linkPreviews: {
-    get(url: string, options?: RequestOptions): Promise<LinkPreview | null>;
-    upsert(input: Pick<LinkPreview, 'url' | 'image_url' | 'status'>): Promise<LinkPreview>;
+    get(url: string, options?: RequestOptions): Promise<LinkMetadata | null>;
+    upsert(input: Pick<LinkMetadata, 'url' | 'image_url' | 'status'>): Promise<LinkMetadata>;
+  };
+  linkMetadata: {
+    get(url: string, options?: RequestOptions): Promise<LinkMetadata | null>;
   };
 }
 
@@ -202,8 +205,12 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
     },
     linkPreviews: {
       get: (url, options) =>
-        fetchNullable<LinkPreview>(fetchFn, `/api/link-preview?url=${encodeURIComponent(url)}`, withSignal(options)),
-      upsert: (input) => fetchJson<LinkPreview>(fetchFn, '/api/link-previews', jsonOpts('PUT', input)),
+        fetchNullable<LinkMetadata>(fetchFn, `/api/link-metadata?url=${encodeURIComponent(url)}`, withSignal(options)),
+      upsert: (input) => fetchJson<LinkMetadata>(fetchFn, '/api/link-previews', jsonOpts('PUT', input)),
+    },
+    linkMetadata: {
+      get: (url, options) =>
+        fetchNullable<LinkMetadata>(fetchFn, `/api/link-metadata?url=${encodeURIComponent(url)}`, withSignal(options)),
     },
   };
 }

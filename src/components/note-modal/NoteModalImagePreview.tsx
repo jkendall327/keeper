@@ -1,5 +1,5 @@
 import type { NoteWithTags } from '../../db/types.ts';
-import { getImageUrl } from '../../utils/image-url.ts';
+import { selectNotePreviewImage } from '../link-preview-selection.ts';
 import styles from '../NoteModal.module.css';
 
 interface NoteModalImagePreviewProps {
@@ -17,23 +17,19 @@ export function NoteModalImagePreview({
   title,
   onOpen,
 }: NoteModalImagePreviewProps) {
-  const imageUrl =
-    getImageUrl(body) ??
-    (showLinkPreviews && note.link_preview?.status === 'found' && note.link_preview.url === body.trim()
-      ? note.link_preview.image_url
-      : null);
+  const previewImage = selectNotePreviewImage(note, body, showLinkPreviews, title);
 
-  if (imageUrl === null) return null;
+  if (previewImage === null) return null;
 
   return (
     <div className={styles.livePreview}>
       <button
         type="button"
         className={styles.imagePreviewButton}
-        onClick={() => { onOpen(imageUrl); }}
+        onClick={() => { onOpen(previewImage.url); }}
         aria-label="Open image preview"
       >
-        <img src={imageUrl} alt={title !== '' ? title : 'Image note'} />
+        <img src={previewImage.url} alt={previewImage.alt} />
       </button>
     </div>
   );

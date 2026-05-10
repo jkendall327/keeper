@@ -1,12 +1,13 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { load } from "cheerio";
+import type { LinkMetadata } from "../src/db/types.ts";
 
 const MAX_HTML_BYTES = 1024 * 1024;
 const FETCH_TIMEOUT_MS = 5000;
 
-export type OgImageResult =
-  | { status: "found"; imageUrl: string }
-  | { status: "missing" | "error"; imageUrl: null };
+export type LinkMetadataFetchResult =
+  Partial<LinkMetadata> & Pick<LinkMetadata, "url" | "status">;
 
 function isPrivateIp(address: string): boolean {
   if (address === "::1") return true;
@@ -44,34 +45,64 @@ async function assertPublicHttpUrl(url: URL): Promise<void> {
   }
 }
 
-function decodeHtmlEntities(value: string): string {
-  return value
-    .replaceAll("&amp;", "&")
-    .replaceAll("&quot;", "\"")
-    .replaceAll("&#39;", "'")
-    .replaceAll("&lt;", "<")
-    .replaceAll("&gt;", ">");
+function resolveUrl(value: string | undefined, pageUrl: string): string | null {
+  if (value === undefined || value.trim() === "") return null;
+  try {
+    return new URL(value.trim(), pageUrl).toString();
+  } catch {
+    return null;
+  }
 }
 
-function attrValue(tag: string, attr: string): string | null {
-  const match = new RegExp(`${attr}\\s*=\\s*("([^"]*)"|'([^']*)'|([^\\s>]+))`, "i").exec(tag);
-  return match?.[2] ?? match?.[3] ?? match?.[4] ?? null;
+function parseInteger(value: string | undefined): number | null {
+  if (value === undefined || value.trim() === "") return null;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
+function firstText(...values: (string | undefined)[]): string | null {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed !== undefined && trimmed !== "") return trimmed;
+  }
+  return null;
+}
+
+export function extractLinkMetadata(
+  html: string,
+  requestedUrl: string,
+  pageUrl: string = requestedUrl,
+): LinkMetadataFetchResult {
+  const $ = load(html);
+  const meta = (key: string) =>
+    $(`meta[property="${key}"], meta[name="${key}"]`).first().attr("content");
+
+  const imageUrl =
+    resolveUrl(meta("og:image"), pageUrl) ??
+    resolveUrl(meta("og:image:secure_url"), pageUrl) ??
+    resolveUrl(meta("twitter:image"), pageUrl) ??
+    resolveUrl(meta("twitter:image:src"), pageUrl);
+  const title = firstText(meta("og:title"), meta("twitter:title"), $("title").first().text());
+  const siteName = firstText(meta("og:site_name"));
+  const canonicalUrl = resolveUrl(meta("og:url"), pageUrl);
+  const type = firstText(meta("og:type"));
+
+  return {
+    url: requestedUrl,
+    status: imageUrl === null ? "missing" : "found",
+    image_url: imageUrl,
+    image_alt: firstText(meta("og:image:alt")),
+    image_width: parseInteger(meta("og:image:width")),
+    image_height: parseInteger(meta("og:image:height")),
+    title,
+    site_name: siteName,
+    canonical_url: canonicalUrl,
+    type,
+  };
 }
 
 export function extractOgImage(html: string, pageUrl: string): string | null {
-  const metaTags = html.match(/<meta\b[^>]*>/gi) ?? [];
-  for (const tag of metaTags) {
-    const property = attrValue(tag, "property") ?? attrValue(tag, "name");
-    if (property?.toLowerCase() !== "og:image") continue;
-    const content = attrValue(tag, "content");
-    if (content === null || content.trim() === "") continue;
-    try {
-      return new URL(decodeHtmlEntities(content.trim()), pageUrl).toString();
-    } catch {
-      return null;
-    }
-  }
-  return null;
+  return extractLinkMetadata(html, pageUrl).image_url ?? null;
 }
 
 async function readLimitedText(response: Response): Promise<string> {
@@ -87,7 +118,7 @@ async function readLimitedText(response: Response): Promise<string> {
   return new TextDecoder().decode(bytes);
 }
 
-export async function fetchOgImage(url: string): Promise<OgImageResult> {
+export async function fetchLinkMetadata(url: string): Promise<LinkMetadataFetchResult> {
   try {
     const pageUrl = new URL(url);
     await assertPublicHttpUrl(pageUrl);
@@ -100,19 +131,19 @@ export async function fetchOgImage(url: string): Promise<OgImageResult> {
       },
       redirect: "follow",
     });
-    if (!response.ok) return { status: "error", imageUrl: null };
+    if (!response.ok) {
+      return { url, status: "error", image_url: null, failure_reason: `HTTP ${String(response.status)}` };
+    }
 
     const contentType = response.headers.get("content-type") ?? "";
     if (!contentType.toLowerCase().includes("text/html")) {
-      return { status: "missing", imageUrl: null };
+      return { url, status: "missing", image_url: null };
     }
 
     const html = await readLimitedText(response);
-    const imageUrl = extractOgImage(html, response.url);
-    return imageUrl === null
-      ? { status: "missing", imageUrl: null }
-      : { status: "found", imageUrl };
-  } catch {
-    return { status: "error", imageUrl: null };
+    return extractLinkMetadata(html, url, response.url);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to fetch link metadata";
+    return { url, status: "error", image_url: null, failure_reason: message };
   }
 }

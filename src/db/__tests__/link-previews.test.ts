@@ -3,7 +3,7 @@ import { createKeeperDB } from '../db-impl.ts';
 import { createTestDb } from './test-db.ts';
 import type { KeeperDB } from '../types.ts';
 
-describe('Link previews', () => {
+describe('Link metadata', () => {
   let api: KeeperDB;
   let idCounter: number;
   let timeCounter: number;
@@ -18,21 +18,25 @@ describe('Link previews', () => {
     });
   });
 
-  it('stores and updates previews by URL', async () => {
+  it('stores and updates metadata by URL', async () => {
     const url = 'https://example.com/post/1';
 
-    const created = await api.upsertLinkPreview({
+    const created = await api.upsertLinkMetadata({
       url,
       image_url: 'https://example.com/preview.jpg',
       status: 'found',
+      title: 'Example',
+      site_name: 'Example Site',
     });
     expect(created).toMatchObject({
       url,
       image_url: 'https://example.com/preview.jpg',
       status: 'found',
+      title: 'Example',
+      site_name: 'Example Site',
     });
 
-    const updated = await api.upsertLinkPreview({
+    const updated = await api.upsertLinkMetadata({
       url,
       image_url: null,
       status: 'missing',
@@ -40,23 +44,51 @@ describe('Link previews', () => {
     expect(updated).toMatchObject({ url, image_url: null, status: 'missing' });
   });
 
-  it('attaches previews to notes whose body is exactly the preview URL', async () => {
+  it('attaches metadata to notes with embedded URLs in note order', async () => {
     const url = 'https://example.com/post/1';
-    await api.upsertLinkPreview({
+    const secondUrl = 'https://example.com/post/2';
+    await api.upsertLinkMetadata({
       url,
       image_url: 'https://example.com/preview.jpg',
       status: 'found',
     });
+    await api.upsertLinkMetadata({
+      url: secondUrl,
+      image_url: 'https://example.com/second.jpg',
+      status: 'found',
+    });
 
-    const exact = await api.createNote({ body: url });
-    const embedded = await api.createNote({ body: `look ${url}` });
+    const note = await api.createNote({ body: `look ${secondUrl} and then ${url}` });
 
-    expect(exact.link_preview?.image_url).toBe('https://example.com/preview.jpg');
-    expect(embedded.link_preview).toBe(null);
+    expect(note.link_metadata.map((metadata) => metadata.url)).toEqual([secondUrl, url]);
+    expect(note.link_metadata[0]?.image_url).toBe('https://example.com/second.jpg');
 
     const notes = await api.getAllNotes();
-    expect(notes.find((note) => note.id === exact.id)?.link_preview?.status).toBe('found');
-    expect(notes.find((note) => note.id === embedded.id)?.link_preview).toBe(null);
+    expect(notes.find((item) => item.id === note.id)?.link_metadata.map((metadata) => metadata.url)).toEqual([
+      secondUrl,
+      url,
+    ]);
+  });
+
+  it('syncs note links when note bodies change', async () => {
+    const oldUrl = 'https://example.com/old';
+    const newUrl = 'https://example.com/new';
+    await api.upsertLinkMetadata({ url: oldUrl, image_url: 'https://example.com/old.jpg', status: 'found' });
+    await api.upsertLinkMetadata({ url: newUrl, image_url: 'https://example.com/new.jpg', status: 'found' });
+
+    const note = await api.createNote({ body: oldUrl });
+    expect(note.link_metadata.map((metadata) => metadata.url)).toEqual([oldUrl]);
+
+    const updated = await api.updateNote({ id: note.id, body: newUrl });
+    expect(updated.link_metadata.map((metadata) => metadata.url)).toEqual([newUrl]);
+  });
+
+  it('enqueues missing metadata jobs from existing note links', async () => {
+    await api.createNote({ body: 'Read https://example.com/one and https://example.com/two' });
+
+    await expect(api.enqueueMissingLinkMetadataJobs()).resolves.toBe(2);
+    const first = await api.claimNextLinkMetadataJob('2025-01-15 12:10:00');
+    expect(first?.url).toBe('https://example.com/one');
   });
 
   it('persists link preview settings', async () => {

@@ -21,7 +21,7 @@ export function createNoteMethods(ctx: KeeperDBContext): Pick<
   | "togglePinNote"
   | "toggleArchiveNote"
 > {
-  const { db, generateId, now, rowToNote, withTags, withTagsBatch } = ctx;
+  const { db, generateId, now, rowToNote, syncNoteLinks, withTags, withTagsBatch } = ctx;
 
   function getNote(id: NoteId): Promise<NoteWithTags | null> {
     const rows = db.query("SELECT * FROM notes WHERE id = ?", [id]);
@@ -55,13 +55,10 @@ export function createNoteMethods(ctx: KeeperDBContext): Pick<
             [id, tagId],
           );
         }
+        syncNoteLinks(id, body);
       };
 
-      if (initialTagNames.length > 0) {
-        db.transaction(insertNote);
-      } else {
-        insertNote();
-      }
+      db.transaction(insertNote);
 
       return Promise.resolve(withTags({
         id,
@@ -94,11 +91,14 @@ export function createNoteMethods(ctx: KeeperDBContext): Pick<
       const hasLinks = containsUrl(body) ? 1 : 0;
       const timestamp = now();
 
-      db.run(
-        `UPDATE notes SET title = ?, body = ?, has_links = ?, updated_at = ?
-         WHERE id = ?`,
-        [title, body, hasLinks, timestamp, input.id],
-      );
+      db.transaction(() => {
+        db.run(
+          `UPDATE notes SET title = ?, body = ?, has_links = ?, updated_at = ?
+           WHERE id = ?`,
+          [title, body, hasLinks, timestamp, input.id],
+        );
+        syncNoteLinks(input.id, body);
+      });
 
       return withTags({
         ...existing,

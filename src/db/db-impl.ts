@@ -4,7 +4,7 @@ import { createAppSettingsMethods } from "./impl/app-settings.ts";
 import { createAutoTagRuleMethods } from "./impl/auto-tag-rules.ts";
 import { createKeeperDBContext } from "./impl/context.ts";
 import type { KeeperDBDeps } from "./impl/context.ts";
-import { createLinkPreviewMethods } from "./impl/link-previews.ts";
+import { createLinkMetadataMethods } from "./impl/link-metadata.ts";
 import { createMediaMethods } from "./impl/media.ts";
 import { createNoteMethods } from "./impl/notes.ts";
 import { createSearchMethods } from "./impl/search.ts";
@@ -29,6 +29,6 @@ export function createKeeperDB(deps: KeeperDBDeps): KeeperDB {
     ...createAutoTagRuleMethods(ctx),
     ...createAppSettingsMethods(ctx),
     ...createMediaMethods(ctx),
-    ...createLinkPreviewMethods(ctx),
+    ...createLinkMetadataMethods(ctx),
   };
 }

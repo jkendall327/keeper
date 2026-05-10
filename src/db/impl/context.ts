@@ -4,13 +4,13 @@ import {
   normalizePopularTagSuggestionLimit,
   toNoteId,
 } from "../types.ts";
-import { extractSingleUrl } from "../url-detect.ts";
+import { extractUrls } from "../url-detect.ts";
 import type {
   AutoTagRule,
   AutoTagRuleInput,
   AppSettings,
-  LinkPreview,
-  LinkPreviewStatus,
+  LinkMetadata,
+  LinkMetadataStatus,
   Note,
   NoteId,
   NoteWithTags,
@@ -29,16 +29,17 @@ export interface KeeperDBContext extends KeeperDBDeps {
   ensureTag: (tagName: string) => number;
   getAppSettingsSync: () => AppSettings;
   getAutoTagRuleById: (ruleId: number) => AutoTagRule | null;
-  getLinkPreviewSync: (url: string) => LinkPreview | null;
+  getLinkMetadataSync: (url: string) => LinkMetadata | null;
   getTagsForNote: (noteId: NoteId) => Tag[];
   normalizeRuleInput: (input: AutoTagRuleInput) => AutoTagRuleInput;
   prepareFts5Query: (input: string) => string;
   rowString: (row: SqlRow, key: string) => string;
   rowToAutoTagRule: (row: SqlRow) => AutoTagRule;
-  rowToLinkPreview: (row: SqlRow) => LinkPreview;
+  rowToLinkMetadata: (row: SqlRow) => LinkMetadata;
   rowToNote: (row: SqlRow) => Note;
   rowToTag: (row: SqlRow) => Tag;
   rowsToAutoTagRules: (rows: SqlRow[]) => AutoTagRule[];
+  syncNoteLinks: (noteId: NoteId, body: string) => void;
   withTags: (note: Note) => NoteWithTags;
   withTagsBatch: (notes: Note[]) => NoteWithTags[];
 }
@@ -102,19 +103,43 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
     return rows.map(rowToTag);
   }
 
-  function rowToLinkPreview(row: SqlRow): LinkPreview {
+  function nullableNumber(row: SqlRow, key: string): number | null {
+    const value = row[key];
+    return typeof value === "number" ? value : null;
+  }
+
+  function rowToLinkMetadata(row: SqlRow): LinkMetadata {
     return {
       url: row["url"] as string,
       image_url: row["image_url"] as string | null,
-      status: row["status"] as LinkPreviewStatus,
+      image_alt: row["image_alt"] as string | null,
+      image_width: nullableNumber(row, "image_width"),
+      image_height: nullableNumber(row, "image_height"),
+      title: row["title"] as string | null,
+      site_name: row["site_name"] as string | null,
+      canonical_url: row["canonical_url"] as string | null,
+      type: row["type"] as string | null,
+      status: row["status"] as LinkMetadataStatus,
+      failure_reason: row["failure_reason"] as string | null,
       fetched_at: row["fetched_at"] as string,
       updated_at: row["updated_at"] as string,
     };
   }
 
-  function getLinkPreviewSync(url: string): LinkPreview | null {
-    const row = db.query("SELECT * FROM link_previews WHERE url = ?", [url])[0];
-    return row === undefined ? null : rowToLinkPreview(row);
+  function getLinkMetadataSync(url: string): LinkMetadata | null {
+    const row = db.query("SELECT * FROM link_metadata WHERE url = ?", [url])[0];
+    return row === undefined ? null : rowToLinkMetadata(row);
+  }
+
+  function syncNoteLinks(noteId: NoteId, body: string): void {
+    const urls = Array.from(new Set(extractUrls(body)));
+    db.run("DELETE FROM note_links WHERE note_id = ?", [noteId]);
+    urls.forEach((url, index) => {
+      db.run(
+        "INSERT INTO note_links (note_id, url, position) VALUES (?, ?, ?)",
+        [noteId, url, index],
+      );
+    });
   }
 
   function normalizeRuleInput(input: AutoTagRuleInput): AutoTagRuleInput {
@@ -198,11 +223,18 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
   }
 
   function withTags(note: Note): NoteWithTags {
-    const url = extractSingleUrl(note.body);
+    const metadataRows = db.query(
+      `SELECT lm.*
+       FROM note_links nl
+       JOIN link_metadata lm ON lm.url = nl.url
+       WHERE nl.note_id = ?
+       ORDER BY nl.position`,
+      [note.id],
+    );
     return {
       ...note,
       tags: getTagsForNote(note.id),
-      link_preview: url === null ? null : getLinkPreviewSync(url),
+      link_metadata: metadataRows.map(rowToLinkMetadata),
     };
   }
 
@@ -224,32 +256,28 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
       if (list !== undefined) list.push(tag);
       else tagMap.set(noteId, [tag]);
     }
-    const urls = Array.from(
-      new Set(
-        notes
-          .map((note) => extractSingleUrl(note.body))
-          .filter((url): url is string => url !== null),
-      ),
+    const metadataMap = new Map<NoteId, LinkMetadata[]>();
+    const metadataRows = db.query(
+      `SELECT nl.note_id, lm.*
+       FROM note_links nl
+       JOIN link_metadata lm ON lm.url = nl.url
+       WHERE nl.note_id IN (${placeholders})
+       ORDER BY nl.note_id, nl.position`,
+      ids,
     );
-    const previewMap = new Map<string, LinkPreview>();
-    if (urls.length > 0) {
-      const previewPlaceholders = urls.map(() => "?").join(",");
-      const previewRows = db.query(
-        `SELECT * FROM link_previews WHERE url IN (${previewPlaceholders})`,
-        urls,
-      );
-      for (const row of previewRows) {
-        const preview = rowToLinkPreview(row);
-        previewMap.set(preview.url, preview);
-      }
+    for (const row of metadataRows) {
+      const noteId = toNoteId(rowString(row, "note_id"));
+      const metadata = rowToLinkMetadata(row);
+      const list = metadataMap.get(noteId);
+      if (list !== undefined) list.push(metadata);
+      else metadataMap.set(noteId, [metadata]);
     }
 
     return notes.map((n) => {
-      const url = extractSingleUrl(n.body);
       return {
         ...n,
         tags: tagMap.get(n.id) ?? [],
-        link_preview: url === null ? null : previewMap.get(url) ?? null,
+        link_metadata: metadataMap.get(n.id) ?? [],
       };
     });
   }
@@ -291,16 +319,17 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
     ensureTag,
     getAppSettingsSync,
     getAutoTagRuleById,
-    getLinkPreviewSync,
+    getLinkMetadataSync,
     getTagsForNote,
     normalizeRuleInput,
     prepareFts5Query,
     rowString,
     rowToAutoTagRule,
-    rowToLinkPreview,
+    rowToLinkMetadata,
     rowToNote,
     rowToTag,
     rowsToAutoTagRules,
+    syncNoteLinks,
     withTags,
     withTagsBatch,
   };

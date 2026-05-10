@@ -69,14 +69,44 @@ CREATE TABLE IF NOT EXISTS media (
 
 CREATE INDEX IF NOT EXISTS idx_media_note_id ON media(note_id);
 
--- Link previews
-CREATE TABLE IF NOT EXISTS link_previews (
-  url        TEXT PRIMARY KEY,
-  image_url  TEXT,
-  status     TEXT NOT NULL CHECK (status IN ('found', 'missing', 'error')),
-  fetched_at TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+-- Link metadata
+CREATE TABLE IF NOT EXISTS note_links (
+  note_id   TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+  url       TEXT NOT NULL,
+  position  INTEGER NOT NULL,
+  PRIMARY KEY (note_id, url),
+  UNIQUE (note_id, position)
 );
+
+CREATE INDEX IF NOT EXISTS idx_note_links_url ON note_links(url);
+CREATE INDEX IF NOT EXISTS idx_note_links_note_position ON note_links(note_id, position);
+
+CREATE TABLE IF NOT EXISTS link_metadata (
+  url            TEXT PRIMARY KEY,
+  image_url      TEXT,
+  image_alt      TEXT,
+  image_width    INTEGER,
+  image_height   INTEGER,
+  title          TEXT,
+  site_name      TEXT,
+  canonical_url  TEXT,
+  type           TEXT,
+  status         TEXT NOT NULL CHECK (status IN ('found', 'missing', 'error')),
+  failure_reason TEXT,
+  fetched_at     TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE TABLE IF NOT EXISTS link_metadata_jobs (
+  url         TEXT PRIMARY KEY,
+  attempts    INTEGER NOT NULL DEFAULT 0,
+  next_run_at TEXT NOT NULL DEFAULT (datetime('now')),
+  last_error  TEXT,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_link_metadata_jobs_next_run_at ON link_metadata_jobs(next_run_at);
 
 -- URL autotag rules
 CREATE TABLE IF NOT EXISTS auto_tag_rules (

@@ -43,19 +43,36 @@ export interface Media {
   created_at: string;
 }
 
-export type LinkPreviewStatus = "found" | "missing" | "error";
+export type LinkMetadataStatus = "found" | "missing" | "error";
 
-export interface LinkPreview {
+export interface LinkMetadata {
   url: string;
   image_url: string | null;
-  status: LinkPreviewStatus;
+  image_alt: string | null;
+  image_width: number | null;
+  image_height: number | null;
+  title: string | null;
+  site_name: string | null;
+  canonical_url: string | null;
+  type: string | null;
+  status: LinkMetadataStatus;
+  failure_reason: string | null;
   fetched_at: string;
   updated_at: string;
 }
 
+export type LinkPreview = LinkMetadata;
+
+export interface LinkMetadataJob {
+  url: string;
+  attempts: number;
+  next_run_at: string;
+  last_error: string | null;
+}
+
 export interface NoteWithTags extends Note {
   tags: Tag[];
-  link_preview: LinkPreview | null;
+  link_metadata: LinkMetadata[];
 }
 
 /** Default icon for tags without a custom icon */
@@ -207,7 +224,14 @@ export interface KeeperDB {
   deleteMedia(id: string): Promise<void>;
   getMediaForNote(noteId: NoteId): Promise<Media[]>;
 
-  // Link previews
+  // Link metadata
+  getLinkMetadata(url: string): Promise<LinkMetadata | null>;
+  upsertLinkMetadata(input: Partial<LinkMetadata> & Pick<LinkMetadata, "url" | "status">): Promise<LinkMetadata>;
+  enqueueLinkMetadataJobsForUrls(urls: string[]): Promise<number>;
+  enqueueMissingLinkMetadataJobs(): Promise<number>;
+  claimNextLinkMetadataJob(now: string): Promise<LinkMetadataJob | null>;
+  completeLinkMetadataJob(input: Partial<LinkMetadata> & Pick<LinkMetadata, "url" | "status">): Promise<LinkMetadata>;
+  failLinkMetadataJob(url: string, error: string): Promise<void>;
   getLinkPreview(url: string): Promise<LinkPreview | null>;
   upsertLinkPreview(input: Pick<LinkPreview, "url" | "image_url" | "status">): Promise<LinkPreview>;
 }

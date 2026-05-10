@@ -10,7 +10,7 @@ import { normalizePopularTagSuggestionLimit, toNoteId, toNoteIds } from "../src/
 import { bufferToArrayBuffer, type MediaHandler } from "./media-handler.ts";
 import { truncateExtensionTitle } from "../src/utils/extension-title.ts";
 import { createEventBroadcaster } from "./events.ts";
-import { createLinkPreviewQueue } from "./link-preview-queue.ts";
+import { createLinkMetadataQueue } from "./link-preview-queue.ts";
 import type { BackupService } from "./backup-service.ts";
 
 export function registerRoutes(
@@ -20,11 +20,12 @@ export function registerRoutes(
   backup?: BackupService,
 ): void {
   const { broadcast, registerEventRoutes } = createEventBroadcaster();
-  const queueLinkPreview = createLinkPreviewQueue({
+  const linkMetadataQueue = createLinkMetadataQueue({
     db,
     log: app.log,
     broadcast,
   });
+  void linkMetadataQueue.start();
 
   registerEventRoutes(app);
 
@@ -40,7 +41,7 @@ export function registerRoutes(
     }
     const note = await db.createNote(input);
     broadcast(isExtensionNote ? "extension-note-created" : "refresh");
-    queueLinkPreview(note.body);
+    void linkMetadataQueue.enqueueFromBody(note.body);
     return note;
   });
 
@@ -63,7 +64,7 @@ export function registerRoutes(
     "/api/notes/:id",
     async (req) => {
       const note = await db.updateNote({ ...req.body, id: toNoteId(req.params.id) });
-      queueLinkPreview(note.body);
+      void linkMetadataQueue.enqueueFromBody(note.body);
       return note;
     },
   );
@@ -353,7 +354,21 @@ export function registerRoutes(
     });
   }
 
-  // ── Link previews ─────────────────────────
+  // ── Link metadata ─────────────────────────
+
+  app.get<{ Querystring: { url?: string } }>(
+    "/api/link-metadata",
+    async (req, reply) => {
+      if (req.query.url === undefined) {
+        return reply.code(400).send({ error: "url is required" });
+      }
+      const metadata = await db.getLinkMetadata(req.query.url);
+      if (metadata === null) {
+        return reply.code(404).send({ error: "Not found" });
+      }
+      return metadata;
+    },
+  );
 
   app.get<{ Querystring: { url?: string } }>(
     "/api/link-preview",
@@ -361,11 +376,11 @@ export function registerRoutes(
       if (req.query.url === undefined) {
         return reply.code(400).send({ error: "url is required" });
       }
-      const preview = await db.getLinkPreview(req.query.url);
-      if (preview === null) {
+      const metadata = await db.getLinkMetadata(req.query.url);
+      if (metadata === null) {
         return reply.code(404).send({ error: "Not found" });
       }
-      return preview;
+      return metadata;
     },
   );
 
@@ -374,7 +389,7 @@ export function registerRoutes(
   }>(
     "/api/link-previews",
     async (req) => {
-      return db.upsertLinkPreview(req.body);
+      return db.upsertLinkMetadata(req.body);
     },
   );
 

@@ -77,8 +77,7 @@ export function createTagMethods(
          FROM tags t
          JOIN note_tags nt ON nt.tag_id = t.id
          JOIN notes n ON n.id = nt.note_id
-         WHERE n.archived = 0
-           AND n.trashed = 0
+         WHERE n.trashed = 0
            AND t.id NOT IN (
              SELECT tag_id FROM note_tags WHERE note_id = ?
            )

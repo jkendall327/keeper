@@ -540,5 +540,17 @@ describe('Tags', () => {
 
       expect(suggestions.map((tag) => tag.name)).toEqual(['later', 'alpha']);
     });
+
+    it('counts archived-note tags but excludes trashed-note tags', async () => {
+      const target = await api.createNote({ body: 'target' });
+      const archived = await api.createNote({ body: 'archived', initialTagNames: ['archived-tag'] });
+      await api.toggleArchiveNote(archived.id);
+      const trashed = await api.createNote({ body: 'trashed', initialTagNames: ['trashed-tag'] });
+      await api.trashNote(trashed.id);
+
+      const suggestions = await api.getPopularTagSuggestions(target.id, 5);
+
+      expect(suggestions.map((tag) => tag.name)).toEqual(['archived-tag']);
+    });
   });
 });

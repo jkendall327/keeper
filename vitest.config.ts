@@ -1,8 +1,10 @@
 import { defineConfig } from "vitest/config";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
+import { appMetadataDefines } from "./app-metadata.ts";
 
 export default defineConfig({
+  define: appMetadataDefines(),
   plugins: [
     react(),
     babel({

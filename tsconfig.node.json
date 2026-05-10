@@ -32,5 +32,5 @@
     "noImplicitOverride": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["vite.config.ts"]
+  "include": ["app-metadata.ts", "vite.config.ts", "vitest.config.ts"]
 }

@@ -1,4 +1,5 @@
 declare const styles: {
+  readonly "appMetadata": string;
   readonly "footer": string;
   readonly "nav": string;
   readonly "open": string;

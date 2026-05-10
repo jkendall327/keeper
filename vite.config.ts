@@ -1,9 +1,11 @@
 import { defineConfig, type PluginOption } from "vite";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
+import { appMetadataDefines } from "./app-metadata.ts";
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: appMetadataDefines(),
   server: {
     host: "0.0.0.0",
     allowedHosts: [".ts.net"],

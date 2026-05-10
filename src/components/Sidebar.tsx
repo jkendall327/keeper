@@ -30,6 +30,7 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
   const [editValue, setEditValue] = useState('');
   const [iconPickerTagId, setIconPickerTagId] = useState<number | null>(null);
   const [iconPickerAnchor, setIconPickerAnchor] = useState<HTMLButtonElement | null>(null);
+  const appVersionLabel = `v${__APP_VERSION__} (${__APP_GIT_SHA__})`;
 
   const isActive = (filter: FilterType) =>
     activeFilter.type === filter.type &&
@@ -181,6 +182,9 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
         <button className={styles.settingsButton} onClick={onOpenSettings} aria-label="Open settings">
           <Icon name="settings" size={20} />
         </button>
+        <div className={styles.appMetadata} title={appVersionLabel}>
+          {appVersionLabel}
+        </div>
       </div>
     </aside>
   );

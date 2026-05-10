@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AutoTagRunResult, NoteId, NoteWithTags, Tag } from '../db/types.ts';
 
 interface UseBulkNoteActionsOptions {
@@ -10,6 +10,22 @@ interface UseBulkNoteActionsOptions {
   restoreNotes: (ids: NoteId[]) => Promise<void>;
   runAutoTagRules: () => Promise<AutoTagRunResult>;
   trashNotes: (ids: NoteId[]) => Promise<void>;
+}
+
+async function deleteOrTrashSelectedNotes(
+  ids: NoteId[],
+  isTrashView: boolean,
+  deleteNotes: (ids: NoteId[]) => Promise<void>,
+  trashNotes: (ids: NoteId[]) => Promise<void>,
+): Promise<boolean> {
+  if (ids.length === 0) return false;
+  if (isTrashView) {
+    if (!window.confirm(`Permanently delete ${String(ids.length)} selected note${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return false;
+    await deleteNotes(ids);
+  } else {
+    await trashNotes(ids);
+  }
+  return true;
 }
 
 export function useBulkNoteActions({
@@ -25,39 +41,28 @@ export function useBulkNoteActions({
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<NoteId>>(new Set());
   const [autoTagStatus, setAutoTagStatus] = useState('');
 
-  const displayedNoteIds = useMemo(() => displayedNotes.map((note) => note.id), [displayedNotes]);
-  const taggedInboxNoteIds = useMemo(
-    () => inboxNotes.filter((note) => note.tags.length > 0).map((note) => note.id),
-    [inboxNotes],
-  );
-  const selectedNotes = useMemo(
-    () => displayedNotes.filter((note) => selectedNoteIds.has(note.id)),
-    [displayedNotes, selectedNoteIds],
-  );
+  const displayedNoteIds = displayedNotes.map((note) => note.id);
+  const taggedInboxNoteIds = inboxNotes.filter((note) => note.tags.length > 0).map((note) => note.id);
+  const selectedNotes = displayedNotes.filter((note) => selectedNoteIds.has(note.id));
 
-  const clearSelection = useCallback(() => {
+  const clearSelection = () => {
     setSelectedNoteIds(new Set());
-  }, []);
+  };
 
-  const handleSelectAll = useCallback(() => {
+  const handleSelectAll = () => {
     if (selectedNoteIds.size === displayedNoteIds.length && displayedNoteIds.length > 0) {
       clearSelection();
     } else {
       setSelectedNoteIds(new Set(displayedNoteIds));
     }
-  }, [clearSelection, selectedNoteIds.size, displayedNoteIds]);
+  };
 
-  const handleBulkDelete = useCallback(async () => {
+  const handleBulkDelete = async () => {
     const ids = Array.from(selectedNoteIds);
-    if (ids.length === 0) return;
-    if (isTrashView) {
-      if (!window.confirm(`Permanently delete ${String(ids.length)} selected note${ids.length === 1 ? '' : 's'}? This cannot be undone.`)) return;
-      await deleteNotes(ids);
-    } else {
-      await trashNotes(ids);
+    if (await deleteOrTrashSelectedNotes(ids, isTrashView, deleteNotes, trashNotes)) {
+      clearSelection();
     }
-    clearSelection();
-  }, [clearSelection, selectedNoteIds, isTrashView, deleteNotes, trashNotes]);
+  };
 
   useEffect(() => {
     const handleDeleteKey = (e: KeyboardEvent) => {
@@ -68,44 +73,47 @@ export function useBulkNoteActions({
       if (tag === 'INPUT' || tag === 'TEXTAREA' || target.isContentEditable) return;
       if (selectedNoteIds.size === 0) return;
       e.preventDefault();
-      void handleBulkDelete();
+      void deleteOrTrashSelectedNotes(Array.from(selectedNoteIds), isTrashView, deleteNotes, trashNotes).then((deleted) => {
+        if (deleted) setSelectedNoteIds(new Set());
+      });
     };
     document.addEventListener('keydown', handleDeleteKey);
     return () => { document.removeEventListener('keydown', handleDeleteKey); };
-  }, [selectedNoteIds.size, handleBulkDelete]);
+  }, [deleteNotes, isTrashView, selectedNoteIds, setSelectedNoteIds, trashNotes]);
 
-  const handleBulkRestore = useCallback(async () => {
+  const handleBulkRestore = async () => {
     const ids = Array.from(selectedNoteIds);
     if (ids.length === 0) return;
     await restoreNotes(ids);
     clearSelection();
-  }, [clearSelection, selectedNoteIds, restoreNotes]);
+  };
 
-  const handleBulkArchive = useCallback(async () => {
+  const handleBulkArchive = async () => {
     const ids = Array.from(selectedNoteIds);
     if (ids.length === 0) return;
     await archiveNotes(ids);
     clearSelection();
-  }, [clearSelection, selectedNoteIds, archiveNotes]);
+  };
 
-  const handleArchiveTaggedInboxNotes = useCallback(async () => {
+  const handleArchiveTaggedInboxNotes = async () => {
     if (taggedInboxNoteIds.length === 0) return;
     await archiveNotes(taggedInboxNoteIds);
     clearSelection();
-  }, [archiveNotes, clearSelection, taggedInboxNoteIds]);
+  };
 
-  const handleRunAutoTagRules = useCallback(async () => {
+  const handleRunAutoTagRules = async () => {
     const result = await runAutoTagRules();
     clearSelection();
     setAutoTagStatus(
       `${String(result.matchedNoteCount)} matched, ${String(result.archivedNoteCount)} archived`,
     );
     window.setTimeout(() => { setAutoTagStatus(''); }, 3500);
-  }, [clearSelection, runAutoTagRules]);
+  };
 
-  const { bulkAppliedTags, bulkIndeterminateTags } = useMemo(() => {
-    if (selectedNotes.length === 0) return { bulkAppliedTags: [] as Tag[], bulkIndeterminateTags: [] as Tag[] };
+  let bulkAppliedTags: Tag[] = [];
+  let bulkIndeterminateTags: Tag[] = [];
 
+  if (selectedNotes.length > 0) {
     const tagCounts = new Map<string, { tag: Tag; count: number }>();
     for (const note of selectedNotes) {
       for (const tag of note.tags) {
@@ -128,8 +136,9 @@ export function useBulkNoteActions({
         indeterminate.push(tag);
       }
     }
-    return { bulkAppliedTags: applied, bulkIndeterminateTags: indeterminate };
-  }, [selectedNotes]);
+    bulkAppliedTags = applied;
+    bulkIndeterminateTags = indeterminate;
+  }
 
   return {
     autoTagStatus,

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState, type RefObject } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 import { useQuickCaptureShortcut, useSearchFocusShortcut } from '../hooks/useAppShortcuts.ts';
 import { useKeeperRouteState } from '../hooks/useKeeperRouteState.ts';
 import { useNoteCommands } from '../hooks/useNoteCommands.ts';
@@ -45,9 +45,9 @@ export function NotesPanel({
     ? displayedNotes.find((n) => n.id === selectedNote.id) ?? null
     : null;
 
-  const clearSelection = useCallback(() => {
+  const clearSelection = () => {
     setSelectedNoteIds(new Set());
-  }, [setSelectedNoteIds]);
+  };
 
   useQuickCaptureShortcut({
     clearSelection,
@@ -59,9 +59,9 @@ export function NotesPanel({
     showSettings,
   });
 
-  const handleBulkSelect = useCallback((ids: Set<NoteId>) => {
+  const handleBulkSelect = (ids: Set<NoteId>) => {
     setSelectedNoteIds(ids);
-  }, [setSelectedNoteIds]);
+  };
 
   const activeTag = activeFilter.type === 'tag'
     ? allTags.find((tag) => tag.id === activeFilter.tagId)
@@ -69,13 +69,13 @@ export function NotesPanel({
   const isTrashView = activeFilter.type === 'trash';
   const noteCommands = useNoteCommands({ isTrashView });
 
-  const handleCreateNote = useCallback(async (input: CreateNoteInput) => {
+  const handleCreateNote = async (input: CreateNoteInput) => {
     if (autoApplyActiveTag && activeTag !== undefined) {
       await createNote({ ...input, initialTagNames: [activeTag.name] });
       return;
     }
     await createNote(input);
-  }, [activeTag, autoApplyActiveTag, createNote]);
+  };
 
   return (
     <>

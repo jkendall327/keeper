@@ -5,12 +5,13 @@ import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { NoteActions } from './NoteActions.tsx';
 import { TagApplier } from './TagApplier.tsx';
-import { selectNotePreviewImage } from './link-preview-selection.ts';
+import { selectNotePreviewImage, type SelectedPreviewImage } from './link-preview-selection.ts';
 import type { NoteCommands } from './note-commands.ts';
 import styles from './NoteCard.module.css';
 
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
+const DEFAULT_PREVIEW_ASPECT_RATIO = '16 / 9';
 
 interface NoteCardProps {
   note: NoteWithTags;
@@ -145,7 +146,7 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
         if (previewImage !== null && note.body.trim() === previewImage.url) {
           return (
             <div className={styles.body} data-testid="note-card-body">
-              <img src={previewImage.url} alt={previewImage.alt} loading="lazy" />
+              <NotePreviewImage previewImage={previewImage} />
             </div>
           );
         }
@@ -153,7 +154,7 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
         return (
           <div className={styles.body} data-testid="note-card-body">
             {previewImage !== null && (
-              <img src={previewImage.url} alt={previewImage.alt} loading="lazy" />
+              <NotePreviewImage previewImage={previewImage} />
             )}
             <MarkdownPreview
               content={note.body}
@@ -210,6 +211,27 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
           />
         </div>
       </div>
+    </div>
+  );
+}
+
+function NotePreviewImage({ previewImage }: { previewImage: SelectedPreviewImage }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+
+  const hasIntrinsicSize = previewImage.width !== null && previewImage.height !== null;
+  const aspectRatio = hasIntrinsicSize
+    ? `${String(previewImage.width)} / ${String(previewImage.height)}`
+    : DEFAULT_PREVIEW_ASPECT_RATIO;
+
+  return (
+    <div className={styles.previewImageFrame} style={{ aspectRatio }}>
+      <img
+        src={previewImage.url}
+        alt={previewImage.alt}
+        loading="lazy"
+        onError={() => { setFailed(true); }}
+      />
     </div>
   );
 }

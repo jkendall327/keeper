@@ -7,6 +7,7 @@ declare const styles: {
   readonly "iconButton": string;
   readonly "inlineActions": string;
   readonly "pinned": string;
+  readonly "previewImageFrame": string;
   readonly "selected": string;
   readonly "selectionCheck": string;
   readonly "tag": string;

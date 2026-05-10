@@ -143,13 +143,22 @@
   padding-right: 32px;
 }
 
-.body img {
-  max-width: 100%;
-  height: auto;
+.previewImageFrame {
+  width: 100%;
   max-height: 150px;
+  margin: 0.5rem 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.previewImageFrame img {
+  display: block;
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   border-radius: var(--radius-sm);
-  margin: 0.5rem 0;
 }
 
 .footer {

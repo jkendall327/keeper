@@ -345,6 +345,8 @@ it('shows body content alongside a found link preview image in note cards', asyn
   await db.upsertLinkMetadata({
     url,
     image_url: 'https://example.com/preview.jpg',
+    image_width: 1200,
+    image_height: 630,
     status: 'found',
   });
 
@@ -355,7 +357,30 @@ it('shows body content alongside a found link preview image in note cards', asyn
   if (card === null) throw new Error('Note card not found');
 
   const bodyDiv = within(card).getByTestId('note-card-body');
-  expect(within(bodyDiv).getByRole('img', { name: 'Link preview image' })).toHaveAttribute('src', 'https://example.com/preview.jpg');
+  const image = within(bodyDiv).getByRole('img', { name: 'Link preview image' });
+  expect(image).toHaveAttribute('src', 'https://example.com/preview.jpg');
+  expect(image.parentElement).toHaveStyle({ aspectRatio: '1200 / 630' });
+  expect(within(bodyDiv).getByRole('link', { name: url })).toHaveAttribute('href', url);
+});
+
+it('does not render link previews for non-image metadata URLs', async () => {
+  const db = getTestDB();
+  const url = 'https://example.com/video-post';
+  await db.createNote({ body: url });
+  await db.upsertLinkMetadata({
+    url,
+    image_url: 'https://cdn.example.com/preview.webm',
+    status: 'found',
+  });
+
+  await renderApp();
+
+  const noteCard = await screen.findByText(url);
+  const card = noteCard.closest<HTMLElement>('[data-note-id][role="button"]');
+  if (card === null) throw new Error('Note card not found');
+
+  const bodyDiv = within(card).getByTestId('note-card-body');
+  expect(within(bodyDiv).queryByRole('img')).not.toBeInTheDocument();
   expect(within(bodyDiv).getByRole('link', { name: url })).toHaveAttribute('href', url);
 });
 

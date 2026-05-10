@@ -265,6 +265,43 @@ describe('Streaming', () => {
     expect(assistantMsgs).toHaveLength(1);
     expect(assistantMsgs[0]?.content).toBe('Partial response');
   });
+
+  it('can start from and switch to existing messages without notifying persistence', () => {
+    const { client, onMutation } = setup(['Unused']);
+    const onMessagesChange = vi.fn();
+    const initialMessages = [{ role: 'user' as const, content: 'Previous question' }];
+    const nextMessages = [{ role: 'assistant' as const, content: 'Loaded answer' }];
+    const { result } = renderHook(() =>
+      useChatLoop({ client, keeper, onMutation, initialMessages, onMessagesChange }),
+    );
+
+    expect(result.current.messages).toEqual(initialMessages);
+
+    act(() => {
+      result.current.loadMessages(nextMessages);
+    });
+
+    expect(result.current.messages).toEqual(nextMessages);
+    expect(onMessagesChange).not.toHaveBeenCalled();
+  });
+
+  it('notifies when chat messages change', async () => {
+    const { client, onMutation } = setup(['Hello again']);
+    const onMessagesChange = vi.fn();
+    const { result } = renderHook(() =>
+      useChatLoop({ client, keeper, onMutation, onMessagesChange }),
+    );
+
+    await act(async () => {
+      await result.current.send('Hi');
+    });
+
+    expect(onMessagesChange).toHaveBeenCalled();
+    expect(onMessagesChange).toHaveBeenLastCalledWith([
+      { role: 'user', content: 'Hi' },
+      { role: 'assistant', content: 'Hello again' },
+    ]);
+  });
 });
 
 function localKeeperClient(db: KeeperDB): KeeperClient {

@@ -9,6 +9,7 @@ declare const styles: {
   readonly "cursor": string;
   readonly "empty": string;
   readonly "header": string;
+  readonly "historySelect": string;
   readonly "input": string;
   readonly "inputBar": string;
   readonly "loading": string;
@@ -16,6 +17,7 @@ declare const styles: {
   readonly "messageContent": string;
   readonly "messages": string;
   readonly "modelError": string;
+  readonly "modelRow": string;
   readonly "modelSelect": string;
   readonly "sendButton": string;
   readonly "streamingMessage": string;

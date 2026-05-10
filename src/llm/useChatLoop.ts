@@ -21,16 +21,31 @@ interface UseChatLoopOptions {
   client: LLMClient;
   keeper: KeeperClient;
   onMutation: () => void;
+  initialMessages?: ChatMessage[];
+  onMessagesChange?: (messages: ChatMessage[]) => void;
 }
 
 const MAX_TOOL_ITERATIONS = 10;
 
-export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export function useChatLoop({ client, keeper, onMutation, initialMessages = [], onMessagesChange }: UseChatLoopOptions) {
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [loading, setLoading] = useState(false);
   const [streaming, setStreaming] = useState('');
   const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
   const abortRef = useRef<AbortController | null>(null);
+
+  const commitMessages = useCallback((nextMessages: ChatMessage[]) => {
+    setMessages(nextMessages);
+    onMessagesChange?.(nextMessages);
+  }, [onMessagesChange]);
+
+  const appendMessage = useCallback((message: ChatMessage) => {
+    setMessages((prevMessages) => {
+      const nextMessages = [...prevMessages, message];
+      onMessagesChange?.(nextMessages);
+      return nextMessages;
+    });
+  }, [onMessagesChange]);
 
   // out.text is mutated as tokens arrive, so callers can read partial text even if the stream aborts.
   const streamOnce = useCallback(async (llmMessages: Message[], signal: AbortSignal, out: { text: string }): Promise<void> => {
@@ -68,7 +83,7 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
 
     const newUserMsg: ChatMessage = { role: 'user', content: userInput };
     const currentMessages = [...messages, newUserMsg];
-    setMessages(currentMessages);
+    commitMessages(currentMessages);
 
     let iterMessages = currentMessages;
     let iterations = 0;
@@ -96,7 +111,7 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
           if (content !== '') {
             const assistantMsg: ChatMessage = { role: 'assistant', content };
             iterMessages = [...iterMessages, assistantMsg];
-            setMessages(iterMessages);
+            commitMessages(iterMessages);
           }
           break;
         }
@@ -129,7 +144,7 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
             // Pause for user confirmation
             const toolMsg: ChatMessage = { role: 'tool', content: result.result, toolResult: result };
             iterMessages = [...iterMessages, toolMsg];
-            setMessages(iterMessages);
+            commitMessages(iterMessages);
             setPendingConfirmation({ toolResult: result, args: call.args });
             setLoading(false);
             needsConfirmStop = true;
@@ -142,7 +157,7 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
         }
         if (needsConfirmStop) return;
 
-        setMessages(iterMessages);
+        commitMessages(iterMessages);
       }
 
       // If we exhausted the iteration limit, inform the user
@@ -151,7 +166,7 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
           role: 'assistant',
           content: "I've reached the maximum number of actions. Please try a simpler request.",
         };
-        setMessages((prev) => [...prev, limitMsg]);
+        appendMessage(limitMsg);
       }
     } catch (err: unknown) {
       setStreaming('');
@@ -160,19 +175,19 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
         const content = normalizeAssistantReply(acc.text);
         if (content !== '') {
           const partialMsg: ChatMessage = { role: 'assistant', content };
-          setMessages([...iterMessages, partialMsg]);
+          commitMessages([...iterMessages, partialMsg]);
         }
       } else {
         const errorMsg = err instanceof Error ? err.message : 'An unknown error occurred';
         const assistantMsg: ChatMessage = { role: 'assistant', content: `Error: ${errorMsg}` };
-        setMessages([...iterMessages, assistantMsg]);
+        commitMessages([...iterMessages, assistantMsg]);
       }
       return;
     } finally {
       setLoading(false);
       abortRef.current = null;
     }
-  }, [messages, loading, streamOnce, keeper, buildLLMMessages, onMutation]);
+  }, [messages, loading, commitMessages, streamOnce, keeper, buildLLMMessages, onMutation, appendMessage]);
 
   const confirmDelete = useCallback(async (confirmed: boolean) => {
     if (pendingConfirmation === null) return;
@@ -199,7 +214,7 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
 
       // Build the updated message list with the confirmation result
       const updatedMessages: ChatMessage[] = [...messages, toolMsg];
-      setMessages(updatedMessages);
+      commitMessages(updatedMessages);
 
       // Send the confirmation result back to the LLM for a follow-up response
       const [recentNotes, allTags] = await Promise.all([keeper.notes.list(), keeper.tags.list()]);
@@ -215,7 +230,7 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
         const content = normalizeAssistantReply(text);
         if (content !== '') {
           const assistantMsg: ChatMessage = { role: 'assistant', content };
-          setMessages([...updatedMessages, assistantMsg]);
+          commitMessages([...updatedMessages, assistantMsg]);
         }
       }
     } catch (err: unknown) {
@@ -225,17 +240,29 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
         setStreaming('');
         const errorMsg = err instanceof Error ? err.message : 'An unknown error occurred';
         const assistantMsg: ChatMessage = { role: 'assistant', content: `Error: ${errorMsg}` };
-        setMessages((prev) => [...prev, assistantMsg]);
+        appendMessage(assistantMsg);
       }
     } finally {
       setLoading(false);
       abortRef.current = null;
     }
-  }, [pendingConfirmation, keeper, onMutation, messages, streamOnce, buildLLMMessages]);
+  }, [pendingConfirmation, keeper, onMutation, messages, commitMessages, streamOnce, buildLLMMessages, appendMessage]);
 
   const clear = useCallback(() => {
     setMessages([]);
     setPendingConfirmation(null);
+    setStreaming('');
+    if (abortRef.current !== null) {
+      abortRef.current.abort();
+      abortRef.current = null;
+    }
+  }, []);
+
+  const loadMessages = useCallback((nextMessages: ChatMessage[]) => {
+    setMessages(nextMessages);
+    setPendingConfirmation(null);
+    setStreaming('');
+    setLoading(false);
     if (abortRef.current !== null) {
       abortRef.current.abort();
       abortRef.current = null;
@@ -257,6 +284,7 @@ export function useChatLoop({ client, keeper, onMutation }: UseChatLoopOptions) 
     send,
     confirmDelete,
     clear,
+    loadMessages,
     cancel,
   };
 }

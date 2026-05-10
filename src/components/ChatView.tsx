@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { clsx } from 'clsx';
 import type { LLMClient } from '@motioneffector/llm';
 import { markdown } from '@motioneffector/markdown';
@@ -14,10 +14,19 @@ interface ModelOption {
 }
 
 let cachedModels: ModelOption[] | null = null;
+const CHAT_HISTORY_KEY = 'keeper-chat-conversations';
+const MAX_STORED_CONVERSATIONS = 5;
 
 interface FetchModelsResult {
   models: ModelOption[];
   error: string | null;
+}
+
+interface StoredChatConversation {
+  id: string;
+  title: string;
+  updatedAt: number;
+  messages: ChatMessage[];
 }
 
 async function fetchModels(apiKey: string): Promise<FetchModelsResult> {
@@ -56,6 +65,87 @@ async function fetchModels(apiKey: string): Promise<FetchModelsResult> {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     return { models: [], error: `Failed to fetch models: ${msg}` };
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isStoredChatMessage(value: unknown): value is ChatMessage {
+  if (!isRecord(value) || typeof value['role'] !== 'string' || typeof value['content'] !== 'string') return false;
+  if (value['role'] === 'user' || value['role'] === 'assistant') return true;
+  if (value['role'] !== 'tool' || !isRecord(value['toolResult'])) return false;
+  const toolResult = value['toolResult'];
+  return (
+    typeof toolResult['name'] === 'string' &&
+    typeof toolResult['result'] === 'string' &&
+    typeof toolResult['needsConfirmation'] === 'boolean'
+  );
+}
+
+function readStoredConversations(): StoredChatConversation[] {
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+    if (raw === null) return [];
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.flatMap((item): StoredChatConversation[] => {
+      if (!isRecord(item)) return [];
+      const messages = item['messages'];
+      if (
+        typeof item['id'] !== 'string' ||
+        typeof item['title'] !== 'string' ||
+        typeof item['updatedAt'] !== 'number' ||
+        !Array.isArray(messages) ||
+        !messages.every(isStoredChatMessage)
+      ) {
+        return [];
+      }
+      return [{ id: item['id'], title: item['title'], updatedAt: item['updatedAt'], messages }];
+    }).sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_STORED_CONVERSATIONS);
+  } catch {
+    return [];
+  }
+}
+
+function writeStoredConversations(conversations: StoredChatConversation[]) {
+  try {
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(conversations));
+  } catch {
+    // Chat history is a convenience cache, so storage failures are safe to ignore.
+  }
+}
+
+function makeConversationId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `chat-${String(Date.now())}-${Math.random().toString(36).slice(2)}`;
+}
+
+function makeConversationTitle(messages: ChatMessage[]): string {
+  const titleSource = messages.find((msg) => msg.role === 'user')?.content ?? messages[0]?.content ?? 'New conversation';
+  const title = titleSource.replace(/\s+/g, ' ').trim();
+  if (title.length <= 48) return title;
+  return `${title.slice(0, 47)}...`;
+}
+
+function upsertConversation(
+  conversations: StoredChatConversation[],
+  id: string,
+  messages: ChatMessage[],
+): StoredChatConversation[] {
+  if (messages.length === 0) return conversations.filter((conversation) => conversation.id !== id);
+  const nextConversation: StoredChatConversation = {
+    id,
+    title: makeConversationTitle(messages),
+    updatedAt: Date.now(),
+    messages,
+  };
+  return [
+    nextConversation,
+    ...conversations.filter((conversation) => conversation.id !== id),
+  ].sort((a, b) => b.updatedAt - a.updatedAt).slice(0, MAX_STORED_CONVERSATIONS);
 }
 
 interface ChatViewProps {
@@ -111,16 +201,31 @@ function MessageBubble({ msg }: { msg: ChatMessage }) {
 }
 
 export function ChatView({ client, keeper, apiKey, onMutation }: ChatViewProps) {
+  const [conversations, setConversations] = useState<StoredChatConversation[]>(readStoredConversations);
+  const initialConversation = conversations[0] ?? null;
+  const initialConversationId = initialConversation?.id ?? null;
   const [input, setInput] = useState('');
   const [models, setModels] = useState<ModelOption[]>([]);
   const [modelError, setModelError] = useState<string | null>(null);
   const [selectedModel, setSelectedModel] = useState(client.getModel());
+  const [activeConversationId, setActiveConversationId] = useState<string | null>(initialConversationId);
+  const activeConversationIdRef = useRef<string | null>(initialConversationId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const { messages, loading, streaming, pendingConfirmation, send, confirmDelete, clear } = useChatLoop({
+  const handleMessagesChange = useCallback((nextMessages: ChatMessage[]) => {
+    if (nextMessages.length === 0) return;
+    const id = activeConversationIdRef.current ?? makeConversationId();
+    activeConversationIdRef.current = id;
+    setActiveConversationId(id);
+    setConversations((prevConversations) => upsertConversation(prevConversations, id, nextMessages));
+  }, []);
+
+  const { messages, loading, streaming, pendingConfirmation, send, confirmDelete, clear, loadMessages } = useChatLoop({
     client,
     keeper,
     onMutation,
+    initialMessages: initialConversation?.messages ?? [],
+    onMessagesChange: handleMessagesChange,
   });
 
   const streamingHtml = streaming === '' ? '' : renderMarkdownSafe(streaming);
@@ -138,6 +243,10 @@ export function ChatView({ client, keeper, apiKey, onMutation }: ChatViewProps) 
     };
   }, [apiKey]);
 
+  useEffect(() => {
+    writeStoredConversations(conversations);
+  }, [conversations]);
+
   // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -146,6 +255,20 @@ export function ChatView({ client, keeper, apiKey, onMutation }: ChatViewProps) 
   const handleModelChange = (modelId: string) => {
     client.setModel(modelId);
     setSelectedModel(modelId);
+  };
+
+  const handleConversationChange = (conversationId: string) => {
+    const conversation = conversations.find((item) => item.id === conversationId);
+    if (conversation === undefined) return;
+    activeConversationIdRef.current = conversation.id;
+    setActiveConversationId(conversation.id);
+    loadMessages(conversation.messages);
+  };
+
+  const handleNewConversation = () => {
+    activeConversationIdRef.current = null;
+    setActiveConversationId(null);
+    clear();
   };
 
   const handleSubmit = () => {
@@ -165,22 +288,41 @@ export function ChatView({ client, keeper, apiKey, onMutation }: ChatViewProps) 
   return (
     <div className={styles.view}>
       <div className={styles.header}>
+        <div className={styles.modelRow}>
+          <select
+            className={styles.modelSelect}
+            value={selectedModel}
+            onChange={(e) => { handleModelChange(e.target.value); }}
+            aria-label="Select model"
+          >
+            {models.length === 0 && (
+              <option value={selectedModel}>{selectedModel}</option>
+            )}
+            {models.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+          <button className={styles.clearButton} onClick={handleNewConversation} title="New conversation" aria-label="New conversation">
+            <Icon name="add" size={20} />
+          </button>
+        </div>
         <select
-          className={styles.modelSelect}
-          value={selectedModel}
-          onChange={(e) => { handleModelChange(e.target.value); }}
-          aria-label="Select model"
+          className={styles.historySelect}
+          value={activeConversationId ?? ''}
+          onChange={(e) => { handleConversationChange(e.target.value); }}
+          aria-label="Recent conversations"
+          disabled={loading || conversations.length === 0}
         >
-          {models.length === 0 && (
-            <option value={selectedModel}>{selectedModel}</option>
+          {conversations.length === 0 && (
+            <option value="">No recent conversations</option>
           )}
-          {models.map((m) => (
-            <option key={m.id} value={m.id}>{m.name}</option>
+          {conversations.length > 0 && activeConversationId === null && (
+            <option value="">New conversation</option>
+          )}
+          {conversations.map((conversation) => (
+            <option key={conversation.id} value={conversation.id}>{conversation.title}</option>
           ))}
         </select>
-        <button className={styles.clearButton} onClick={clear} title="New conversation" aria-label="New conversation">
-          <Icon name="add" size={20} />
-        </button>
       </div>
       {modelError !== null && (
         <div className={styles.modelError}>{modelError}</div>

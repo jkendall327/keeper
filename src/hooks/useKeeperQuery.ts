@@ -238,7 +238,7 @@ export function useAutoTagRules() {
   return useQuery({
     queryKey: keeperKeys.autoTagRules,
     queryFn: ({ signal }) => client.autoTagRules.list({ signal }),
-    initialData: [],
+    placeholderData: [],
   });
 }
 

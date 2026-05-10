@@ -9,7 +9,7 @@ interface AutotagSettingsProps {
 }
 
 export function AutotagSettings({ allTags }: AutotagSettingsProps) {
-  const { data: rules, isFetching: rulesLoading } = useAutoTagRules();
+  const { data: rules = [], isFetching: rulesLoading } = useAutoTagRules();
   const { createRule, deleteRule: deleteRuleMutation, updateRule } = useAutoTagRuleMutations();
   const [pattern, setPattern] = useState('');
   const [tagDraft, setTagDraft] = useState('');

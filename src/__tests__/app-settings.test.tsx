@@ -123,6 +123,19 @@ it('settings button renders the settings icon glyph', async () => {
     window.confirm = originalConfirm;
   });
 
+  it('loads existing autotag rules when the settings tab is opened', async () => {
+    const user = userEvent.setup();
+    await getTestDB().createAutoTagRule({ pattern: 'existing\\.example', tagNames: ['web'] });
+    await renderApp();
+
+    await user.click(screen.getByLabelText('Open settings'));
+    await user.click(screen.getByRole('tab', { name: 'Autotag Rules' }));
+
+    expect(await screen.findByText('/existing\\.example/i')).toBeInTheDocument();
+    expect(screen.getByText('web')).toBeInTheDocument();
+    expect(screen.queryByText('No autotag rules configured.')).not.toBeInTheDocument();
+  });
+
   it('suggests existing tags when editing autotag rules', async () => {
     const user = userEvent.setup();
     await renderApp();

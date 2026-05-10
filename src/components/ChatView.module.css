@@ -35,8 +35,9 @@
   font-size: 0.85rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
-  background: transparent;
+  background: var(--surface-card);
   color: inherit;
+  color-scheme: dark;
   cursor: pointer;
 }
 
@@ -47,9 +48,27 @@
   font-size: 0.8rem;
   border: 1px solid var(--color-border-muted);
   border-radius: var(--radius-md);
-  background: transparent;
+  background: var(--surface-card);
   color: inherit;
+  color-scheme: dark;
   cursor: pointer;
+}
+
+.modelSelect option,
+.historySelect option {
+  background-color: var(--surface-card);
+  color: rgba(255, 255, 255, 0.87);
+}
+
+@supports (appearance: base-select) and selector(::picker(select)) {
+  .modelSelect,
+  .historySelect,
+  .modelSelect::picker(select),
+  .historySelect::picker(select) {
+    appearance: base-select;
+    background-color: var(--surface-card);
+    color: inherit;
+  }
 }
 
 .historySelect:disabled {
@@ -72,6 +91,29 @@
 
 .clearButton:hover {
   opacity: 1;
+}
+
+@media (prefers-color-scheme: light) {
+  .modelSelect,
+  .historySelect {
+    background: #ffffff;
+    color: #213547;
+    color-scheme: light;
+  }
+
+  .modelSelect option,
+  .historySelect option {
+    background-color: #ffffff;
+    color: #213547;
+  }
+
+  @supports (appearance: base-select) and selector(::picker(select)) {
+    .modelSelect::picker(select),
+    .historySelect::picker(select) {
+      background-color: #ffffff;
+      color: #213547;
+    }
+  }
 }
 
 .messages {

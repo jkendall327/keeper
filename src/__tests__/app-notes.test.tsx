@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { getNoteCardByText, renderApp } from './app-test-utils';
+import { getNoteCardByText, getTestDB, renderApp } from './app-test-utils';
 
 describe('App notes', () => {
 it('creates and displays a note', async () => {
@@ -336,6 +336,27 @@ it('does not show a separate truncation indicator when note body overflows', asy
   if (bodyText === null) throw new Error('Note card markdown preview not found');
   expect(bodyText.textContent).toContain('Line 1 of a very long note');
   expect(within(noteCard).queryByTestId('note-card-truncation')).not.toBeInTheDocument();
+});
+
+it('shows body content alongside a found link preview image in note cards', async () => {
+  const db = getTestDB();
+  const url = 'https://example.com/article';
+  await db.createNote({ body: url });
+  await db.upsertLinkPreview({
+    url,
+    image_url: 'https://example.com/preview.jpg',
+    status: 'found',
+  });
+
+  await renderApp();
+
+  const noteCard = await screen.findByText(url);
+  const card = noteCard.closest<HTMLElement>('[data-note-id][role="button"]');
+  if (card === null) throw new Error('Note card not found');
+
+  const bodyDiv = within(card).getByTestId('note-card-body');
+  expect(within(bodyDiv).getByRole('img', { name: 'Link preview image' })).toHaveAttribute('src', 'https://example.com/preview.jpg');
+  expect(within(bodyDiv).getByRole('link', { name: url })).toHaveAttribute('href', url);
 });
 
 it('clicking a note in archive view opens the modal', async () => {

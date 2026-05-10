@@ -140,18 +140,23 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
       </div>
       {note.title !== '' && <h3 className={styles.title}>{note.title}</h3>}
       {(() => {
-        const imageUrl =
-          getImageUrl(note.body) ??
-          (showLinkPreviews && note.link_preview?.status === 'found' ? note.link_preview.image_url : null);
-        if (imageUrl !== null) {
+        const noteImageUrl = getImageUrl(note.body);
+        const linkPreviewImageUrl =
+          showLinkPreviews && note.link_preview?.status === 'found' ? note.link_preview.image_url : null;
+
+        if (noteImageUrl !== null) {
           return (
             <div className={styles.body} data-testid="note-card-body">
-              <img src={imageUrl} alt={note.title !== '' ? note.title : 'Image note'} loading="lazy" />
+              <img src={noteImageUrl} alt={note.title !== '' ? note.title : 'Image note'} loading="lazy" />
             </div>
           );
         }
+
         return (
           <div className={styles.body} data-testid="note-card-body">
+            {linkPreviewImageUrl !== null && (
+              <img src={linkPreviewImageUrl} alt={note.title !== '' ? note.title : 'Link preview image'} loading="lazy" />
+            )}
             <MarkdownPreview
               content={note.body}
               onCheckboxToggle={handleCheckboxToggle}

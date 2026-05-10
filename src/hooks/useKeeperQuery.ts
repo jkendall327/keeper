@@ -71,6 +71,7 @@ export function useDisplayedNotes(activeFilter: FilterType, searchQuery: string)
           return Promise.resolve(EMPTY_NOTES);
       }
     },
+    enabled: viewKey !== null,
   });
 
   if (trimmedSearchQuery === '') {

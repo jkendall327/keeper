@@ -12,11 +12,26 @@ So no promises it will be of any value to you!
 
 ## Does it actually work?
 
-Yeah. I have started running it in earnest and it's quite smooth (better than Google Keep for my workflows).
+Yeah. I have been running it in earnest and it's quite smooth (better than Google Keep for my workflows).
+
+It runs quite fast (all local so no big achievement) but I have spent a fair bit of time and tokens on polish and not-insane code.
+
+### Limitations
 
 I've made some attempts to get the UI responsive for mobile usage, but it's not been a focus so far.
 
 I'm trying to get it working as a PWA for mobile usage but not had any success so far.
+
+## Features
+
+The basic flow is just Google Keep, but with a much stronger focus on being a digital inbox/scrapbook.
+
+Add notes quickly, sort and archive them automatically, export them to more durable storage easily.
+
+- You can hit a button to automatically tag notes containing URLs via a regex. So all youtube.com links get a 'media' tag and archived.
+- There's a filter specifically for notes with links, and for untagged notes.
+- You can bulk-export arbitrary notes in a few seconds and delete them afterwards. Very little fuss.
+- There is also an AI chatbot page. You can ask it to search your notes and manage them to a basic level. It asks permission before issuing deletes.
 
 There is also a browser extension in this repo for sending content to the app; it works without issue.
 

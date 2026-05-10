@@ -60,6 +60,7 @@ describe("KeeperDB HTTP client contract", () => {
     await client.tags.removeFromNote(n1, "needs encoding");
     await client.tags.addToNotes([n1], "bulk");
     await client.tags.removeFromNotes([n1], "bulk");
+    await client.tags.popularSuggestions(n1, 5);
     await client.tags.rename("old", "new");
     await client.tags.updateIcon(7, "star");
     await client.tags.delete(7);
@@ -75,15 +76,16 @@ describe("KeeperDB HTTP client contract", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(3, "/api/notes/n1/tags/needs%20encoding", { method: "DELETE" });
     expect(fetchMock).toHaveBeenNthCalledWith(4, "/api/notes/tags/add", expect.objectContaining({ method: "POST" }));
     expect(fetchMock).toHaveBeenNthCalledWith(5, "/api/notes/tags/remove", expect.objectContaining({ method: "POST" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(6, "/api/tags/rename", expect.objectContaining({ method: "PUT" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(7, "/api/tags/7/icon", expect.objectContaining({ method: "PUT" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(8, "/api/tags/7", { method: "DELETE" });
-    expect(fetchMock).toHaveBeenNthCalledWith(9, "/api/search?q=hello%20world", undefined);
-    expect(fetchMock).toHaveBeenNthCalledWith(10, "/api/views/untagged", undefined);
-    expect(fetchMock).toHaveBeenNthCalledWith(11, "/api/views/links", undefined);
-    expect(fetchMock).toHaveBeenNthCalledWith(12, "/api/views/archived", undefined);
-    expect(fetchMock).toHaveBeenNthCalledWith(13, "/api/views/trash", undefined);
-    expect(fetchMock).toHaveBeenNthCalledWith(14, "/api/views/tag/3", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(6, "/api/tags/popular-suggestions?noteId=n1&limit=5", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(7, "/api/tags/rename", expect.objectContaining({ method: "PUT" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(8, "/api/tags/7/icon", expect.objectContaining({ method: "PUT" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(9, "/api/tags/7", { method: "DELETE" });
+    expect(fetchMock).toHaveBeenNthCalledWith(10, "/api/search?q=hello%20world", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(11, "/api/views/untagged", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(12, "/api/views/links", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(13, "/api/views/archived", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(14, "/api/views/trash", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(15, "/api/views/tag/3", undefined);
   });
 
   it("maps 404 nullable reads to null and non-ok responses to errors", async () => {

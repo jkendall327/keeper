@@ -11,7 +11,6 @@ import styles from './NotesPanel.module.css';
 
 interface NotesPanelProps {
   allTags: Tag[];
-  notes: NoteWithTags[];
   createNote: (input: CreateNoteInput) => Promise<NoteWithTags>;
   updateNote: (input: UpdateNoteInput) => Promise<NoteWithTags>;
   deleteNote: (id: NoteId) => Promise<void>;
@@ -39,7 +38,6 @@ interface NotesPanelProps {
 
 export function NotesPanel({
   allTags,
-  notes,
   createNote,
   updateNote,
   deleteNote,
@@ -124,11 +122,12 @@ export function NotesPanel({
   ]);
 
   const handleCreateNote = useCallback(async (input: CreateNoteInput) => {
-    const note = await createNote(input);
     if (autoApplyActiveTag && activeTag !== undefined) {
-      await addTag(note.id, activeTag.name);
+      await createNote({ ...input, initialTagNames: [activeTag.name] });
+      return;
     }
-  }, [activeTag, addTag, autoApplyActiveTag, createNote]);
+    await createNote(input);
+  }, [activeTag, autoApplyActiveTag, createNote]);
 
   return (
     <>
@@ -170,7 +169,6 @@ export function NotesPanel({
         <NoteModal
           note={currentNote}
           allTags={allTags}
-          allNotes={notes}
           noteCommands={noteCommands}
           showLinkPreviews={linkPreviewDisplayEnabled}
           popularTagSuggestionsEnabled={popularTagSuggestionsEnabled}

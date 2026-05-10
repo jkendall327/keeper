@@ -198,6 +198,35 @@ describe("Fastify API routes", () => {
     expect(second.tags.map((tag) => tag.name)).toContain("shared");
   });
 
+  it("creates notes with initial tags and returns popular tag suggestions", async () => {
+    const { app } = await setup();
+    const target = await app.inject({
+      method: "POST",
+      url: "/api/notes",
+      payload: { body: "target", initialTagNames: ["work"] },
+    });
+    expect(target.statusCode).toBe(200);
+    expect((parseJson(target) as NoteDto).tags.map((tag) => tag.name)).toEqual(["work"]);
+
+    await app.inject({
+      method: "POST",
+      url: "/api/notes",
+      payload: { body: "one", initialTagNames: ["later", "alpha"] },
+    });
+    await app.inject({
+      method: "POST",
+      url: "/api/notes",
+      payload: { body: "two", initialTagNames: ["later"] },
+    });
+
+    const suggestions = await app.inject({
+      method: "GET",
+      url: "/api/tags/popular-suggestions?noteId=test-id-1&limit=2",
+    });
+    expect(suggestions.statusCode).toBe(200);
+    expect((parseJson(suggestions) as TagDto[]).map((tag) => tag.name)).toEqual(["later", "alpha"]);
+  });
+
   it("returns search and smart view results from real SQLite behavior", async () => {
     const { app } = await setup();
     await app.inject({ method: "POST", url: "/api/notes", payload: { body: "plain note" } });

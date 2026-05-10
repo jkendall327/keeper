@@ -134,6 +134,7 @@ export interface UpdateAppSettingsInput {
 export interface CreateNoteInput {
   title?: string;
   body: string;
+  initialTagNames?: string[];
 }
 
 export interface UpdateNoteInput {
@@ -167,6 +168,7 @@ export interface KeeperDB {
   removeTag(noteId: NoteId, tagName: string): Promise<NoteWithTags>;
   addTagToNotes(noteIds: NoteId[], tagName: string): Promise<void>;
   removeTagFromNotes(noteIds: NoteId[], tagName: string): Promise<void>;
+  getPopularTagSuggestions(noteId: NoteId, limit: number): Promise<Tag[]>;
   renameTag(oldName: string, newName: string): Promise<void>;
   updateTagIcon(tagId: number, icon: string | null): Promise<void>;
   deleteTag(tagId: number): Promise<void>;

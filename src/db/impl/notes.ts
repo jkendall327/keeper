@@ -37,12 +37,31 @@ export function createNoteMethods(ctx: KeeperDBContext): Pick<
       const body = input.body;
       const hasLinks = containsUrl(body) ? 1 : 0;
       const timestamp = now();
-
-      db.run(
-        `INSERT INTO notes (id, title, body, has_links, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [id, title, body, hasLinks, timestamp, timestamp],
+      const initialTagNames = Array.from(
+        new Set((input.initialTagNames ?? []).map((name) => name.trim()).filter((name) => name !== "")),
       );
+
+      const insertNote = () => {
+        db.run(
+          `INSERT INTO notes (id, title, body, has_links, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [id, title, body, hasLinks, timestamp, timestamp],
+        );
+
+        for (const tagName of initialTagNames) {
+          const tagId = ctx.ensureTag(tagName);
+          db.run(
+            "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
+            [id, tagId],
+          );
+        }
+      };
+
+      if (initialTagNames.length > 0) {
+        db.transaction(insertNote);
+      } else {
+        insertNote();
+      }
 
       return Promise.resolve(withTags({
         id,

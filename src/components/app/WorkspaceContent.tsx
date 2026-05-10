@@ -29,7 +29,6 @@ export interface WorkspaceSettings extends Pick<
 
 interface WorkspaceContentProps {
   allTags: Tag[];
-  inboxNotes: NoteWithTags[];
   noteMutations: ReturnType<typeof useNoteMutations>;
   settings: WorkspaceSettings;
   view: NoteViewState;
@@ -41,7 +40,6 @@ function filterKey(filter: FilterType) {
 
 export function WorkspaceContent({
   allTags,
-  inboxNotes,
   noteMutations,
   settings,
   view,
@@ -54,7 +52,6 @@ export function WorkspaceContent({
     <NotesPanel
       key={filterKey(view.activeFilter)}
       allTags={allTags}
-      notes={inboxNotes}
       createNote={noteMutations.createNote}
       updateNote={noteMutations.updateNote}
       deleteNote={noteMutations.deleteNote}

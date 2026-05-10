@@ -59,6 +59,19 @@ describe('Note CRUD', () => {
       expect(tagged.tags).toHaveLength(1);
       expect(tagged.tags[0]?.name).toBe('hello');
     });
+
+    it('creates a note with initial tags atomically in one call', async () => {
+      const note = await api.createNote({
+        body: 'tagged at creation',
+        initialTagNames: ['work', ' work ', '', 'later', 'work'],
+      });
+
+      expect(note.tags.map((tag) => tag.name)).toEqual(['work', 'later']);
+      await expect(api.getAllTags()).resolves.toMatchObject([
+        { name: 'later' },
+        { name: 'work' },
+      ]);
+    });
   });
 
   describe('getNote', () => {

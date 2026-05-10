@@ -157,7 +157,6 @@ function KeeperApp() {
           >
             <WorkspaceContent
               allTags={allTags}
-              inboxNotes={inboxNotes}
               noteMutations={noteMutations}
               view={{
                 activeFilter,

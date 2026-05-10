@@ -525,4 +525,20 @@ describe('Tags', () => {
       expect(tag.icon).toBe('rocket_launch');
     });
   });
+
+  describe('getPopularTagSuggestions', () => {
+    it('returns active-note tag suggestions ordered by usage then name, excluding the note tags', async () => {
+      const target = await api.createNote({ body: 'target', initialTagNames: ['work'] });
+      await api.createNote({ body: 'first', initialTagNames: ['work', 'later'] });
+      await api.createNote({ body: 'second', initialTagNames: ['alpha', 'later'] });
+      const archived = await api.createNote({ body: 'archived', initialTagNames: ['archived-only'] });
+      await api.toggleArchiveNote(archived.id);
+      const trashed = await api.createNote({ body: 'trashed', initialTagNames: ['trashed-only'] });
+      await api.trashNote(trashed.id);
+
+      const suggestions = await api.getPopularTagSuggestions(target.id, 2);
+
+      expect(suggestions.map((tag) => tag.name)).toEqual(['later', 'alpha']);
+    });
+  });
 });

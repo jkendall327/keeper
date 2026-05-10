@@ -44,6 +44,7 @@ export interface KeeperClient {
     removeFromNote(noteId: NoteId, tagName: string): Promise<NoteWithTags>;
     addToNotes(noteIds: NoteId[], tagName: string): Promise<void>;
     removeFromNotes(noteIds: NoteId[], tagName: string): Promise<void>;
+    popularSuggestions(noteId: NoteId, limit: number, options?: RequestOptions): Promise<Tag[]>;
     rename(oldName: string, newName: string): Promise<void>;
     updateIcon(tagId: number, icon: string | null): Promise<void>;
     delete(tagId: number): Promise<void>;
@@ -146,6 +147,12 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
         fetchVoid(fetchFn, '/api/notes/tags/add', jsonOpts('POST', { noteIds, tagName })),
       removeFromNotes: (noteIds, tagName) =>
         fetchVoid(fetchFn, '/api/notes/tags/remove', jsonOpts('POST', { noteIds, tagName })),
+      popularSuggestions: (noteId, limit, options) =>
+        fetchJson<Tag[]>(
+          fetchFn,
+          `/api/tags/popular-suggestions?noteId=${encodeURIComponent(noteId)}&limit=${String(limit)}`,
+          withSignal(options),
+        ),
       rename: (oldName, newName) =>
         fetchVoid(fetchFn, '/api/tags/rename', jsonOpts('PUT', { oldName, newName })),
       updateIcon: (tagId, icon) =>

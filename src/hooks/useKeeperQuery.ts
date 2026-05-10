@@ -22,6 +22,7 @@ export const keeperKeys = {
   view: (name: string) => ['notes', 'view', name] as const,
   search: (query: string) => ['notes', 'search', query] as const,
   tags: ['tags'] as const,
+  popularTagSuggestions: (noteId: NoteId, limit: number) => ['tags', 'popularSuggestions', noteId, limit] as const,
   settings: ['settings'] as const,
   autoTagRules: ['autoTagRules'] as const,
   mediaForNote: (noteId: NoteId) => ['media', 'note', noteId] as const,
@@ -89,6 +90,16 @@ export function useAppSettings() {
   return data;
 }
 
+export function usePopularTagSuggestions(noteId: NoteId, limit: number, enabled: boolean) {
+  const { client } = useKeeperServices();
+  return useQuery({
+    queryKey: keeperKeys.popularTagSuggestions(noteId, limit),
+    queryFn: ({ signal }) => client.tags.popularSuggestions(noteId, limit, { signal }),
+    enabled,
+    placeholderData: [],
+  });
+}
+
 export function useExtensionEvents() {
   const queryClient = useQueryClient();
   const [extensionNoteCreatedCount, setExtensionNoteCreatedCount] = useState(0);
@@ -128,7 +139,7 @@ export function useNoteMutations() {
     mutationFn: (input: CreateNoteInput) => client.notes.create(input),
     onSuccess: async (note) => {
       queryClient.setQueryData<NoteWithTags>(keeperKeys.note(note.id), note);
-      await invalidateNotes();
+      await invalidateNotesAndTags();
     },
   });
   const updateNote = useMutation({

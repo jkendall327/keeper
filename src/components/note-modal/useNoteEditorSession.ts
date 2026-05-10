@@ -1,12 +1,12 @@
 import { useEffect, useReducer, useRef } from 'react';
 import type { ChangeEvent, KeyboardEvent } from 'react';
 import type { NoteWithTags, Tag } from '../../db/types.ts';
+import { usePopularTagSuggestions } from '../../hooks/useKeeperQuery.ts';
 import type { NoteCommands } from '../note-commands.ts';
 
 interface UseNoteEditorSessionOptions {
   note: NoteWithTags;
   allTags: Tag[];
-  allNotes: NoteWithTags[];
   noteCommands: NoteCommands;
   popularTagSuggestionsEnabled: boolean;
   popularTagSuggestionLimit: number;
@@ -87,7 +87,6 @@ function noteEditorSessionReducer(
 export function useNoteEditorSession({
   note,
   allTags,
-  allNotes,
   noteCommands,
   popularTagSuggestionsEnabled,
   popularTagSuggestionLimit,
@@ -220,26 +219,17 @@ export function useNoteEditorSession({
     ...note.tags.map((tag) => tag.name),
     ...state.pendingTagNames,
   ]);
-
-  const tagNoteCounts = new Map<number, number>();
-  for (const currentNote of allNotes) {
-    for (const tag of currentNote.tags) {
-      tagNoteCounts.set(tag.id, (tagNoteCounts.get(tag.id) ?? 0) + 1);
-    }
-  }
+  const popularSuggestions = usePopularTagSuggestions(
+    note.id,
+    popularTagSuggestionLimit,
+    popularTagSuggestionsEnabled,
+  );
 
   const trimmedTagInput = state.tagInput.trim();
   const suggestions =
     trimmedTagInput === ''
       ? popularTagSuggestionsEnabled
-        ? [...allTags]
-            .filter((tag) => !noteTagNames.has(tag.name) && (tagNoteCounts.get(tag.id) ?? 0) > 0)
-            .sort((a, b) => {
-              const countDiff = (tagNoteCounts.get(b.id) ?? 0) - (tagNoteCounts.get(a.id) ?? 0);
-              if (countDiff !== 0) return countDiff;
-              return a.name.localeCompare(b.name);
-            })
-            .slice(0, popularTagSuggestionLimit)
+        ? (popularSuggestions.data ?? []).filter((tag) => !noteTagNames.has(tag.name))
         : []
       : allTags
           .filter(

@@ -6,7 +6,7 @@ import type {
   UpdateAppSettingsInput,
   UpdateNoteInput,
 } from "../src/db/types.ts";
-import { toNoteId, toNoteIds } from "../src/db/types.ts";
+import { normalizePopularTagSuggestionLimit, toNoteId, toNoteIds } from "../src/db/types.ts";
 import { bufferToArrayBuffer, type MediaHandler } from "./media-handler.ts";
 import { truncateExtensionTitle } from "../src/utils/extension-title.ts";
 import { createEventBroadcaster } from "./events.ts";
@@ -143,6 +143,23 @@ export function registerRoutes(
   app.get("/api/tags", async () => {
     return db.getAllTags();
   });
+
+  app.get<{ Querystring: { noteId?: string; limit?: string } }>(
+    "/api/tags/popular-suggestions",
+    async (req, reply) => {
+      if (req.query.noteId === undefined) {
+        return reply.code(400).send({ error: "noteId is required" });
+      }
+
+      try {
+        const limit = normalizePopularTagSuggestionLimit(Number(req.query.limit ?? "5"));
+        return await db.getPopularTagSuggestions(toNoteId(req.query.noteId), limit);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Invalid popular tag suggestion request";
+        return reply.code(400).send({ error: message });
+      }
+    },
+  );
 
   app.post<{ Params: { noteId: string }; Body: { name: string } }>(
     "/api/notes/:noteId/tags",

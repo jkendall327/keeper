@@ -13,7 +13,6 @@ import styles from './NoteModal.module.css';
 interface NoteModalProps {
   note: NoteWithTags;
   allTags: Tag[];
-  allNotes: NoteWithTags[];
   noteCommands: NoteCommands;
   showLinkPreviews: boolean;
   popularTagSuggestionsEnabled: boolean;
@@ -25,7 +24,6 @@ interface NoteModalProps {
 export function NoteModal({
   note,
   allTags,
-  allNotes,
   noteCommands,
   showLinkPreviews,
   popularTagSuggestionsEnabled,
@@ -39,7 +37,6 @@ export function NoteModal({
   const editor = useNoteEditorSession({
     note,
     allTags,
-    allNotes,
     noteCommands,
     popularTagSuggestionsEnabled,
     popularTagSuggestionLimit,

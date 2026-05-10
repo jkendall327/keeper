@@ -10,6 +10,7 @@ export function createTagMethods(
   | "removeTag"
   | "addTagToNotes"
   | "removeTagFromNotes"
+  | "getPopularTagSuggestions"
   | "renameTag"
   | "updateTagIcon"
   | "deleteTag"
@@ -68,6 +69,25 @@ export function createTagMethods(
         [tagName, ...noteIds],
       );
       return Promise.resolve();
+    },
+
+    getPopularTagSuggestions(noteId: NoteId, limit: number): Promise<Tag[]> {
+      const rows = db.query(
+        `SELECT t.id, t.name, t.icon, COUNT(nt.note_id) AS note_count
+         FROM tags t
+         JOIN note_tags nt ON nt.tag_id = t.id
+         JOIN notes n ON n.id = nt.note_id
+         WHERE n.archived = 0
+           AND n.trashed = 0
+           AND t.id NOT IN (
+             SELECT tag_id FROM note_tags WHERE note_id = ?
+           )
+         GROUP BY t.id, t.name, t.icon
+         ORDER BY note_count DESC, t.name ASC
+         LIMIT ?`,
+        [noteId, limit],
+      );
+      return Promise.resolve(rows.map(rowToTag));
     },
 
     renameTag(oldName: string, newName: string): Promise<void> {

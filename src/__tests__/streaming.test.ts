@@ -249,6 +249,7 @@ function localKeeperClient(db: KeeperDB): KeeperClient {
       removeFromNote: (noteId, tagName) => db.removeTag(noteId, tagName),
       addToNotes: (noteIds, tagName) => db.addTagToNotes(noteIds, tagName),
       removeFromNotes: (noteIds, tagName) => db.removeTagFromNotes(noteIds, tagName),
+      popularSuggestions: (noteId, limit) => db.getPopularTagSuggestions(noteId, limit),
       rename: (oldName, newName) => db.renameTag(oldName, newName),
       updateIcon: (tagId, icon) => db.updateTagIcon(tagId, icon),
       delete: (tagId) => db.deleteTag(tagId),

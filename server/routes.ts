@@ -370,29 +370,6 @@ export function registerRoutes(
     },
   );
 
-  app.get<{ Querystring: { url?: string } }>(
-    "/api/link-preview",
-    async (req, reply) => {
-      if (req.query.url === undefined) {
-        return reply.code(400).send({ error: "url is required" });
-      }
-      const metadata = await db.getLinkMetadata(req.query.url);
-      if (metadata === null) {
-        return reply.code(404).send({ error: "Not found" });
-      }
-      return metadata;
-    },
-  );
-
-  app.put<{
-    Body: { url: string; image_url: string | null; status: "found" | "missing" | "error" };
-  }>(
-    "/api/link-previews",
-    async (req) => {
-      return db.upsertLinkMetadata(req.body);
-    },
-  );
-
   // ── Media ──────────────────────────────────
 
   app.post("/api/media", async (req) => {

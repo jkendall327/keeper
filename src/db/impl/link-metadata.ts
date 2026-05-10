@@ -12,8 +12,6 @@ export function createLinkMetadataMethods(ctx: KeeperDBContext): Pick<
   | "claimNextLinkMetadataJob"
   | "completeLinkMetadataJob"
   | "failLinkMetadataJob"
-  | "getLinkPreview"
-  | "upsertLinkPreview"
 > {
   const { db, getLinkMetadataSync, now, rowString } = ctx;
 
@@ -181,12 +179,5 @@ export function createLinkMetadataMethods(ctx: KeeperDBContext): Pick<
       return Promise.resolve();
     },
 
-    getLinkPreview(url: string): Promise<LinkMetadata | null> {
-      return Promise.resolve(getLinkMetadataSync(url));
-    },
-
-    upsertLinkPreview(input): Promise<LinkMetadata> {
-      return Promise.resolve(upsertSync(input));
-    },
   };
 }

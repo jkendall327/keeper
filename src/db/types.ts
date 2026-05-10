@@ -61,8 +61,6 @@ export interface LinkMetadata {
   updated_at: string;
 }
 
-export type LinkPreview = LinkMetadata;
-
 export interface LinkMetadataJob {
   url: string;
   attempts: number;
@@ -232,6 +230,4 @@ export interface KeeperDB {
   claimNextLinkMetadataJob(now: string): Promise<LinkMetadataJob | null>;
   completeLinkMetadataJob(input: Partial<LinkMetadata> & Pick<LinkMetadata, "url" | "status">): Promise<LinkMetadata>;
   failLinkMetadataJob(url: string, error: string): Promise<void>;
-  getLinkPreview(url: string): Promise<LinkPreview | null>;
-  upsertLinkPreview(input: Pick<LinkPreview, "url" | "image_url" | "status">): Promise<LinkPreview>;
 }

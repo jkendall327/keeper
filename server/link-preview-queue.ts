@@ -76,5 +76,3 @@ export function createLinkMetadataQueue(params: {
     },
   };
 }
-
-export const createLinkPreviewQueue = createLinkMetadataQueue;

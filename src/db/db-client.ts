@@ -76,10 +76,6 @@ export interface KeeperClient {
     delete(id: string): Promise<void>;
     listForNote(noteId: NoteId, options?: RequestOptions): Promise<Media[]>;
   };
-  linkPreviews: {
-    get(url: string, options?: RequestOptions): Promise<LinkMetadata | null>;
-    upsert(input: Pick<LinkMetadata, 'url' | 'image_url' | 'status'>): Promise<LinkMetadata>;
-  };
   linkMetadata: {
     get(url: string, options?: RequestOptions): Promise<LinkMetadata | null>;
   };
@@ -202,11 +198,6 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
       delete: (id) => fetchVoid(fetchFn, `/api/media/${id}`, { method: 'DELETE' }),
       listForNote: (noteId, options) =>
         fetchJson<Media[]>(fetchFn, `/api/notes/${noteId}/media`, withSignal(options)),
-    },
-    linkPreviews: {
-      get: (url, options) =>
-        fetchNullable<LinkMetadata>(fetchFn, `/api/link-metadata?url=${encodeURIComponent(url)}`, withSignal(options)),
-      upsert: (input) => fetchJson<LinkMetadata>(fetchFn, '/api/link-previews', jsonOpts('PUT', input)),
     },
     linkMetadata: {
       get: (url, options) =>

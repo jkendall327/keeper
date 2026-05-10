@@ -262,10 +262,6 @@ function localKeeperClient(db: KeeperDB): KeeperClient {
       delete: (id) => db.deleteMedia(id),
       listForNote: (noteId) => db.getMediaForNote(noteId),
     },
-    linkPreviews: {
-      get: (url) => db.getLinkPreview(url),
-      upsert: (input) => db.upsertLinkPreview(input),
-    },
     linkMetadata: {
       get: (url) => db.getLinkMetadata(url),
     },

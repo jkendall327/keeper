@@ -94,7 +94,7 @@ GET /api/link-metadata?url=...
 
 There is no public manual enqueue endpoint for v1. URL enqueueing is an internal consequence of note create/update and startup scanning.
 
-Legacy preview routes/method names are kept as compatibility shims where useful, but new code should use the metadata terminology.
+Legacy preview API routes and DB methods were removed after the metadata endpoint became authoritative.
 
 ## Preview Selection
 
@@ -134,4 +134,4 @@ Fetch disabled means the queue does not process jobs. Display disabled means cac
 - Dedupe fetches by URL. The same URL can appear in many notes, but it should have one metadata row and one queue job.
 - Retry failures silently. Link previews are enhancement data; failures should not create visible note errors.
 - Broadcast only for newly useful image metadata. Missing/error writes should not cause unnecessary UI refreshes.
-- Keep legacy settings and shims. This reduces migration and client compatibility risk while allowing new code to use `LinkMetadata`.
+- Keep legacy settings names. This avoids an extra settings migration while allowing the implementation to use `LinkMetadata`.

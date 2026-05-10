@@ -342,7 +342,7 @@ it('shows body content alongside a found link preview image in note cards', asyn
   const db = getTestDB();
   const url = 'https://example.com/article';
   await db.createNote({ body: url });
-  await db.upsertLinkPreview({
+  await db.upsertLinkMetadata({
     url,
     image_url: 'https://example.com/preview.jpg',
     status: 'found',

@@ -3,7 +3,7 @@ import { createTestDb } from '../db/__tests__/test-db.ts';
 import { createKeeperDB } from '../db/db-impl.ts';
 import type { KeeperClient } from '../db/db-client.ts';
 import { toNoteId, type KeeperDB } from '../db/types.ts';
-import { executeTool } from '../llm/tools.ts';
+import { executeTool, parseToolCall } from '../llm/tools.ts';
 
 describe('Tool executor', () => {
   let db: KeeperDB;
@@ -43,10 +43,8 @@ describe('Tool executor', () => {
     expect(result.result).not.toContain('Read a book');
   });
 
-  it('search_notes returns error for missing query', async () => {
-    const result = await executeTool(keeper, { name: 'search_notes', args: {} });
-    expect(result.result).toContain('Error');
-    expect(result.result).toContain('query');
+  it('rejects search_notes calls with a missing query at the parse boundary', () => {
+    expect(parseToolCall('search_notes', {})).toBeNull();
   });
 
   it('get_note returns a single note', async () => {
@@ -86,10 +84,8 @@ describe('Tool executor', () => {
     expect(result.noteLinks?.[1]?.note).toBeNull();
   });
 
-  it('display_notes returns an error for invalid ids argument', async () => {
-    const result = await executeTool(keeper, { name: 'display_notes', args: { ids: 'test-id-1' } });
-    expect(result.result).toContain('Error');
-    expect(result.noteLinks).toBeUndefined();
+  it('display_notes returns an error for invalid ids argument', () => {
+    expect(parseToolCall('display_notes', { ids: 'test-id-1' })).toBeNull();
   });
 
   it('create_note creates and returns new note', async () => {
@@ -101,9 +97,8 @@ describe('Tool executor', () => {
     expect(allNotes[0]?.body).toBe('New note from AI');
   });
 
-  it('create_note returns error for empty body', async () => {
-    const result = await executeTool(keeper, { name: 'create_note', args: { body: '' } });
-    expect(result.result).toContain('Error');
+  it('create_note returns error for empty body', () => {
+    expect(parseToolCall('create_note', { body: '' })).toBeNull();
   });
 
   it('update_note updates and returns the note', async () => {
@@ -197,10 +192,8 @@ describe('Tool executor', () => {
     expect(invalidCall.name).toBe('nonexistent_tool');
   });
 
-  it('returns error for missing required parameters', async () => {
-    const result = await executeTool(keeper, { name: 'get_note', args: {} });
-    expect(result.result).toContain('Error');
-    expect(result.result).toContain('"id"');
+  it('returns error for missing required parameters', () => {
+    expect(parseToolCall('get_note', {})).toBeNull();
   });
 
   it('get_notes_for_tag returns notes with the specified tag', async () => {
@@ -217,10 +210,8 @@ describe('Tool executor', () => {
     expect(result.result).toContain('No tag named "nonexistent"');
   });
 
-  it('get_notes_for_tag returns error for missing tag_name', async () => {
-    const result = await executeTool(keeper, { name: 'get_notes_for_tag', args: {} });
-    expect(result.result).toContain('Error');
-    expect(result.result).toContain('tag_name');
+  it('get_notes_for_tag returns error for missing tag_name', () => {
+    expect(parseToolCall('get_notes_for_tag', {})).toBeNull();
   });
 
   it('get_untagged_notes returns only untagged notes', async () => {

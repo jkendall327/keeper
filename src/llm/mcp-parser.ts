@@ -1,22 +1,4 @@
-import type { ToolCall, ToolName } from "./tools.ts";
-
-const TOOL_NAMES: ReadonlySet<string> = new Set<ToolName>([
-  "list_notes",
-  "search_notes",
-  "get_note",
-  "display_notes",
-  "create_note",
-  "update_note",
-  "delete_note",
-  "confirm_delete_note",
-  "add_tag",
-  "remove_tag",
-  "get_notes_for_tag",
-  "get_untagged_notes",
-  "list_tags",
-  "toggle_pin",
-  "toggle_archive",
-]);
+import { parseToolCall, isToolName, type ToolCall } from "./tools.ts";
 
 /**
  * Parse MCP-formatted tool call blocks from a response string.
@@ -48,15 +30,16 @@ function tryParseToolCall(jsonStr: string): ToolCall | null {
     ) {
       const obj = parsed as Record<string, unknown>;
       const name = obj["name"] as string;
-      if (!TOOL_NAMES.has(name)) {
+      if (!isToolName(name)) {
         console.warn("Unknown tool name in tool call:", name);
         return null;
       }
-      const args =
-        typeof obj["args"] === "object" && obj["args"] !== null
-          ? (obj["args"] as Record<string, unknown>)
-          : {};
-      return { name: name as ToolName, args };
+      const toolCall = parseToolCall(name, obj["args"] ?? {});
+      if (toolCall === null) {
+        console.warn("Invalid args for tool call:", name);
+        return null;
+      }
+      return toolCall;
     }
     return null;
   } catch (err: unknown) {

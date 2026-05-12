@@ -1,27 +1,34 @@
 import type { KeeperClient } from '../db/db-client.ts';
 import { toNoteId, type NoteWithTags, type Tag } from "../db/types.ts";
 
-export type ToolName =
-  | "list_notes"
-  | "search_notes"
-  | "get_note"
-  | "display_notes"
-  | "create_note"
-  | "update_note"
-  | "delete_note"
-  | "confirm_delete_note"
-  | "add_tag"
-  | "remove_tag"
-  | "get_notes_for_tag"
-  | "get_untagged_notes"
-  | "list_tags"
-  | "toggle_pin"
-  | "toggle_archive";
+type EmptyArgs = Record<string, never>;
 
-export interface ToolCall {
-  name: ToolName;
-  args: Record<string, unknown>;
+export interface ToolArgsByName {
+  list_notes: EmptyArgs;
+  search_notes: { query: string };
+  get_note: { id: string };
+  display_notes: { ids: string[] };
+  create_note: { body: string; title?: string };
+  update_note: { id: string; body: string; title?: string };
+  delete_note: { id: string };
+  confirm_delete_note: { id: string };
+  add_tag: { note_id: string; tag_name: string };
+  remove_tag: { note_id: string; tag_name: string };
+  get_notes_for_tag: { tag_name: string };
+  get_untagged_notes: EmptyArgs;
+  list_tags: EmptyArgs;
+  toggle_pin: { id: string };
+  toggle_archive: { id: string };
 }
+
+export type ToolName = keyof ToolArgsByName;
+
+export type ToolCall = {
+  [Name in ToolName]: {
+    name: Name;
+    args: ToolArgsByName[Name];
+  }
+}[ToolName];
 
 export interface ToolMetadata {
   terminal: boolean;
@@ -53,23 +60,137 @@ export interface NoteLink {
   note: NoteLinkSnapshot | null;
 }
 
-export const TOOL_METADATA: Record<ToolName, ToolMetadata> = {
-  list_notes: { terminal: false },
-  search_notes: { terminal: false },
-  get_note: { terminal: false },
-  display_notes: { terminal: true },
-  create_note: { terminal: false },
-  update_note: { terminal: false },
-  delete_note: { terminal: false },
-  confirm_delete_note: { terminal: false },
-  add_tag: { terminal: false },
-  remove_tag: { terminal: false },
-  get_notes_for_tag: { terminal: false },
-  get_untagged_notes: { terminal: false },
-  list_tags: { terminal: false },
-  toggle_pin: { terminal: false },
-  toggle_archive: { terminal: false },
-};
+interface ToolSpec<Name extends ToolName> extends ToolMetadata {
+  parseArgs: (args: unknown) => ToolArgsByName[Name] | null;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function emptyArgs(_args: unknown): EmptyArgs {
+  return {};
+}
+
+function requiredString(args: Record<string, unknown>, key: string, opts?: { nonEmpty?: boolean }): string | null {
+  const value = args[key];
+  if (typeof value !== "string") return null;
+  if (opts?.nonEmpty === true && value.trim() === "") return null;
+  return value;
+}
+
+function optionalString(args: Record<string, unknown>, key: string): string | undefined {
+  const value = args[key];
+  return typeof value === "string" ? value : undefined;
+}
+
+function parseStringArg<Key extends string>(key: Key, opts?: { nonEmpty?: boolean }) {
+  return (args: unknown): Record<Key, string> | null => {
+    if (!isRecord(args)) return null;
+    const value = requiredString(args, key, opts);
+    return value === null ? null : { [key]: value } as Record<Key, string>;
+  };
+}
+
+function parseCreateNoteArgs(args: unknown): ToolArgsByName["create_note"] | null {
+  if (!isRecord(args)) return null;
+  const body = requiredString(args, "body", { nonEmpty: true });
+  if (body === null) return null;
+  const title = optionalString(args, "title");
+  return { body, ...(title === undefined ? {} : { title }) };
+}
+
+function parseUpdateNoteArgs(args: unknown): ToolArgsByName["update_note"] | null {
+  if (!isRecord(args)) return null;
+  const id = requiredString(args, "id");
+  const body = requiredString(args, "body");
+  if (id === null || body === null) return null;
+  const title = optionalString(args, "title");
+  return { id, body, ...(title === undefined ? {} : { title }) };
+}
+
+function parseDisplayNotesArgs(args: unknown): ToolArgsByName["display_notes"] | null {
+  if (!isRecord(args)) return null;
+  const ids = args["ids"];
+  return Array.isArray(ids) && ids.every((id) => typeof id === "string") ? { ids } : null;
+}
+
+function parseTagMutationArgs(args: unknown): ToolArgsByName["add_tag"] | null {
+  if (!isRecord(args)) return null;
+  const noteId = requiredString(args, "note_id");
+  const tagName = requiredString(args, "tag_name", { nonEmpty: true });
+  return noteId === null || tagName === null ? null : { note_id: noteId, tag_name: tagName };
+}
+
+export const TOOL_SPECS = {
+  list_notes: { terminal: false, parseArgs: emptyArgs },
+  search_notes: { terminal: false, parseArgs: parseStringArg("query", { nonEmpty: true }) },
+  get_note: { terminal: false, parseArgs: parseStringArg("id") },
+  display_notes: { terminal: true, parseArgs: parseDisplayNotesArgs },
+  create_note: { terminal: false, parseArgs: parseCreateNoteArgs },
+  update_note: { terminal: false, parseArgs: parseUpdateNoteArgs },
+  delete_note: { terminal: false, parseArgs: parseStringArg("id") },
+  confirm_delete_note: { terminal: false, parseArgs: parseStringArg("id") },
+  add_tag: { terminal: false, parseArgs: parseTagMutationArgs },
+  remove_tag: { terminal: false, parseArgs: parseTagMutationArgs },
+  get_notes_for_tag: { terminal: false, parseArgs: parseStringArg("tag_name", { nonEmpty: true }) },
+  get_untagged_notes: { terminal: false, parseArgs: emptyArgs },
+  list_tags: { terminal: false, parseArgs: emptyArgs },
+  toggle_pin: { terminal: false, parseArgs: parseStringArg("id") },
+  toggle_archive: { terminal: false, parseArgs: parseStringArg("id") },
+} satisfies { [Name in ToolName]: ToolSpec<Name> };
+
+export const TOOL_METADATA: Record<ToolName, ToolMetadata> = Object.fromEntries(
+  Object.entries(TOOL_SPECS).map(([name, spec]) => [name, { terminal: spec.terminal }]),
+) as Record<ToolName, ToolMetadata>;
+
+export function isToolName(value: string): value is ToolName {
+  return Object.hasOwn(TOOL_SPECS, value);
+}
+
+export function parseToolCall(name: string, args: unknown): ToolCall | null {
+  if (!isToolName(name)) return null;
+  const parsedArgs = TOOL_SPECS[name].parseArgs(args);
+  if (parsedArgs === null) return null;
+  return { name, args: parsedArgs } as ToolCall;
+}
+
+export function isNoteLink(value: unknown): value is NoteLink {
+  if (!isRecord(value) || typeof value["id"] !== "string") return false;
+  if (value["status"] !== "found" && value["status"] !== "missing" && value["status"] !== "error") return false;
+  if (value["note"] === null) return true;
+  if (!isRecord(value["note"])) return false;
+  const note = value["note"];
+  return (
+    typeof note["id"] === "string" &&
+    typeof note["title"] === "string" &&
+    typeof note["bodyPreview"] === "string" &&
+    Array.isArray(note["tags"]) &&
+    note["tags"].every((tag) => (
+      isRecord(tag) &&
+      typeof tag["id"] === "number" &&
+      typeof tag["name"] === "string" &&
+      (tag["icon"] === null || typeof tag["icon"] === "string")
+    )) &&
+    typeof note["pinned"] === "boolean" &&
+    typeof note["archived"] === "boolean" &&
+    typeof note["trashed"] === "boolean" &&
+    typeof note["updated_at"] === "string"
+  );
+}
+
+export function isToolResult(value: unknown): value is ToolResult {
+  if (!isRecord(value)) return false;
+  const name = value["name"];
+  const noteLinks = value["noteLinks"];
+  return (
+    typeof name === "string" &&
+    isToolName(name) &&
+    typeof value["result"] === "string" &&
+    typeof value["needsConfirmation"] === "boolean" &&
+    (noteLinks === undefined || (Array.isArray(noteLinks) && noteLinks.every(isNoteLink)))
+  );
+}
 
 // ── Result helpers ──────────────────────────────────────────
 
@@ -83,40 +204,6 @@ function okWithNoteLinks(name: ToolName, result: string, noteLinks: NoteLink[]):
 
 function confirm(name: ToolName, result: string): ToolResult {
   return { name, result, needsConfirmation: true };
-}
-
-// ── Arg extraction helpers ──────────────────────────────────
-
-/** Extract a required string arg, returning a ToolResult error if missing/invalid */
-function requireStr(
-  name: ToolName,
-  args: Record<string, unknown>,
-  key: string,
-  opts?: { nonEmpty?: boolean },
-): string | ToolResult {
-  const val = args[key];
-  if (typeof val !== "string") {
-    return ok(
-      name,
-      `Error: "${key}" parameter is required and must be a string.`,
-    );
-  }
-  if (opts?.nonEmpty === true && val.trim() === "") {
-    return ok(
-      name,
-      `Error: "${key}" parameter is required and must be a non-empty string.`,
-    );
-  }
-  return val;
-}
-
-/** Extract an optional string arg, returning undefined if missing */
-function optionalStr(
-  args: Record<string, unknown>,
-  key: string,
-): string | undefined {
-  const val = args[key];
-  return typeof val === "string" ? val : undefined;
 }
 
 // ── Formatters ──────────────────────────────────────────────
@@ -171,38 +258,28 @@ export async function executeTool(
   keeper: KeeperClient,
   call: ToolCall,
 ): Promise<ToolResult> {
-  const { name, args } = call;
-
-  switch (name) {
+  switch (call.name) {
     case "list_notes": {
       const notes = await keeper.notes.list();
-      if (notes.length === 0) return ok(name, "No notes found.");
-      return ok(name, notes.map(formatNote).join("\n---\n"));
+      if (notes.length === 0) return ok(call.name, "No notes found.");
+      return ok(call.name, notes.map(formatNote).join("\n---\n"));
     }
 
     case "search_notes": {
-      const query = requireStr(name, args, "query", { nonEmpty: true });
-      if (typeof query !== "string") return query;
-      const results = await keeper.search.notes(query);
+      const results = await keeper.search.notes(call.args.query);
       if (results.length === 0)
-        return ok(name, `No notes matching "${query}".`);
-      return ok(name, results.map(formatNote).join("\n---\n"));
+        return ok(call.name, `No notes matching "${call.args.query}".`);
+      return ok(call.name, results.map(formatNote).join("\n---\n"));
     }
 
     case "get_note": {
-      const id = requireStr(name, args, "id");
-      if (typeof id !== "string") return id;
-      const note = await keeper.notes.get(toNoteId(id));
-      if (note === null) return ok(name, `Note "${id}" not found.`);
-      return ok(name, formatNote(note));
+      const note = await keeper.notes.get(toNoteId(call.args.id));
+      if (note === null) return ok(call.name, `Note "${call.args.id}" not found.`);
+      return ok(call.name, formatNote(note));
     }
 
     case "display_notes": {
-      const ids = args["ids"];
-      if (!Array.isArray(ids) || !ids.every((id) => typeof id === "string")) {
-        return ok(name, 'Error: "ids" parameter is required and must be an array of strings.');
-      }
-      const noteIds = ids.map(toNoteId);
+      const noteIds = call.args.ids.map(toNoteId);
       try {
         const resolved = await keeper.notes.resolve(noteIds);
         const links: NoteLink[] = resolved.map((item) => item.status === "found"
@@ -214,118 +291,92 @@ export async function executeTool(
           `Displayed ${String(foundCount)} note${foundCount === 1 ? "" : "s"}.`,
           ...(missingCount > 0 ? [`${String(missingCount)} requested note${missingCount === 1 ? " was" : "s were"} unavailable.`] : []),
         ].join(" ");
-        return okWithNoteLinks(name, summary, links);
+        return okWithNoteLinks(call.name, summary, links);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to resolve notes";
         return okWithNoteLinks(
-          name,
+          call.name,
           `Error displaying notes: ${message}`,
-          ids.map((id) => ({ id, status: "error", note: null })),
+          call.args.ids.map((id) => ({ id, status: "error", note: null })),
         );
       }
     }
 
     case "create_note": {
-      const body = requireStr(name, args, "body", { nonEmpty: true });
-      if (typeof body !== "string") return body;
-      const title = optionalStr(args, "title");
-      const note = await keeper.notes.create({ body, ...(title !== undefined ? { title } : {}) });
-      return ok(name, `Note created.\n${formatNote(note)}`);
+      const note = await keeper.notes.create(call.args);
+      return ok(call.name, `Note created.\n${formatNote(note)}`);
     }
 
     case "update_note": {
-      const id = requireStr(name, args, "id");
-      if (typeof id !== "string") return id;
-      const body = requireStr(name, args, "body");
-      if (typeof body !== "string") return body;
-      const title = optionalStr(args, "title");
-      const note = await keeper.notes.update({ id: toNoteId(id), body, ...(title !== undefined ? { title } : {}) });
-      return ok(name, `Note updated.\n${formatNote(note)}`);
+      const note = await keeper.notes.update({ ...call.args, id: toNoteId(call.args.id) });
+      return ok(call.name, `Note updated.\n${formatNote(note)}`);
     }
 
     case "delete_note": {
-      const id = requireStr(name, args, "id");
-      if (typeof id !== "string") return id;
       return confirm(
-        name,
-        `Are you sure you want to delete note "${id}"? This cannot be undone.`,
+        call.name,
+        `Are you sure you want to delete note "${call.args.id}"? This cannot be undone.`,
       );
     }
 
     case "confirm_delete_note": {
-      const id = requireStr(name, args, "id");
-      if (typeof id !== "string") return id;
-      await keeper.notes.delete(toNoteId(id));
-      return ok(name, `Note "${id}" deleted.`);
+      await keeper.notes.delete(toNoteId(call.args.id));
+      return ok(call.name, `Note "${call.args.id}" deleted.`);
     }
 
     case "add_tag": {
-      const noteId = requireStr(name, args, "note_id");
-      if (typeof noteId !== "string") return noteId;
-      const tagName = requireStr(name, args, "tag_name", { nonEmpty: true });
-      if (typeof tagName !== "string") return tagName;
-      const note = await keeper.tags.addToNote(toNoteId(noteId), tagName);
-      return ok(name, `Tag "${tagName}" added.\n${formatNote(note)}`);
+      const note = await keeper.tags.addToNote(toNoteId(call.args.note_id), call.args.tag_name);
+      return ok(call.name, `Tag "${call.args.tag_name}" added.\n${formatNote(note)}`);
     }
 
     case "remove_tag": {
-      const noteId = requireStr(name, args, "note_id");
-      if (typeof noteId !== "string") return noteId;
-      const tagName = requireStr(name, args, "tag_name");
-      if (typeof tagName !== "string") return tagName;
-      const note = await keeper.tags.removeFromNote(toNoteId(noteId), tagName);
-      return ok(name, `Tag "${tagName}" removed.\n${formatNote(note)}`);
+      const note = await keeper.tags.removeFromNote(toNoteId(call.args.note_id), call.args.tag_name);
+      return ok(call.name, `Tag "${call.args.tag_name}" removed.\n${formatNote(note)}`);
     }
 
     case "get_notes_for_tag": {
-      const tagName = requireStr(name, args, "tag_name", { nonEmpty: true });
-      if (typeof tagName !== "string") return tagName;
       const allTags = await keeper.tags.list();
       const tag = allTags.find(
-        (t) => t.name.toLowerCase() === tagName.toLowerCase(),
+        (t) => t.name.toLowerCase() === call.args.tag_name.toLowerCase(),
       );
       if (tag === undefined) {
-        return ok(name, `No tag named "${tagName}" found.`);
+        return ok(call.name, `No tag named "${call.args.tag_name}" found.`);
       }
       const notes = await keeper.views.tag(tag.id);
-      if (notes.length === 0) return ok(name, `No notes tagged "${tagName}".`);
-      return ok(name, notes.map(formatNote).join("\n---\n"));
+      if (notes.length === 0) return ok(call.name, `No notes tagged "${call.args.tag_name}".`);
+      return ok(call.name, notes.map(formatNote).join("\n---\n"));
     }
 
     case "get_untagged_notes": {
       const notes = await keeper.views.untagged();
-      if (notes.length === 0) return ok(name, "No untagged notes found.");
-      return ok(name, notes.map(formatNote).join("\n---\n"));
+      if (notes.length === 0) return ok(call.name, "No untagged notes found.");
+      return ok(call.name, notes.map(formatNote).join("\n---\n"));
     }
 
     case "list_tags": {
       const tags = await keeper.tags.list();
-      return ok(name, formatTags(tags));
+      return ok(call.name, formatTags(tags));
     }
 
     case "toggle_pin": {
-      const id = requireStr(name, args, "id");
-      if (typeof id !== "string") return id;
-      const note = await keeper.notes.togglePin(toNoteId(id));
+      const note = await keeper.notes.togglePin(toNoteId(call.args.id));
       return ok(
-        name,
+        call.name,
         `Note ${note.pinned ? "pinned" : "unpinned"}.\n${formatNote(note)}`,
       );
     }
 
     case "toggle_archive": {
-      const id = requireStr(name, args, "id");
-      if (typeof id !== "string") return id;
-      const note = await keeper.notes.toggleArchive(toNoteId(id));
+      const note = await keeper.notes.toggleArchive(toNoteId(call.args.id));
       return ok(
-        name,
+        call.name,
         `Note ${note.archived ? "archived" : "unarchived"}.\n${formatNote(note)}`,
       );
     }
 
     default: {
-      const _exhaustive: never = name;
-      return ok(_exhaustive, `Error: Unknown tool "${String(name)}".`);
+      const _exhaustive: never = call;
+      throw new Error(`Unhandled tool call: ${String(_exhaustive)}`);
     }
   }
 }

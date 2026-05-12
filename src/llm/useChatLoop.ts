@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import type { Message, LLMClient } from '@motioneffector/llm';
 import { parseMCPResponse } from './mcp-parser.ts';
-import { executeTool, TOOL_METADATA, type ToolCall, type ToolResult } from './tools.ts';
+import { executeTool, TOOL_METADATA, type ToolArgsByName, type ToolCall, type ToolResult } from './tools.ts';
 import { buildSystemPrompt } from './system-prompt.ts';
 import { normalizeAssistantReply } from './chat-formatting.ts';
 import type { KeeperClient } from '../db/db-client.ts';
@@ -14,7 +14,7 @@ export type ChatMessage =
 
 interface PendingConfirmation {
   toolResult: ToolResult;
-  args: Record<string, unknown>;
+  args: ToolArgsByName['confirm_delete_note'];
 }
 
 interface UseChatLoopOptions {
@@ -54,6 +54,10 @@ function uniqueToolCalls(toolCalls: ToolCall[]): ToolCall[] {
     seen.add(key);
     return true;
   });
+}
+
+function confirmationArgsFor(call: ToolCall): ToolArgsByName['confirm_delete_note'] | null {
+  return call.name === 'delete_note' ? call.args : null;
 }
 
 export function useChatLoop({ client, keeper, onMutation, initialMessages = [], onMessagesChange }: UseChatLoopOptions) {
@@ -176,10 +180,14 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
 
           if (result.needsConfirmation) {
             // Pause for user confirmation
+            const confirmationArgs = confirmationArgsFor(call);
+            if (confirmationArgs === null) {
+              throw new Error(`Tool "${call.name}" requested confirmation without confirmation args`);
+            }
             const toolMsg: ChatMessage = { role: 'tool', content: result.result, toolResult: result };
             iterMessages = [...iterMessages, toolMsg];
             commitMessages(iterMessages);
-            setPendingConfirmation({ toolResult: result, args: call.args });
+            setPendingConfirmation({ toolResult: result, args: confirmationArgs });
             setLoading(false);
             needsConfirmStop = true;
             break;

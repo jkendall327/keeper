@@ -1,6 +1,6 @@
 import type { KeeperClient } from '../../db/db-client.ts';
 import { toNoteId } from '../../db/types.ts';
-import { snapshotNoteLink, type NoteLink } from '../../llm/tools.ts';
+import { isToolResult, snapshotNoteLink, type NoteLink } from '../../llm/tools.ts';
 import type { ChatMessage } from '../../llm/useChatLoop.ts';
 
 const CHAT_HISTORY_KEY = 'keeper-chat-conversations';
@@ -17,36 +17,10 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
 
-function isStoredNoteLink(value: unknown): value is NoteLink {
-  if (!isRecord(value) || typeof value['id'] !== 'string') return false;
-  if (value['status'] !== 'found' && value['status'] !== 'missing' && value['status'] !== 'error') return false;
-  if (value['note'] === null) return true;
-  if (!isRecord(value['note'])) return false;
-  const note = value['note'];
-  return (
-    typeof note['id'] === 'string' &&
-    typeof note['title'] === 'string' &&
-    typeof note['bodyPreview'] === 'string' &&
-    Array.isArray(note['tags']) &&
-    typeof note['pinned'] === 'boolean' &&
-    typeof note['archived'] === 'boolean' &&
-    typeof note['trashed'] === 'boolean' &&
-    typeof note['updated_at'] === 'string'
-  );
-}
-
 function isStoredChatMessage(value: unknown): value is ChatMessage {
   if (!isRecord(value) || typeof value['role'] !== 'string' || typeof value['content'] !== 'string') return false;
   if (value['role'] === 'user' || value['role'] === 'assistant') return true;
-  if (value['role'] !== 'tool' || !isRecord(value['toolResult'])) return false;
-  const toolResult = value['toolResult'];
-  const noteLinks = toolResult['noteLinks'];
-  return (
-    typeof toolResult['name'] === 'string' &&
-    typeof toolResult['result'] === 'string' &&
-    typeof toolResult['needsConfirmation'] === 'boolean' &&
-    (noteLinks === undefined || (Array.isArray(noteLinks) && noteLinks.every(isStoredNoteLink)))
-  );
+  return value['role'] === 'tool' && isToolResult(value['toolResult']);
 }
 
 export function readStoredConversations(): StoredChatConversation[] {

@@ -105,6 +105,14 @@ it('redirects missing tag routes back to inbox', async () => {
   });
 });
 
+it('redirects invalid tag route params back to inbox', async () => {
+  await renderApp('/tag/not-a-number');
+
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/inbox');
+  });
+});
+
 it('redirects unknown routes back to inbox', async () => {
   await renderApp('/definitely-not-a-keeper-route');
 

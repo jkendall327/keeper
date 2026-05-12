@@ -174,7 +174,18 @@ const untaggedRoute = createRoute({ getParentRoute: () => rootRoute, path: 'unta
 const archiveRoute = createRoute({ getParentRoute: () => rootRoute, path: 'archive', component: KeeperApp });
 const linksRoute = createRoute({ getParentRoute: () => rootRoute, path: 'links', component: KeeperApp });
 const trashRoute = createRoute({ getParentRoute: () => rootRoute, path: 'trash', component: KeeperApp });
-const tagRoute = createRoute({ getParentRoute: () => rootRoute, path: 'tag/$tagId', component: KeeperApp });
+const tagRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: 'tag/$tagId',
+  params: {
+    parse: ({ tagId }) => {
+      const parsedTagId = Number(tagId);
+      return Number.isSafeInteger(parsedTagId) && parsedTagId > 0 ? { tagId: parsedTagId } : false;
+    },
+    stringify: ({ tagId }) => ({ tagId: String(tagId) }),
+  },
+  component: KeeperApp,
+});
 const chatRoute = createRoute({ getParentRoute: () => rootRoute, path: 'chat', component: KeeperApp });
 
 const routeTree = rootRoute.addChildren([

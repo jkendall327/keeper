@@ -3,17 +3,18 @@ import type { FilterType } from '../components/Sidebar.tsx';
 
 export function useKeeperRouteState() {
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  const activeFilter = useRouterState({
+    select: (state) => filterFromRouteMatch(state.matches[state.matches.length - 1]),
+  });
   const searchQuery = useRouterState({
     select: (state) => typeof state.location.search.q === 'string' ? state.location.search.q : '',
   });
-  const activeFilter = filterFromPath(pathname);
 
   const navigateToFilter = (filter: FilterType) => {
     if (filter.type === 'tag') {
       void navigate({
         to: '/tag/$tagId',
-        params: { tagId: String(filter.tagId) },
+        params: { tagId: filter.tagId },
         search: (previousSearch) => previousSearch,
       });
       return;
@@ -41,12 +42,13 @@ export function useKeeperRouteState() {
   };
 }
 
-function filterFromPath(pathname: string): FilterType {
-  if (pathname.startsWith('/tag/')) {
-    return { type: 'tag', tagId: Number(pathname.slice('/tag/'.length)) };
-  }
+interface KeeperRouteMatch {
+  fullPath: string;
+  params: Record<string, unknown>;
+}
 
-  switch (pathname) {
+function filterFromRouteMatch(match: KeeperRouteMatch | undefined): FilterType {
+  switch (match?.fullPath) {
     case '/archive':
       return { type: 'archive' };
     case '/chat':
@@ -57,10 +59,20 @@ function filterFromPath(pathname: string): FilterType {
       return { type: 'trash' };
     case '/untagged':
       return { type: 'untagged' };
+    case '/tag/$tagId':
+      return { type: 'tag', tagId: routeNumberParam(match, 'tagId') };
     case '/inbox':
     default:
       return { type: 'all' };
   }
+}
+
+function routeNumberParam(match: KeeperRouteMatch, name: string): number {
+  const value = match.params[name];
+  if (typeof value !== 'number') {
+    throw new Error(`Route param ${name} was not parsed as a number`);
+  }
+  return value;
 }
 
 function filterToPath(filter: Exclude<FilterType, { type: 'tag' }>) {

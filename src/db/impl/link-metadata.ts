@@ -13,7 +13,7 @@ export function createLinkMetadataMethods(ctx: KeeperDBContext): Pick<
   | "completeLinkMetadataJob"
   | "failLinkMetadataJob"
 > {
-  const { db, getLinkMetadataSync, now, rowString } = ctx;
+  const { db, getLinkMetadataSync, now, rowNullableString, rowNumber, rowString } = ctx;
 
   function normalizeMetadataInput(
     input: Partial<LinkMetadata> & Pick<LinkMetadata, "url" | "status">,
@@ -142,9 +142,9 @@ export function createLinkMetadataMethods(ctx: KeeperDBContext): Pick<
       if (row === undefined) return Promise.resolve(null);
       return Promise.resolve({
         url: rowString(row, "url"),
-        attempts: row["attempts"] as number,
+        attempts: rowNumber(row, "attempts"),
         next_run_at: rowString(row, "next_run_at"),
-        last_error: row["last_error"] as string | null,
+        last_error: rowNullableString(row, "last_error"),
       });
     },
 
@@ -159,7 +159,7 @@ export function createLinkMetadataMethods(ctx: KeeperDBContext): Pick<
         "SELECT attempts FROM link_metadata_jobs WHERE url = ?",
         [url],
       )[0];
-      const attempts = typeof row?.["attempts"] === "number" ? row["attempts"] + 1 : 1;
+      const attempts = row === undefined ? 1 : rowNumber(row, "attempts") + 1;
       const delay = RETRY_DELAYS_SECONDS[Math.min(attempts - 1, RETRY_DELAYS_SECONDS.length - 1)] ?? RETRY_DELAYS_SECONDS.at(-1) ?? 60;
       const nextRun = new Date(Date.parse(`${now()}Z`) + delay * 1000)
         .toISOString()

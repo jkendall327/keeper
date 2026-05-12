@@ -16,7 +16,7 @@ export function createTagMethods(
   | "deleteTag"
   | "getAllTags"
 > {
-  const { db, ensureTag, getTagsForNote, rowToTag } = ctx;
+  const { db, ensureTag, getTagsForNote, rowNumber, rowToTag } = ctx;
 
   return {
     async addTag(noteId: NoteId, tagName: string): Promise<NoteWithTags> {
@@ -105,13 +105,13 @@ export function createTagMethods(
 
         if (oldRow === undefined) throw new Error(`Tag not found: ${oldName}`);
 
-        const oldTagId = oldRow["id"] as number;
+        const oldTagId = rowNumber(oldRow, "id");
         const existingRow = existingRows[0];
 
         if (existingRow === undefined)
           throw new Error("Unreachable: checked length > 0");
 
-        const newTagId = existingRow["id"] as number;
+        const newTagId = rowNumber(existingRow, "id");
 
         db.transaction(() => {
           db.run("UPDATE OR IGNORE note_tags SET tag_id = ? WHERE tag_id = ?", [

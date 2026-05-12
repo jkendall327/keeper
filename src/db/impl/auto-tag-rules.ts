@@ -22,6 +22,7 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
     getAutoTagRuleById,
     normalizeRuleInput,
     now,
+    rowNumber,
     rowToNote,
     rowsToAutoTagRules,
   } = ctx;
@@ -46,7 +47,7 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
         );
         const row = db.query("SELECT last_insert_rowid() AS id")[0];
         if (row === undefined) throw new Error("Unable to create autotag rule");
-        const ruleId = row["id"] as number;
+        const ruleId = rowNumber(row, "id");
         for (const tagName of normalized.tagNames) {
           db.run(
             "INSERT INTO auto_tag_rule_tags (rule_id, tag_name) VALUES (?, ?)",

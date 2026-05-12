@@ -33,6 +33,10 @@ export interface KeeperDBContext extends KeeperDBDeps {
   getTagsForNote: (noteId: NoteId) => Tag[];
   normalizeRuleInput: (input: AutoTagRuleInput) => AutoTagRuleInput;
   prepareFts5Query: (input: string) => string;
+  rowEnum: <T extends string>(row: SqlRow, key: string, values: readonly T[]) => T;
+  rowNullableString: (row: SqlRow, key: string) => string | null;
+  rowNumber: (row: SqlRow, key: string) => number;
+  rowSqliteBool: (row: SqlRow, key: string) => boolean;
   rowString: (row: SqlRow, key: string) => string;
   rowToAutoTagRule: (row: SqlRow) => AutoTagRule;
   rowToLinkMetadata: (row: SqlRow) => LinkMetadata;
@@ -46,6 +50,7 @@ export interface KeeperDBContext extends KeeperDBDeps {
 
 export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
   const { db } = deps;
+  const linkMetadataStatuses = ["found", "missing", "error"] as const satisfies readonly LinkMetadataStatus[];
 
   function prepareFts5Query(input: string): string {
     const trimmed = input.trim();
@@ -63,12 +68,51 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
     return quotedWords.join(" ");
   }
 
+  function rowValue(row: SqlRow, key: string) {
+    if (!(key in row)) {
+      throw new Error(`Expected row to include ${key}`);
+    }
+    return row[key];
+  }
+
   function rowString(row: SqlRow, key: string): string {
-    const value = row[key];
+    const value = rowValue(row, key);
     if (typeof value !== "string") {
       throw new Error(`Expected ${key} to be a string`);
     }
     return value;
+  }
+
+  function rowNumber(row: SqlRow, key: string): number {
+    const value = rowValue(row, key);
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new Error(`Expected ${key} to be a number`);
+    }
+    return value;
+  }
+
+  function rowNullableString(row: SqlRow, key: string): string | null {
+    const value = rowValue(row, key);
+    if (value !== null && typeof value !== "string") {
+      throw new Error(`Expected ${key} to be a string or null`);
+    }
+    return value;
+  }
+
+  function rowSqliteBool(row: SqlRow, key: string): boolean {
+    const value = rowNumber(row, key);
+    if (value !== 0 && value !== 1) {
+      throw new Error(`Expected ${key} to be a SQLite boolean`);
+    }
+    return value === 1;
+  }
+
+  function rowEnum<T extends string>(row: SqlRow, key: string, values: readonly T[]): T {
+    const value = rowString(row, key);
+    for (const option of values) {
+      if (value === option) return option;
+    }
+    throw new Error(`Expected ${key} to be one of ${values.join(", ")}`);
   }
 
   function rowToNote(row: SqlRow): Note {
@@ -76,10 +120,10 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
       id: toNoteId(rowString(row, "id")),
       title: rowString(row, "title"),
       body: rowString(row, "body"),
-      has_links: row["has_links"] === 1,
-      pinned: row["pinned"] === 1,
-      archived: row["archived"] === 1,
-      trashed: row["trashed"] === 1,
+      has_links: rowSqliteBool(row, "has_links"),
+      pinned: rowSqliteBool(row, "pinned"),
+      archived: rowSqliteBool(row, "archived"),
+      trashed: rowSqliteBool(row, "trashed"),
       created_at: rowString(row, "created_at"),
       updated_at: rowString(row, "updated_at"),
     };
@@ -87,9 +131,9 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
 
   function rowToTag(row: SqlRow): Tag {
     return {
-      id: row["id"] as number,
-      name: row["name"] as string,
-      icon: row["icon"] as string | null,
+      id: rowNumber(row, "id"),
+      name: rowString(row, "name"),
+      icon: rowNullableString(row, "icon"),
     };
   }
 
@@ -104,25 +148,29 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
   }
 
   function nullableNumber(row: SqlRow, key: string): number | null {
-    const value = row[key];
-    return typeof value === "number" ? value : null;
+    const value = rowValue(row, key);
+    if (value === null) return null;
+    if (typeof value !== "number" || !Number.isFinite(value)) {
+      throw new Error(`Expected ${key} to be a number or null`);
+    }
+    return value;
   }
 
   function rowToLinkMetadata(row: SqlRow): LinkMetadata {
     return {
-      url: row["url"] as string,
-      image_url: row["image_url"] as string | null,
-      image_alt: row["image_alt"] as string | null,
+      url: rowString(row, "url"),
+      image_url: rowNullableString(row, "image_url"),
+      image_alt: rowNullableString(row, "image_alt"),
       image_width: nullableNumber(row, "image_width"),
       image_height: nullableNumber(row, "image_height"),
-      title: row["title"] as string | null,
-      site_name: row["site_name"] as string | null,
-      canonical_url: row["canonical_url"] as string | null,
-      type: row["type"] as string | null,
-      status: row["status"] as LinkMetadataStatus,
-      failure_reason: row["failure_reason"] as string | null,
-      fetched_at: row["fetched_at"] as string,
-      updated_at: row["updated_at"] as string,
+      title: rowNullableString(row, "title"),
+      site_name: rowNullableString(row, "site_name"),
+      canonical_url: rowNullableString(row, "canonical_url"),
+      type: rowNullableString(row, "type"),
+      status: rowEnum(row, "status", linkMetadataStatuses),
+      failure_reason: rowNullableString(row, "failure_reason"),
+      fetched_at: rowString(row, "fetched_at"),
+      updated_at: rowString(row, "updated_at"),
     };
   }
 
@@ -159,24 +207,24 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
   }
 
   function rowToAutoTagRule(row: SqlRow): AutoTagRule {
-    const ruleId = row["id"] as number;
+    const ruleId = rowNumber(row, "id");
     const tagRows = db.query(
       "SELECT tag_name FROM auto_tag_rule_tags WHERE rule_id = ? ORDER BY tag_name",
       [ruleId],
     );
     return {
       id: ruleId,
-      pattern: row["pattern"] as string,
-      tagNames: tagRows.map((tagRow) => tagRow["tag_name"] as string),
-      created_at: row["created_at"] as string,
-      updated_at: row["updated_at"] as string,
+      pattern: rowString(row, "pattern"),
+      tagNames: tagRows.map((tagRow) => rowString(tagRow, "tag_name")),
+      created_at: rowString(row, "created_at"),
+      updated_at: rowString(row, "updated_at"),
     };
   }
 
   function rowsToAutoTagRules(rows: SqlRow[]): AutoTagRule[] {
     if (rows.length === 0) return [];
 
-    const ruleIds = rows.map((row) => row["id"] as number);
+    const ruleIds = rows.map((row) => rowNumber(row, "id"));
     const placeholders = ruleIds.map(() => "?").join(",");
     const tagRows = db.query(
       `SELECT rule_id, tag_name
@@ -187,23 +235,24 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
     );
     const tagNamesByRuleId = new Map<number, string[]>();
     for (const tagRow of tagRows) {
-      const ruleId = tagRow["rule_id"] as number;
+      const ruleId = rowNumber(tagRow, "rule_id");
+      const tagName = rowString(tagRow, "tag_name");
       const tagNames = tagNamesByRuleId.get(ruleId);
       if (tagNames !== undefined) {
-        tagNames.push(tagRow["tag_name"] as string);
+        tagNames.push(tagName);
       } else {
-        tagNamesByRuleId.set(ruleId, [tagRow["tag_name"] as string]);
+        tagNamesByRuleId.set(ruleId, [tagName]);
       }
     }
 
     return rows.map((row) => {
-      const ruleId = row["id"] as number;
+      const ruleId = rowNumber(row, "id");
       return {
         id: ruleId,
-        pattern: row["pattern"] as string,
+        pattern: rowString(row, "pattern"),
         tagNames: tagNamesByRuleId.get(ruleId) ?? [],
-        created_at: row["created_at"] as string,
-        updated_at: row["updated_at"] as string,
+        created_at: rowString(row, "created_at"),
+        updated_at: rowString(row, "updated_at"),
       };
     });
   }
@@ -219,7 +268,7 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
     const tagRow = db.query("SELECT id FROM tags WHERE name = ?", [tagName])[0];
     if (tagRow === undefined)
       throw new Error("Unreachable: tag must exist after INSERT OR IGNORE");
-    return tagRow["id"] as number;
+    return rowNumber(tagRow, "id");
   }
 
   function withTags(note: Note): NoteWithTags {
@@ -297,7 +346,7 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
     );
     const values = new Map<string, string>();
     for (const row of rows) {
-      values.set(row["key"] as string, row["value"] as string);
+      values.set(rowString(row, "key"), rowString(row, "value"));
     }
     const extensionTitleMaxLength = parseExtensionTitleMaxLength(values.get("extensionTitleMaxLength"));
     const popularTagSuggestionLimitValue = values.get("popularTagSuggestionLimit");
@@ -323,6 +372,10 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
     getTagsForNote,
     normalizeRuleInput,
     prepareFts5Query,
+    rowEnum,
+    rowNullableString,
+    rowNumber,
+    rowSqliteBool,
     rowString,
     rowToAutoTagRule,
     rowToLinkMetadata,

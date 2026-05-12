@@ -35,7 +35,7 @@ export function createMediaMethods(ctx: KeeperDBContext): Pick<
         [noteId],
       );
       return Promise.resolve(rows.map((r) => ({
-        id: r["id"] as string,
+        id: rowString(r, "id"),
         note_id: toNoteId(rowString(r, "note_id")),
         mime_type: rowString(r, "mime_type"),
         filename: rowString(r, "filename"),

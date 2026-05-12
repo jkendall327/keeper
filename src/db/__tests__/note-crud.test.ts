@@ -2,17 +2,20 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createTestDb } from './test-db.ts';
 import { createKeeperDB } from '../db-impl.ts';
 import { toNoteId, type KeeperDB } from '../types.ts';
+import type { SqliteDb } from '../sqlite-db.ts';
 
 describe('Note CRUD', () => {
   let api: KeeperDB;
+  let db: SqliteDb;
   let idCounter: number;
   let timeCounter: number;
 
   beforeEach(() => {
     idCounter = 0;
     timeCounter = 0;
+    db = createTestDb();
     api = createKeeperDB({
-      db: createTestDb(),
+      db,
       generateId: () => `test-id-${String(++idCounter)}`,
       now: () => `2025-01-15 12:00:${String(timeCounter++).padStart(2, '0')}`,
     });
@@ -79,6 +82,15 @@ describe('Note CRUD', () => {
       const created = await api.createNote({ body: 'test' });
       const retrieved = await api.getNote(created.id);
       expect(retrieved).toEqual(created);
+    });
+
+    it('rejects malformed SQLite boolean values in note rows', async () => {
+      const created = await api.createNote({ body: 'test' });
+      db.run('UPDATE notes SET has_links = 2 WHERE id = ?', [created.id]);
+
+      await expect(Promise.resolve().then(() => api.getNote(created.id))).rejects.toThrow(
+        'Expected has_links to be a SQLite boolean',
+      );
     });
 
     it('returns null for nonexistent id', async () => {

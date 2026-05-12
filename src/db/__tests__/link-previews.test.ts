@@ -2,17 +2,20 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { createKeeperDB } from '../db-impl.ts';
 import { createTestDb } from './test-db.ts';
 import type { KeeperDB } from '../types.ts';
+import type { SqliteDb } from '../sqlite-db.ts';
 
 describe('Link metadata', () => {
   let api: KeeperDB;
+  let db: SqliteDb;
   let idCounter: number;
   let timeCounter: number;
 
   beforeEach(() => {
     idCounter = 0;
     timeCounter = 0;
+    db = createTestDb();
     api = createKeeperDB({
-      db: createTestDb(),
+      db,
       generateId: () => `test-id-${String(++idCounter)}`,
       now: () => `2025-01-15 12:00:${String(timeCounter++).padStart(2, '0')}`,
     });
@@ -81,6 +84,20 @@ describe('Link metadata', () => {
 
     const updated = await api.updateNote({ id: note.id, body: newUrl });
     expect(updated.link_metadata.map((metadata) => metadata.url)).toEqual([newUrl]);
+  });
+
+  it('rejects malformed link metadata statuses from stored rows', async () => {
+    const url = 'https://example.com/bad-status';
+    db.run('PRAGMA ignore_check_constraints = ON');
+    db.run(
+      `INSERT INTO link_metadata (url, status, fetched_at, updated_at)
+       VALUES (?, ?, ?, ?)`,
+      [url, 'surprising', '2025-01-15 12:00:00', '2025-01-15 12:00:00'],
+    );
+
+    await expect(Promise.resolve().then(() => api.getLinkMetadata(url))).rejects.toThrow(
+      'Expected status to be one of found, missing, error',
+    );
   });
 
   it('enqueues missing metadata jobs from existing note links', async () => {

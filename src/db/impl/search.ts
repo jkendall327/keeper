@@ -2,7 +2,7 @@ import type { KeeperDB, SearchResult } from "../types.ts";
 import type { KeeperDBContext } from "./context.ts";
 
 export function createSearchMethods(ctx: KeeperDBContext): Pick<KeeperDB, "search"> {
-  const { db, prepareFts5Query, rowToNote, withTagsBatch } = ctx;
+  const { db, prepareFts5Query, rowNumber, rowToNote, withTagsBatch } = ctx;
 
   return {
     search(query: string): Promise<SearchResult[]> {
@@ -22,7 +22,7 @@ export function createSearchMethods(ctx: KeeperDBContext): Pick<KeeperDB, "searc
         const row = rows[i];
         return {
           ...n,
-          rank: (row != null ? row["rank"] : 0) as number,
+          rank: row === undefined ? 0 : rowNumber(row, "rank"),
         };
       }));
     },

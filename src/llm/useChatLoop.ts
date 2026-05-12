@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useReducer, useCallback, useRef } from 'react';
 import type { Message, LLMClient } from '@motioneffector/llm';
 import { parseMCPResponse } from './mcp-parser.ts';
 import { executeTool, TOOL_METADATA, type ToolArgsByName, type ToolCall, type ToolResult } from './tools.ts';
@@ -26,6 +26,73 @@ interface UseChatLoopOptions {
 }
 
 const MAX_TOOL_ITERATIONS = 10;
+
+type ChatLoopStatus = 'idle' | 'streaming' | 'awaitingConfirmation';
+
+interface ChatLoopState {
+  messages: ChatMessage[];
+  status: ChatLoopStatus;
+  streamingText: string;
+  pendingConfirmation: PendingConfirmation | null;
+}
+
+type ChatLoopAction =
+  | { type: 'replaceMessages'; messages: ChatMessage[] }
+  | { type: 'commitMessages'; messages: ChatMessage[] }
+  | { type: 'startRun'; messages: ChatMessage[] }
+  | { type: 'setStreamingText'; text: string }
+  | { type: 'pauseForConfirmation'; messages: ChatMessage[]; pendingConfirmation: PendingConfirmation }
+  | { type: 'resolveConfirmation' }
+  | { type: 'finishRun' };
+
+function chatLoopReducer(state: ChatLoopState, action: ChatLoopAction): ChatLoopState {
+  switch (action.type) {
+    case 'replaceMessages':
+      return {
+        messages: action.messages,
+        status: 'idle',
+        streamingText: '',
+        pendingConfirmation: null,
+      };
+    case 'commitMessages':
+      return {
+        ...state,
+        messages: action.messages,
+      };
+    case 'startRun':
+      return {
+        messages: action.messages,
+        status: 'streaming',
+        streamingText: '',
+        pendingConfirmation: null,
+      };
+    case 'setStreamingText':
+      return {
+        ...state,
+        streamingText: action.text,
+      };
+    case 'pauseForConfirmation':
+      return {
+        messages: action.messages,
+        status: 'awaitingConfirmation',
+        streamingText: '',
+        pendingConfirmation: action.pendingConfirmation,
+      };
+    case 'resolveConfirmation':
+      return {
+        ...state,
+        status: 'streaming',
+        streamingText: '',
+        pendingConfirmation: null,
+      };
+    case 'finishRun':
+      return {
+        ...state,
+        status: 'idle',
+        streamingText: '',
+      };
+  }
+}
 
 function stableStringify(value: unknown): string {
   if (Array.isArray(value)) {
@@ -60,72 +127,94 @@ function confirmationArgsFor(call: ToolCall): ToolArgsByName['confirm_delete_not
   return call.name === 'delete_note' ? call.args : null;
 }
 
+function buildLLMMessages(chatMessages: ChatMessage[], recentNotes: NoteWithTags[], tags: Tag[]): Message[] {
+  const systemPrompt = buildSystemPrompt(recentNotes, tags);
+  const llmMessages: Message[] = [{ role: 'system', content: systemPrompt }];
+  for (const msg of chatMessages) {
+    if (msg.role === 'user') {
+      llmMessages.push({ role: 'user', content: msg.content });
+    } else if (msg.role === 'assistant') {
+      llmMessages.push({ role: 'assistant', content: msg.content });
+    } else {
+      llmMessages.push({ role: 'user', content: `[Tool Result: ${msg.toolResult.name}]\n${msg.content}` });
+    }
+  }
+  return llmMessages;
+}
+
+function appendAssistantIfNonEmpty(messages: ChatMessage[], text: string): ChatMessage[] {
+  const content = normalizeAssistantReply(text);
+  if (content === '') return messages;
+  return [...messages, { role: 'assistant', content }];
+}
+
+function toolResultMessage(result: ToolResult): ChatMessage {
+  return { role: 'tool', content: result.result, toolResult: result };
+}
+
+function toolErrorMessage(call: ToolCall, error: unknown): ChatMessage {
+  const msg = error instanceof Error ? error.message : 'Tool execution failed';
+  return {
+    role: 'tool',
+    content: `Error: ${msg}`,
+    toolResult: { name: call.name, result: `Error: ${msg}`, needsConfirmation: false },
+  };
+}
+
 export function useChatLoop({ client, keeper, onMutation, initialMessages = [], onMessagesChange }: UseChatLoopOptions) {
-  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
-  const [loading, setLoading] = useState(false);
-  const [streaming, setStreaming] = useState('');
-  const [pendingConfirmation, setPendingConfirmation] = useState<PendingConfirmation | null>(null);
+  const [state, dispatch] = useReducer(chatLoopReducer, {
+    messages: initialMessages,
+    status: 'idle',
+    streamingText: '',
+    pendingConfirmation: null,
+  });
   const abortRef = useRef<AbortController | null>(null);
-  const inFlightRef = useRef(false);
+  const runIdRef = useRef(0);
 
   const commitMessages = useCallback((nextMessages: ChatMessage[]) => {
-    setMessages(nextMessages);
+    dispatch({ type: 'commitMessages', messages: nextMessages });
     onMessagesChange?.(nextMessages);
   }, [onMessagesChange]);
 
-  const appendMessage = useCallback((message: ChatMessage) => {
-    setMessages((prevMessages) => {
-      const nextMessages = [...prevMessages, message];
-      onMessagesChange?.(nextMessages);
-      return nextMessages;
-    });
-  }, [onMessagesChange]);
-
   // out.text is mutated as tokens arrive, so callers can read partial text even if the stream aborts.
-  const streamOnce = useCallback(async (llmMessages: Message[], signal: AbortSignal, out: { text: string }): Promise<void> => {
+  const streamOnce = useCallback(async (
+    llmMessages: Message[],
+    signal: AbortSignal,
+    out: { text: string },
+    runId: number,
+  ): Promise<void> => {
     let lastFlush = 0;
     const THROTTLE_MS = 50;
     for await (const token of client.stream(llmMessages, { signal })) {
       out.text += token;
       const now = performance.now();
-      if (now - lastFlush >= THROTTLE_MS) {
+      if (runId === runIdRef.current && now - lastFlush >= THROTTLE_MS) {
         lastFlush = now;
-        setStreaming(normalizeAssistantReply(out.text));
+        dispatch({ type: 'setStreamingText', text: normalizeAssistantReply(out.text) });
       }
     }
-    setStreaming('');
+    if (runId === runIdRef.current) {
+      dispatch({ type: 'setStreamingText', text: '' });
+    }
   }, [client]);
 
-  const buildLLMMessages = useCallback((chatMessages: ChatMessage[], recentNotes: NoteWithTags[], tags: Tag[]): Message[] => {
-    const systemPrompt = buildSystemPrompt(recentNotes, tags);
-    const llmMessages: Message[] = [{ role: 'system', content: systemPrompt }];
-    for (const msg of chatMessages) {
-      if (msg.role === 'user') {
-        llmMessages.push({ role: 'user', content: msg.content });
-      } else if (msg.role === 'assistant') {
-        llmMessages.push({ role: 'assistant', content: msg.content });
-      } else {
-        llmMessages.push({ role: 'user', content: `[Tool Result: ${msg.toolResult.name}]\n${msg.content}` });
-      }
-    }
-    return llmMessages;
-  }, []);
-
   const completeFromMessages = useCallback(async (startingMessages: ChatMessage[]) => {
-    if (loading || inFlightRef.current) return;
-    inFlightRef.current = true;
-    setLoading(true);
-    setPendingConfirmation(null);
-    commitMessages(startingMessages);
+    if (state.status !== 'idle') return;
+    const runId = runIdRef.current + 1;
+    runIdRef.current = runId;
+    dispatch({ type: 'startRun', messages: startingMessages });
+    onMessagesChange?.(startingMessages);
 
     let iterMessages = startingMessages;
     let iterations = 0;
+    let pausedForConfirmation = false;
     // acc is mutated by streamOnce so partial text survives an AbortError throw
     const acc = { text: '' };
 
     try {
       // Fetch context for the system prompt once per send
       const [recentNotes, allTags] = await Promise.all([keeper.notes.list(), keeper.tags.list()]);
+      if (runId !== runIdRef.current) return;
 
       while (iterations < MAX_TOOL_ITERATIONS) {
         iterations++;
@@ -135,27 +224,23 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
 
         // Stream the response token-by-token
         acc.text = '';
-        await streamOnce(llmMessages, controller.signal, acc);
+        await streamOnce(llmMessages, controller.signal, acc, runId);
+        if (runId !== runIdRef.current) return;
         const { toolCalls: parsedToolCalls, text } = parseMCPResponse(acc.text);
         const toolCalls = uniqueToolCalls(parsedToolCalls);
 
         if (toolCalls.length === 0) {
           // No tool calls — stream the final response for display
-          const content = normalizeAssistantReply(text);
-          if (content !== '') {
-            const assistantMsg: ChatMessage = { role: 'assistant', content };
-            iterMessages = [...iterMessages, assistantMsg];
+          const nextMessages = appendAssistantIfNonEmpty(iterMessages, text);
+          if (nextMessages !== iterMessages) {
+            iterMessages = nextMessages;
             commitMessages(iterMessages);
           }
           break;
         }
 
         // Add assistant message with tool call indication
-        const content = normalizeAssistantReply(text);
-        if (content !== '') {
-          const assistantMsg: ChatMessage = { role: 'assistant', content };
-          iterMessages = [...iterMessages, assistantMsg];
-        }
+        iterMessages = appendAssistantIfNonEmpty(iterMessages, text);
 
         // Execute tool calls
         let needsConfirmStop = false;
@@ -168,15 +253,11 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
           try {
             result = await executeTool(keeper, call);
           } catch (toolErr: unknown) {
-            const msg = toolErr instanceof Error ? toolErr.message : 'Tool execution failed';
-            const errorToolMsg: ChatMessage = {
-              role: 'tool',
-              content: `Error: ${msg}`,
-              toolResult: { name: call.name, result: `Error: ${msg}`, needsConfirmation: false },
-            };
-            iterMessages = [...iterMessages, errorToolMsg];
+            iterMessages = [...iterMessages, toolErrorMessage(call, toolErr)];
+            if (runId !== runIdRef.current) return;
             continue;
           }
+          if (runId !== runIdRef.current) return;
 
           if (result.needsConfirmation) {
             // Pause for user confirmation
@@ -184,16 +265,17 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
             if (confirmationArgs === null) {
               throw new Error(`Tool "${call.name}" requested confirmation without confirmation args`);
             }
-            const toolMsg: ChatMessage = { role: 'tool', content: result.result, toolResult: result };
+            const toolMsg = toolResultMessage(result);
             iterMessages = [...iterMessages, toolMsg];
-            commitMessages(iterMessages);
-            setPendingConfirmation({ toolResult: result, args: confirmationArgs });
-            setLoading(false);
+            const pendingConfirmation = { toolResult: result, args: confirmationArgs };
+            dispatch({ type: 'pauseForConfirmation', messages: iterMessages, pendingConfirmation });
+            onMessagesChange?.(iterMessages);
+            pausedForConfirmation = true;
             needsConfirmStop = true;
             break;
           }
 
-          const toolMsg: ChatMessage = { role: 'tool', content: result.result, toolResult: result };
+          const toolMsg = toolResultMessage(result);
           iterMessages = [...iterMessages, toolMsg];
           onMutation();
         }
@@ -209,16 +291,17 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
           role: 'assistant',
           content: "I've reached the maximum number of actions. Please try a simpler request.",
         };
-        commitMessages([...iterMessages, limitMsg]);
+        iterMessages = [...iterMessages, limitMsg];
+        commitMessages(iterMessages);
       }
     } catch (err: unknown) {
-      setStreaming('');
+      if (runId !== runIdRef.current) return;
+      dispatch({ type: 'setStreamingText', text: '' });
       if (err instanceof DOMException && err.name === 'AbortError') {
         // Preserve any partially streamed text as an assistant message
-        const content = normalizeAssistantReply(acc.text);
-        if (content !== '') {
-          const partialMsg: ChatMessage = { role: 'assistant', content };
-          commitMessages([...iterMessages, partialMsg]);
+        const nextMessages = appendAssistantIfNonEmpty(iterMessages, acc.text);
+        if (nextMessages !== iterMessages) {
+          commitMessages(nextMessages);
         }
       } else {
         const errorMsg = err instanceof Error ? err.message : 'An unknown error occurred';
@@ -227,36 +310,41 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
       }
       return;
     } finally {
-      setLoading(false);
-      abortRef.current = null;
-      inFlightRef.current = false;
+      if (runId === runIdRef.current) {
+        abortRef.current = null;
+        if (!pausedForConfirmation) {
+          dispatch({ type: 'finishRun' });
+        }
+      }
     }
-  }, [loading, commitMessages, streamOnce, keeper, buildLLMMessages, onMutation]);
+  }, [state.status, onMessagesChange, streamOnce, keeper, onMutation, commitMessages]);
 
   const send = useCallback(async (userInput: string) => {
     const newUserMsg: ChatMessage = { role: 'user', content: userInput };
-    await completeFromMessages([...messages, newUserMsg]);
-  }, [completeFromMessages, messages]);
+    await completeFromMessages([...state.messages, newUserMsg]);
+  }, [completeFromMessages, state.messages]);
 
   const replaceUserMessageAndRetry = useCallback(async (messageIndex: number, content: string) => {
     const trimmed = content.trim();
-    if (trimmed === '' || messages[messageIndex]?.role !== 'user') return;
+    if (trimmed === '' || state.messages[messageIndex]?.role !== 'user') return;
     await completeFromMessages([
-      ...messages.slice(0, messageIndex),
+      ...state.messages.slice(0, messageIndex),
       { role: 'user', content: trimmed },
     ]);
-  }, [completeFromMessages, messages]);
+  }, [completeFromMessages, state.messages]);
 
   const regenerateAssistantMessage = useCallback(async (messageIndex: number) => {
-    if (messages[messageIndex]?.role !== 'assistant') return;
-    await completeFromMessages(messages.slice(0, messageIndex));
-  }, [completeFromMessages, messages]);
+    if (state.messages[messageIndex]?.role !== 'assistant') return;
+    await completeFromMessages(state.messages.slice(0, messageIndex));
+  }, [completeFromMessages, state.messages]);
 
   const confirmDelete = useCallback(async (confirmed: boolean) => {
-    if (pendingConfirmation === null) return;
-    setPendingConfirmation(null);
+    if (state.pendingConfirmation === null) return;
+    const pendingConfirmation = state.pendingConfirmation;
+    const runId = runIdRef.current + 1;
+    runIdRef.current = runId;
+    dispatch({ type: 'resolveConfirmation' });
 
-    setLoading(true);
     try {
       let toolMsg: ChatMessage;
 
@@ -271,51 +359,54 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
           name: 'confirm_delete_note',
           args: pendingConfirmation.args,
         });
-        toolMsg = { role: 'tool', content: result.result, toolResult: result };
+        toolMsg = toolResultMessage(result);
         onMutation();
       }
+      if (runId !== runIdRef.current) return;
 
       // Build the updated message list with the confirmation result
-      const updatedMessages: ChatMessage[] = [...messages, toolMsg];
+      const updatedMessages: ChatMessage[] = [...state.messages, toolMsg];
       commitMessages(updatedMessages);
 
       // Send the confirmation result back to the LLM for a follow-up response
       const [recentNotes, allTags] = await Promise.all([keeper.notes.list(), keeper.tags.list()]);
+      if (runId !== runIdRef.current) return;
       const llmMessages = buildLLMMessages(updatedMessages, recentNotes, allTags);
       const controller = new AbortController();
       abortRef.current = controller;
 
       const acc = { text: '' };
-      await streamOnce(llmMessages, controller.signal, acc);
+      await streamOnce(llmMessages, controller.signal, acc, runId);
+      if (runId !== runIdRef.current) return;
 
       if (acc.text !== '') {
         const { text } = parseMCPResponse(acc.text);
-        const content = normalizeAssistantReply(text);
-        if (content !== '') {
-          const assistantMsg: ChatMessage = { role: 'assistant', content };
-          commitMessages([...updatedMessages, assistantMsg]);
+        const nextMessages = appendAssistantIfNonEmpty(updatedMessages, text);
+        if (nextMessages !== updatedMessages) {
+          commitMessages(nextMessages);
         }
       }
     } catch (err: unknown) {
+      if (runId !== runIdRef.current) return;
       if (err instanceof DOMException && err.name === 'AbortError') {
-        setStreaming('');
+        dispatch({ type: 'setStreamingText', text: '' });
       } else {
-        setStreaming('');
+        dispatch({ type: 'setStreamingText', text: '' });
         const errorMsg = err instanceof Error ? err.message : 'An unknown error occurred';
         const assistantMsg: ChatMessage = { role: 'assistant', content: `Error: ${errorMsg}` };
-        appendMessage(assistantMsg);
+        commitMessages([...state.messages, assistantMsg]);
       }
     } finally {
-      setLoading(false);
-      abortRef.current = null;
+      if (runId === runIdRef.current) {
+        dispatch({ type: 'finishRun' });
+        abortRef.current = null;
+      }
     }
-  }, [pendingConfirmation, keeper, onMutation, messages, commitMessages, streamOnce, buildLLMMessages, appendMessage]);
+  }, [state.pendingConfirmation, state.messages, keeper, onMutation, commitMessages, streamOnce]);
 
   const clear = useCallback(() => {
-    setMessages([]);
-    setPendingConfirmation(null);
-    setStreaming('');
-    inFlightRef.current = false;
+    runIdRef.current++;
+    dispatch({ type: 'replaceMessages', messages: [] });
     if (abortRef.current !== null) {
       abortRef.current.abort();
       abortRef.current = null;
@@ -323,11 +414,8 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
   }, []);
 
   const loadMessages = useCallback((nextMessages: ChatMessage[]) => {
-    setMessages(nextMessages);
-    setPendingConfirmation(null);
-    setStreaming('');
-    setLoading(false);
-    inFlightRef.current = false;
+    runIdRef.current++;
+    dispatch({ type: 'replaceMessages', messages: nextMessages });
     if (abortRef.current !== null) {
       abortRef.current.abort();
       abortRef.current = null;
@@ -339,14 +427,13 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
       abortRef.current.abort();
       abortRef.current = null;
     }
-    inFlightRef.current = false;
   }, []);
 
   return {
-    messages,
-    loading,
-    streaming,
-    pendingConfirmation,
+    messages: state.messages,
+    loading: state.status === 'streaming',
+    streaming: state.streamingText,
+    pendingConfirmation: state.pendingConfirmation,
     send,
     replaceUserMessageAndRetry,
     regenerateAssistantMessage,

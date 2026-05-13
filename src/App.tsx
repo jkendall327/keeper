@@ -174,6 +174,7 @@ const untaggedRoute = createRoute({ getParentRoute: () => rootRoute, path: 'unta
 const archiveRoute = createRoute({ getParentRoute: () => rootRoute, path: 'archive', component: KeeperApp });
 const linksRoute = createRoute({ getParentRoute: () => rootRoute, path: 'links', component: KeeperApp });
 const trashRoute = createRoute({ getParentRoute: () => rootRoute, path: 'trash', component: KeeperApp });
+const shareRoute = createRoute({ getParentRoute: () => rootRoute, path: 'share', component: KeeperApp });
 const tagRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: 'tag/$tagId',
@@ -195,6 +196,7 @@ const routeTree = rootRoute.addChildren([
   archiveRoute,
   linksRoute,
   trashRoute,
+  shareRoute,
   tagRoute,
   chatRoute,
 ]);

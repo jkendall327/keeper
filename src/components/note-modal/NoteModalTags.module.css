@@ -145,4 +145,22 @@
     border-top: 1px solid var(--color-border-soft);
     border-left: none;
   }
+
+  .noteActions {
+    justify-content: flex-start;
+    gap: 12px;
+    padding-top: 16px;
+  }
+
+  .iconButton {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
+    padding: 10px;
+    border-radius: var(--radius-md);
+  }
+
+  .iconButton :global(.material-symbols-outlined) {
+    font-size: 24px;
+  }
 }

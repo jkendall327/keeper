@@ -377,4 +377,32 @@
     align-items: stretch;
     justify-content: stretch;
   }
+
+  .modal {
+    box-sizing: border-box;
+    width: 100vw;
+    max-width: none;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+    padding: 20px;
+  }
+
+  .tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+  }
+}
+
+@supports (height: 100dvh) {
+  @media (max-width: 768px) {
+    .modal {
+      height: 100dvh;
+    }
+  }
 }

@@ -3,19 +3,20 @@ import { Icon } from './Icon.tsx';
 import styles from './SearchBar.module.css';
 
 interface SearchBarProps {
+  isMobile?: boolean;
   value: string;
   onChange: (query: string) => void;
 }
 
 export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
-  function SearchBar({ value, onChange }, ref) {
+  function SearchBar({ isMobile = false, value, onChange }, ref) {
     return (
       <div className={styles.bar}>
         <input
           ref={ref}
           type="text"
           className={styles.barInput}
-          placeholder="Search notes... (Ctrl+/)"
+          placeholder={isMobile ? 'Search notes...' : 'Search notes... (Ctrl+/)'}
           aria-label="Search notes"
           value={value}
           onChange={(e) => { onChange(e.target.value); }}

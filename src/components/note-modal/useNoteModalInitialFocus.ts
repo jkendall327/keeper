@@ -6,6 +6,11 @@ export function useNoteModalInitialFocus(
   panelRef: RefObject<HTMLDivElement | null>,
 ) {
   useEffect(() => {
+    if (window.matchMedia('(max-width: 768px)').matches) {
+      panelRef.current?.focus();
+      return;
+    }
+
     const textarea = textareaRef.current;
     if (textarea !== null) {
       textarea.focus();

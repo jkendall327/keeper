@@ -13,6 +13,7 @@ interface NoteGridProps {
   onBulkSelect: (ids: Set<NoteId>) => void;
   onClearSelection: () => void;
   showLinkPreviews: boolean;
+  isMobile: boolean;
   isTrashView?: boolean;
   topContent?: ReactNode;
 }
@@ -30,7 +31,7 @@ const DRAG_THRESHOLD = 5;
 
 export function NoteGrid({
   notes, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
-  showLinkPreviews, isTrashView, topContent,
+  showLinkPreviews, isMobile, isTrashView, topContent,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -238,6 +239,7 @@ export function NoteGrid({
           noteCommands={noteCommands}
           isSelected={selectedNoteIds.has(note.id)}
           showLinkPreviews={showLinkPreviews}
+          isMobile={isMobile}
           {...(isTrashView !== undefined ? { isTrashView } : {})}
         />
       ))}

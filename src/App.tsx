@@ -120,6 +120,7 @@ function KeeperApp() {
                 selectedNoteIds={selectedNoteIds}
                 setSelectedNoteIds={setSelectedNoteIds}
                 autoApplyActiveTag={autoApplyActiveTag}
+                isMobile={isMobile}
                 linkPreviewDisplayEnabled={appSettings.linkPreviewDisplayEnabled}
                 quickAddAutofocusEnabled={appSettings.quickAddAutofocusEnabled}
                 showSettings={showSettings}

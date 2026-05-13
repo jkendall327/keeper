@@ -22,10 +22,11 @@ interface NoteCardProps {
   noteCommands: NoteCommands;
   isSelected?: boolean;
   showLinkPreviews: boolean;
+  isMobile: boolean;
   isTrashView?: boolean;
 }
 
-export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isTrashView }: NoteCardProps) {
+export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isMobile, isTrashView }: NoteCardProps) {
   const [showTagApplier, setShowTagApplier] = useState(false);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const closeTagApplier = () => { setShowTagApplier(false); };
@@ -126,19 +127,21 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
           </svg>
         )}
       </button>
-      <div className={styles.topActions}>
-        <button
-          className={styles.iconButton}
-          onClick={(e) => {
-            e.stopPropagation();
-            void noteCommands.togglePin(note.id);
-          }}
-          aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
-          title={note.pinned ? 'Unpin note' : 'Pin note'}
-        >
-          <Icon name="push_pin" className={note.pinned ? styles.filledIcon : ''} />
-        </button>
-      </div>
+      {!isMobile && (
+        <div className={styles.topActions}>
+          <button
+            className={styles.iconButton}
+            onClick={(e) => {
+              e.stopPropagation();
+              void noteCommands.togglePin(note.id);
+            }}
+            aria-label={note.pinned ? 'Unpin note' : 'Pin note'}
+            title={note.pinned ? 'Unpin note' : 'Pin note'}
+          >
+            <Icon name="push_pin" className={note.pinned ? styles.filledIcon : ''} />
+          </button>
+        </div>
+      )}
       {note.title !== '' && <h3 className={styles.title}>{note.title}</h3>}
       {(() => {
         const previewImage = selectNotePreviewImage(note, note.body, showLinkPreviews, note.title);
@@ -177,39 +180,41 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
         <time className={styles.time}>
           {new Date(note.updated_at + 'Z').toLocaleDateString()}
         </time>
-        <div className={styles.bottomActions}>
-          <button
-            ref={tagBtnRef}
-            className={styles.iconButton}
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowTagApplier((v) => !v);
-            }}
-            aria-label="Label note"
-            title="Label note"
-          >
-            <Icon name="label" />
-          </button>
-          {showTagApplier && (
-            <TagApplier
-              noteIds={[note.id]}
-              appliedTags={note.tags}
-              allTags={allTags}
-              onAddTag={(_, name) => noteCommands.addTag(note.id, name)}
-              onRemoveTag={(_, name) => noteCommands.removeTag(note.id, name)}
-              onClose={closeTagApplier}
-              anchorRef={tagBtnRef}
+        {!isMobile && (
+          <div className={styles.bottomActions}>
+            <button
+              ref={tagBtnRef}
+              className={styles.iconButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowTagApplier((v) => !v);
+              }}
+              aria-label="Label note"
+              title="Label note"
+            >
+              <Icon name="label" />
+            </button>
+            {showTagApplier && (
+              <TagApplier
+                noteIds={[note.id]}
+                appliedTags={note.tags}
+                allTags={allTags}
+                onAddTag={(_, name) => noteCommands.addTag(note.id, name)}
+                onRemoveTag={(_, name) => noteCommands.removeTag(note.id, name)}
+                onClose={closeTagApplier}
+                anchorRef={tagBtnRef}
+              />
+            )}
+            <NoteActions
+              note={note}
+              className={styles.inlineActions}
+              buttonClassName={styles.iconButton}
+              filledIconClassName={styles.filledIcon}
+              noteCommands={noteCommands}
+              {...(isTrashView !== undefined ? { isTrashView } : {})}
             />
-          )}
-          <NoteActions
-            note={note}
-            className={styles.inlineActions}
-            buttonClassName={styles.iconButton}
-            filledIconClassName={styles.filledIcon}
-            noteCommands={noteCommands}
-            {...(isTrashView !== undefined ? { isTrashView } : {})}
-          />
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

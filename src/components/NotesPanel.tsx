@@ -16,6 +16,7 @@ interface NotesPanelProps {
   selectedNoteIds: Set<NoteId>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
   autoApplyActiveTag: boolean;
+  isMobile: boolean;
   linkPreviewDisplayEnabled: boolean;
   quickAddAutofocusEnabled: boolean;
   showSettings: boolean;
@@ -27,6 +28,7 @@ export function NotesPanel({
   selectedNoteIds,
   setSelectedNoteIds,
   autoApplyActiveTag,
+  isMobile,
   linkPreviewDisplayEnabled,
   quickAddAutofocusEnabled,
   showSettings,
@@ -88,6 +90,7 @@ export function NotesPanel({
         onBulkSelect={handleBulkSelect}
         onClearSelection={clearSelection}
         showLinkPreviews={linkPreviewDisplayEnabled}
+        isMobile={isMobile}
         isTrashView={isTrashView}
         topContent={(
           <>

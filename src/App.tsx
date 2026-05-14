@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState } from 'react';
+import { Suspense, useRef, useState, type PointerEvent } from 'react';
 import {
   Navigate,
   Outlet,
@@ -35,6 +35,10 @@ function filterKey(filter: FilterType) {
   return filter.type === 'tag' ? `tag:${String(filter.tagId)}` : filter.type;
 }
 
+const SIDEBAR_SWIPE_EDGE_WIDTH = 48;
+const SIDEBAR_SWIPE_OPEN_DISTANCE = 48;
+const SIDEBAR_SWIPE_VERTICAL_TOLERANCE = 1.5;
+
 function KeeperApp() {
   const { data: inboxNotes } = useInboxNotes();
   const { data: allTags } = useTags();
@@ -48,6 +52,7 @@ function KeeperApp() {
   const appSettings = useAppSettings();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const sidebarSwipeStart = useRef<{ x: number; y: number; pointerId: number } | null>(null);
   useExtensionBadge({
     enabled: appSettings.extensionBadgeEnabled,
     extensionNoteCreatedCount,
@@ -71,13 +76,47 @@ function KeeperApp() {
 
   const handleSidebarClose = () => { setSidebarOpen(false); };
   const clearSelectedNotes = () => { setSelectedNoteIds(new Set()); };
+  const resetSidebarSwipe = () => {
+    sidebarSwipeStart.current = null;
+  };
+  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    if (!isMobile || sidebarOpen || event.pointerType !== 'touch') return;
+    if (event.clientX > SIDEBAR_SWIPE_EDGE_WIDTH) return;
+    sidebarSwipeStart.current = {
+      x: event.clientX,
+      y: event.clientY,
+      pointerId: event.pointerId,
+    };
+  };
+  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
+    const swipeStart = sidebarSwipeStart.current;
+    if (swipeStart?.pointerId !== event.pointerId) return;
+
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    const isHorizontalSwipe = dx > SIDEBAR_SWIPE_OPEN_DISTANCE &&
+      Math.abs(dx) > Math.abs(dy) * SIDEBAR_SWIPE_VERTICAL_TOLERANCE;
+
+    if (isHorizontalSwipe) {
+      setSidebarOpen(true);
+      resetSidebarSwipe();
+    } else if (Math.abs(dy) > SIDEBAR_SWIPE_OPEN_DISTANCE) {
+      resetSidebarSwipe();
+    }
+  };
 
   if (activeFilter.type === 'tag' && !allTags.some((tag) => tag.id === activeFilter.tagId)) {
     return <Navigate to="/inbox" replace search={{}} />;
   }
 
   return (
-    <div className={styles.app}>
+    <div
+      className={styles.app}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={resetSidebarSwipe}
+      onPointerCancel={resetSidebarSwipe}
+    >
       {!isChatView && (
         <AppHeader
           bulkActions={bulkActions}

@@ -21,7 +21,12 @@ export function AppLayout({
   return (
     <div className={styles.layout}>
       {isMobile && sidebarOpen && (
-        <div className={styles.sidebarOverlay} onClick={onSidebarClose} />
+        <button
+          type="button"
+          className={styles.sidebarOverlay}
+          onClick={onSidebarClose}
+          aria-label="Close sidebar"
+        />
       )}
       {sidebar}
       <div className={styles.content}>{children}</div>

@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
 import { getSidebar, getSidebarTagButton, getTestDB, renderApp } from './app-test-utils';
 
@@ -80,6 +80,38 @@ it('opens filter and search state from the URL', async () => {
   expect(await screen.findByDisplayValue('work')).toBeInTheDocument();
   expect(await screen.findByText('Deep linked work note')).toBeInTheDocument();
   expect(screen.queryByText('Plain unlinked note')).not.toBeInTheDocument();
+});
+
+it('opens the mobile sidebar from a left-edge swipe', async () => {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: query === '(max-width: 768px)',
+    media: query,
+    onchange: null,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }));
+
+  await renderApp();
+  const toggleButton = await screen.findByLabelText('Toggle sidebar');
+  expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
+
+  fireEvent.pointerDown(toggleButton, {
+    clientX: 36,
+    clientY: 24,
+    pointerId: 1,
+    pointerType: 'touch',
+  });
+  fireEvent.pointerMove(toggleButton, {
+    clientX: 86,
+    clientY: 28,
+    pointerId: 1,
+    pointerType: 'touch',
+  });
+
+  expect(screen.getByLabelText('Close sidebar')).toBeInTheDocument();
 });
 
 it('updates browser history when switching filters', async () => {

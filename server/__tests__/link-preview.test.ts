@@ -1,5 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { extractLinkMetadata, extractOgImage } from '../link-preview.ts';
+import { afterEach, describe, it, expect, vi } from 'vitest';
+import { extractLinkMetadata, extractOgImage, fetchLinkMetadata } from '../link-preview.ts';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('extractOgImage', () => {
   it('extracts and resolves og:image content', () => {
@@ -82,5 +86,56 @@ describe('extractOgImage', () => {
       image_url: 'https://example.com/twitter.jpg',
       title: 'Fallback title',
     });
+  });
+});
+
+describe('fetchLinkMetadata', () => {
+  it('rejects redirects to private network URLs before following them', async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response('', {
+        status: 302,
+        headers: { location: 'http://127.0.0.1/private' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await fetchLinkMetadata('http://93.184.216.34/start');
+
+    expect(result).toMatchObject({
+      url: 'http://93.184.216.34/start',
+      status: 'error',
+      image_url: null,
+      failure_reason: 'Private IPs cannot be previewed',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0]?.[0]).toHaveProperty('href', 'http://93.184.216.34/start');
+  });
+
+  it('follows public redirects and resolves metadata against the final URL', async () => {
+    const html = '<meta property="og:image" content="/final-image.jpg">';
+    const fetchMock = vi.fn<typeof fetch>()
+      .mockResolvedValueOnce(
+        new Response('', {
+          status: 302,
+          headers: { location: '/redirected/post' },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(html, {
+          status: 200,
+          headers: { 'content-type': 'text/html' },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await fetchLinkMetadata('http://93.184.216.34/start');
+
+    expect(result).toMatchObject({
+      url: 'http://93.184.216.34/start',
+      status: 'found',
+      image_url: 'http://93.184.216.34/final-image.jpg',
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]?.[0]).toHaveProperty('href', 'http://93.184.216.34/redirected/post');
   });
 });

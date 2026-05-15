@@ -5,6 +5,7 @@ import type { LinkMetadata } from "../src/db/types.ts";
 
 const MAX_HTML_BYTES = 1024 * 1024;
 const FETCH_TIMEOUT_MS = 5000;
+const MAX_REDIRECTS = 5;
 
 export type LinkMetadataFetchResult =
   Partial<LinkMetadata> & Pick<LinkMetadata, "url" | "status">;
@@ -118,19 +119,44 @@ async function readLimitedText(response: Response): Promise<string> {
   return new TextDecoder().decode(bytes);
 }
 
-export async function fetchLinkMetadata(url: string): Promise<LinkMetadataFetchResult> {
-  try {
-    const pageUrl = new URL(url);
-    await assertPublicHttpUrl(pageUrl);
+function isRedirect(response: Response): boolean {
+  return response.status >= 300 && response.status < 400 && response.status !== 304;
+}
 
-    const response = await fetch(pageUrl, {
+async function fetchPublicHtmlUrl(url: URL): Promise<{ response: Response; pageUrl: string }> {
+  let currentUrl = url;
+
+  for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount++) {
+    await assertPublicHttpUrl(currentUrl);
+
+    const response = await fetch(currentUrl, {
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
       headers: {
         "User-Agent": "Keeper/0.0 link-preview",
         Accept: "text/html,application/xhtml+xml",
       },
-      redirect: "follow",
+      redirect: "manual",
     });
+
+    if (!isRedirect(response)) {
+      return { response, pageUrl: response.url !== "" ? response.url : currentUrl.toString() };
+    }
+
+    const location = response.headers.get("location");
+    if (location === null || location.trim() === "") {
+      throw new Error("Preview redirect is missing a Location header");
+    }
+
+    currentUrl = new URL(location, currentUrl);
+  }
+
+  throw new Error("Preview redirect limit exceeded");
+}
+
+export async function fetchLinkMetadata(url: string): Promise<LinkMetadataFetchResult> {
+  try {
+    const pageUrl = new URL(url);
+    const { response, pageUrl: finalPageUrl } = await fetchPublicHtmlUrl(pageUrl);
     if (!response.ok) {
       return { url, status: "error", image_url: null, failure_reason: `HTTP ${String(response.status)}` };
     }
@@ -141,7 +167,7 @@ export async function fetchLinkMetadata(url: string): Promise<LinkMetadataFetchR
     }
 
     const html = await readLimitedText(response);
-    return extractLinkMetadata(html, url, response.url);
+    return extractLinkMetadata(html, url, finalPageUrl);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to fetch link metadata";
     return { url, status: "error", image_url: null, failure_reason: message };

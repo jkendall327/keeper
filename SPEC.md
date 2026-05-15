@@ -40,7 +40,7 @@ A temporary holding area for:
 
 **Image Support:**
 - Paste from clipboard (Clipboard API)
-- Store as files in OPFS `/media` folder
+- Store files under the server data directory's `media/` folder
 - Reference via `media` table linked to notes
 
 ### 2.2 Organization & Discovery
@@ -117,11 +117,14 @@ A temporary holding area for:
 -- Notes table
 CREATE TABLE notes (
     id TEXT PRIMARY KEY,              -- UUID
-    title TEXT,                       -- Optional, auto-gen if blank
-    body TEXT,                        -- Markdown content
-    has_links BOOLEAN DEFAULT 0,      -- Indexed for "Links" view
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME
+    title TEXT NOT NULL DEFAULT '',   -- Optional, auto-gen if blank
+    body TEXT NOT NULL DEFAULT '',    -- Markdown content
+    has_links INTEGER NOT NULL DEFAULT 0,
+    pinned INTEGER NOT NULL DEFAULT 0,
+    archived INTEGER NOT NULL DEFAULT 0,
+    trashed INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
 -- Full-text search virtual table
@@ -129,36 +132,47 @@ CREATE VIRTUAL TABLE notes_fts USING fts5(
     title,
     body,
     content='notes',
-    content_rowid='id'
+    content_rowid='rowid'
 );
 
 -- Tags (many-to-many)
 CREATE TABLE tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE
+    name TEXT NOT NULL UNIQUE,
+    icon TEXT DEFAULT NULL
 );
 
 CREATE TABLE note_tags (
-    note_id TEXT,
-    tag_id INTEGER,
+    note_id TEXT NOT NULL,
+    tag_id INTEGER NOT NULL,
     FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE,
-    FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE
+    FOREIGN KEY(tag_id) REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (note_id, tag_id)
 );
 
 -- Media/Images
 CREATE TABLE media (
     id TEXT PRIMARY KEY,              -- UUID
-    opfs_path TEXT,                   -- Path in OPFS filesystem
-    mime_type TEXT,                   -- e.g., image/png
-    note_id TEXT,
+    note_id TEXT NOT NULL,
+    mime_type TEXT NOT NULL,          -- e.g., image/png
+    filename TEXT NOT NULL,           -- File in DATA_DIR/media
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
 );
 ```
 
 ### Key Indexes
-- `notes.has_links` for fast "Links" view filtering
+- `notes.has_links`, `notes.pinned`, `notes.archived`, and `notes.trashed` for fast view filtering
 - FTS5 virtual table on title/body for full-text search
+- `media.note_id` for listing note attachments
 - Foreign keys with CASCADE for clean deletion
+
+### Related Tables
+- `note_links` records extracted URLs and their position in a note
+- `link_metadata` caches fetched preview data for links
+- `link_metadata_jobs` tracks background preview fetch attempts
+- `auto_tag_rules` and `auto_tag_rule_tags` store URL autotagging rules
+- `app_settings` stores user-visible app settings
 
 ### Untagged Query
 ```sql
@@ -171,37 +185,46 @@ WHERE id NOT IN (SELECT note_id FROM note_tags);
 ## 4. Technical Architecture
 
 ### Frontend
-- **Framework**: React (already configured)
-- **Markdown**: `markdown-it` or `remark`
+- **Framework**: React with TanStack Router and TanStack Query
+- **Markdown**: Markdown rendering with sanitized preview output
 - **UI Philosophy**: Search-first, low-friction interface
+
+### Server/API Layer
+- **Server**: Fastify
+- **Database**: `better-sqlite3`
+- **Media**: Filesystem-backed files under `DATA_DIR/media`
+- **Backup/Restore**: Keeper archive containing a SQLite snapshot plus media files
 
 ### Storage Layer
 
-**SQLite + Web Worker:**
-- `sqlite-wasm` running in a Web Worker (prevents UI jank during FTS queries)
-- Origin Private File System (OPFS) as virtual filesystem
-- Images stored as files in OPFS `/media` folder
-
-**Persistence:**
-- Call `navigator.storage.persist()` on first boot
-- Prevents browser auto-cleanup of OPFS data
+**SQLite + Filesystem:**
+- SQLite lives in the configured server data directory
+- Images and other uploaded media are stored as files in `DATA_DIR/media`
+- Media records in SQLite link files to notes and enable cleanup/backup
 
 ### Data Flow
 
-**Main Thread ↔ Worker Communication:**
-- Post messages for all DB queries
-- Worker handles SQLite operations
-- Results sent back to main thread
+**Client ↔ Fastify API:**
+- The React app talks to `/api/*` endpoints through the typed client
+- Fastify routes call the `KeeperDB` interface
+- Server-sent events notify the app when background work or extension capture should refresh client state
 
 **Image Paste Workflow:**
 1. Clipboard paste event
 2. Convert to Blob
-3. Write to OPFS `/media/[uuid].[ext]`
-4. Store reference in `media` table with `note_id`
+3. Upload to `/api/media`
+4. Server writes `DATA_DIR/media/[uuid].[ext]`
+5. Server stores reference in `media` table with `note_id`
+6. Markdown references the attachment as `media://[uuid]`, rendered through `/api/media/[uuid]`
 
 **Search:**
 - FTS5 queries for full-text search
 - SQL queries for smart views (untagged, links)
+
+**Link Previews:**
+- Note bodies are scanned for URLs after create/update
+- Background jobs fetch preview metadata when link preview fetching is enabled
+- Preview display can be independently disabled in settings
 
 ---
 
@@ -233,6 +256,11 @@ WHERE id NOT IN (SELECT note_id FROM note_tags);
    - Copy to clipboard OR save as .txt
    - "Delete after export" checkbox
 4. If burn enabled: Notes deleted ONLY after successful export confirmation
+
+### Backup & Restore
+1. User opens settings
+2. User downloads a Keeper archive containing a SQLite snapshot and, optionally, media files
+3. User can restore an archive, replacing the current database and media directory after a pre-restore backup is created
 
 ### Markdown Preview
 1. User clicks "Preview" toggle button
@@ -276,7 +304,7 @@ The MVP is complete when:
 ### Performance Targets
 - Search latency: < 100ms for FTS queries on 1000 notes
 - Note save: < 50ms (perception of instant save)
-- Image paste: < 200ms to write to OPFS
+- Image paste: < 200ms to upload and store media locally on normal home-network/dev-machine conditions
 
 ### Browser Compatibility
 The user only uses Vivaldi so that's the priority.

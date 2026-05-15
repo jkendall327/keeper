@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { markdown } from '@motioneffector/markdown';
+import { escapeHtml } from '../utils/html.ts';
 import styles from './MarkdownPreview.module.css';
 
 interface MarkdownPreviewProps {
@@ -25,7 +26,7 @@ export function MarkdownPreview({
     });
   } catch (err: unknown) {
     console.warn('Markdown rendering failed, showing raw content:', err);
-    rawHtml = content;
+    rawHtml = escapeHtml(content);
   }
 
   let html = rawHtml.replaceAll(

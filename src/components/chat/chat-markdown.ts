@@ -1,4 +1,5 @@
 import { markdown } from '@motioneffector/markdown';
+import { escapeHtml } from '../../utils/html.ts';
 
 export function renderMarkdownSafe(input: string): string {
   try {
@@ -8,6 +9,6 @@ export function renderMarkdownSafe(input: string): string {
     html = html.replaceAll('<a href=', '<a target="_blank" rel="noopener noreferrer" href=');
     return html;
   } catch {
-    return input;
+    return escapeHtml(input);
   }
 }

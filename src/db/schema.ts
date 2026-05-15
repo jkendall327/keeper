@@ -1,3 +1,15 @@
+export const NOTES_FTS_UPDATE_TRIGGER_SQL = `
+CREATE TRIGGER IF NOT EXISTS notes_fts_update
+AFTER UPDATE OF title, body ON notes
+WHEN OLD.title IS NOT NEW.title OR OLD.body IS NOT NEW.body
+BEGIN
+  INSERT INTO notes_fts(notes_fts, rowid, title, body)
+  VALUES ('delete', OLD.rowid, OLD.title, OLD.body);
+  INSERT INTO notes_fts(rowid, title, body)
+  VALUES (NEW.rowid, NEW.title, NEW.body);
+END;
+`;
+
 export const SCHEMA_SQL = `
 -- Notes
 CREATE TABLE IF NOT EXISTS notes (
@@ -32,12 +44,7 @@ CREATE TRIGGER IF NOT EXISTS notes_fts_insert AFTER INSERT ON notes BEGIN
   VALUES (NEW.rowid, NEW.title, NEW.body);
 END;
 
-CREATE TRIGGER IF NOT EXISTS notes_fts_update AFTER UPDATE ON notes BEGIN
-  INSERT INTO notes_fts(notes_fts, rowid, title, body)
-  VALUES ('delete', OLD.rowid, OLD.title, OLD.body);
-  INSERT INTO notes_fts(rowid, title, body)
-  VALUES (NEW.rowid, NEW.title, NEW.body);
-END;
+${NOTES_FTS_UPDATE_TRIGGER_SQL}
 
 CREATE TRIGGER IF NOT EXISTS notes_fts_delete AFTER DELETE ON notes BEGIN
   INSERT INTO notes_fts(notes_fts, rowid, title, body)

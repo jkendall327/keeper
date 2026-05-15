@@ -1,5 +1,5 @@
 import type { SqliteDb, SqlRow } from "./sqlite-db.ts";
-import { SCHEMA_SQL } from "./schema.ts";
+import { NOTES_FTS_UPDATE_TRIGGER_SQL, SCHEMA_SQL } from "./schema.ts";
 import { extractUrls } from "./url-detect.ts";
 
 const BASELINE_SCHEMA_VERSION = 1;
@@ -40,6 +40,16 @@ SELECT url, image_url, status, fetched_at, updated_at
 FROM link_previews;
 `);
       }
+    },
+  },
+  {
+    version: 3,
+    name: "narrow notes fts update trigger",
+    up: (db) => {
+      db.execRaw(`
+DROP TRIGGER IF EXISTS notes_fts_update;
+${NOTES_FTS_UPDATE_TRIGGER_SQL}
+`);
     },
   },
 ];

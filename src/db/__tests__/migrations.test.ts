@@ -11,6 +11,16 @@ function scalarNumber(value: unknown): number {
   return value;
 }
 
+function triggerSql(db: ReturnType<typeof createTestDb>, triggerName: string): string {
+  const sql = db.query("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = ?", [
+    triggerName,
+  ])[0]?.["sql"];
+  if (typeof sql !== "string") {
+    throw new Error(`Missing trigger: ${triggerName}`);
+  }
+  return sql;
+}
+
 describe("database migrations", () => {
   it("bootstraps a fresh database to the current schema version", () => {
     const db = createTestDb();
@@ -29,6 +39,12 @@ describe("database migrations", () => {
       db.query("PRAGMA user_version")[0]?.["user_version"],
     );
     expect(userVersion).toBe(CURRENT_SCHEMA_VERSION);
+
+    const ftsUpdateTrigger = triggerSql(db, "notes_fts_update");
+    expect(ftsUpdateTrigger).toContain("AFTER UPDATE OF title, body ON notes");
+    expect(ftsUpdateTrigger).toContain(
+      "WHEN OLD.title IS NOT NEW.title OR OLD.body IS NOT NEW.body",
+    );
   });
 
   it("marks an already-migrated database without rerunning the baseline", () => {
@@ -109,5 +125,49 @@ INSERT INTO note_tags (note_id, tag_id) VALUES ('legacy-note', 1);
     expect(() => {
       migrate(db);
     }).toThrow(/newer than supported/);
+  });
+
+  it("replaces the broad FTS update trigger in existing databases", () => {
+    const db = createTestDb();
+    db.execRaw(`
+CREATE TABLE notes (
+  id         TEXT PRIMARY KEY,
+  title      TEXT NOT NULL DEFAULT '',
+  body       TEXT NOT NULL DEFAULT '',
+  has_links  INTEGER NOT NULL DEFAULT 0,
+  pinned     INTEGER NOT NULL DEFAULT 0,
+  archived   INTEGER NOT NULL DEFAULT 0,
+  trashed    INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE VIRTUAL TABLE notes_fts USING fts5(
+  title,
+  body,
+  content='notes',
+  content_rowid='rowid'
+);
+
+CREATE TRIGGER notes_fts_update AFTER UPDATE ON notes BEGIN
+  INSERT INTO notes_fts(notes_fts, rowid, title, body)
+  VALUES ('delete', OLD.rowid, OLD.title, OLD.body);
+  INSERT INTO notes_fts(rowid, title, body)
+  VALUES (NEW.rowid, NEW.title, NEW.body);
+END;
+
+PRAGMA user_version = 2;
+`);
+
+    migrate(db);
+
+    const ftsUpdateTrigger = triggerSql(db, "notes_fts_update");
+    expect(ftsUpdateTrigger).toContain("AFTER UPDATE OF title, body ON notes");
+    expect(ftsUpdateTrigger).not.toContain("AFTER UPDATE ON notes");
+
+    const userVersion = scalarNumber(
+      db.query("PRAGMA user_version")[0]?.["user_version"],
+    );
+    expect(userVersion).toBe(CURRENT_SCHEMA_VERSION);
   });
 });

@@ -32,7 +32,8 @@ const keeperDb = createKeeperDB({
 // Set up filesystem-backed media, overriding the base DB stubs
 const mediaDir = join(dataDir, "media");
 const origDeleteNote = keeperDb.deleteNote.bind(keeperDb);
-const media = await createMediaHandler(mediaDir, adapter, origDeleteNote);
+const origDeleteNotes = keeperDb.deleteNotes.bind(keeperDb);
+const media = await createMediaHandler(mediaDir, adapter, origDeleteNote, origDeleteNotes);
 const backup = createBackupService({
   dataDir,
   mediaDir,
@@ -42,6 +43,7 @@ const backup = createBackupService({
 keeperDb.storeMedia = media.storeMedia.bind(media);
 keeperDb.deleteMedia = media.deleteMedia.bind(media);
 keeperDb.deleteNote = media.deleteNoteWithMedia.bind(media);
+keeperDb.deleteNotes = media.deleteNotesWithMedia.bind(media);
 keeperDb.getMedia = async (id: string) => {
   const result = await media.serveMedia(id);
   if (result === null) return null;

@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { access } from "node:fs/promises";
+import { join } from "node:path";
 import { describe, it, expect, afterEach } from "vitest";
 import { createFileBackedTestApp, createTestApp, multipartBody, type TestApp } from "./test-app.ts";
 import type { LightMyRequestResponse } from "fastify";
@@ -346,6 +348,54 @@ describe("Fastify API routes", () => {
     expect(deleted.statusCode).toBe(200);
     const missing = await app.inject({ method: "GET", url: "/api/media/media-1" });
     expect(missing.statusCode).toBe(404);
+  });
+
+  it("deletes media files when bulk permanently deleting notes", async () => {
+    current = await createFileBackedTestApp();
+    const { app, mediaDir } = current;
+    if (mediaDir === undefined) throw new Error("Expected file-backed media directory");
+
+    await app.inject({ method: "POST", url: "/api/notes", payload: { body: "media note one" } });
+    await app.inject({ method: "POST", url: "/api/notes", payload: { body: "media note two" } });
+
+    const firstMultipart = multipartBody(
+      { noteId: "test-id-1", mimeType: "image/png" },
+      { field: "file", filename: "one.png", contentType: "image/png", content: "first-png-bytes" },
+    );
+    const firstUpload = await app.inject({
+      method: "POST",
+      url: "/api/media",
+      headers: { "content-type": firstMultipart.contentType },
+      payload: firstMultipart.body,
+    });
+    const firstMedia = parseJson(firstUpload) as { filename: string };
+
+    const secondMultipart = multipartBody(
+      { noteId: "test-id-2", mimeType: "image/png" },
+      { field: "file", filename: "two.png", contentType: "image/png", content: "second-png-bytes" },
+    );
+    const secondUpload = await app.inject({
+      method: "POST",
+      url: "/api/media",
+      headers: { "content-type": secondMultipart.contentType },
+      payload: secondMultipart.body,
+    });
+    const secondMedia = parseJson(secondUpload) as { filename: string };
+
+    const firstPath = join(mediaDir, firstMedia.filename);
+    const secondPath = join(mediaDir, secondMedia.filename);
+    await expect(access(firstPath)).resolves.toBeUndefined();
+    await expect(access(secondPath)).resolves.toBeUndefined();
+
+    const deleted = await app.inject({
+      method: "POST",
+      url: "/api/notes/delete",
+      payload: { ids: ["test-id-1", "test-id-2"] },
+    });
+
+    expect(deleted.statusCode).toBe(200);
+    await expect(access(firstPath)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(access(secondPath)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("downloads a backup archive with a SQLite snapshot and media files", async () => {

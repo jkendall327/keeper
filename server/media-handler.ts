@@ -25,6 +25,7 @@ export interface MediaHandler {
   ): Promise<{ buffer: Buffer; mimeType: string } | null>;
   deleteMedia(id: string): Promise<void>;
   deleteNoteWithMedia(noteId: NoteId): Promise<void>;
+  deleteNotesWithMedia(noteIds: NoteId[]): Promise<void>;
 }
 
 export function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {
@@ -37,8 +38,19 @@ export async function createMediaHandler(
   mediaDir: string,
   db: SqliteDb,
   baseDeleteNote: (id: NoteId) => Promise<void>,
+  baseDeleteNotes: (ids: NoteId[]) => Promise<void>,
 ): Promise<MediaHandler> {
   await mkdir(mediaDir, { recursive: true });
+
+  async function unlinkMediaFiles(filenames: string[]): Promise<void> {
+    for (const filename of filenames) {
+      try {
+        await unlink(join(mediaDir, filename));
+      } catch (err: unknown) {
+        if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
+      }
+    }
+  }
 
   return {
     async storeMedia(input: StoreMediaInput): Promise<Media> {
@@ -105,22 +117,27 @@ export async function createMediaHandler(
 
     async deleteNoteWithMedia(noteId: NoteId) {
       const rows = db.query(
-        "SELECT id, mime_type FROM media WHERE note_id = ?",
+        "SELECT filename FROM media WHERE note_id = ?",
         [noteId],
       );
-      const filenames = rows.map(
-        (m) => `${m["id"] as string}.${mimeToExt(m["mime_type"] as string)}`,
-      );
+      const filenames = rows.map((m) => m["filename"] as string);
 
       await baseDeleteNote(noteId);
+      await unlinkMediaFiles(filenames);
+    },
 
-      for (const filename of filenames) {
-        try {
-          await unlink(join(mediaDir, filename));
-        } catch (err: unknown) {
-          if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
-        }
-      }
+    async deleteNotesWithMedia(noteIds: NoteId[]) {
+      if (noteIds.length === 0) return;
+
+      const placeholders = noteIds.map(() => "?").join(",");
+      const rows = db.query(
+        `SELECT filename FROM media WHERE note_id IN (${placeholders})`,
+        noteIds,
+      );
+      const filenames = rows.map((m) => m["filename"] as string);
+
+      await baseDeleteNotes(noteIds);
+      await unlinkMediaFiles(filenames);
     },
   };
 }

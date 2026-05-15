@@ -18,6 +18,7 @@ export interface TestApp {
   db: KeeperDB;
   sqlDb: SqliteDb;
   media: MediaHandler;
+  mediaDir?: string;
   cleanup?: () => Promise<void>;
 }
 
@@ -75,6 +76,14 @@ export async function createTestApp(): Promise<TestApp> {
       }
       await db.deleteNote(noteId);
     },
+
+    async deleteNotesWithMedia(noteIds: NoteId[]): Promise<void> {
+      const mediaRows = await Promise.all(noteIds.map((noteId) => db.getMediaForNote(noteId)));
+      for (const row of mediaRows.flat()) {
+        buffers.delete(row.id);
+      }
+      await db.deleteNotes(noteIds);
+    },
   };
 
   registerRoutes(app, db, media);
@@ -108,10 +117,12 @@ export async function createFileBackedTestApp(): Promise<TestApp> {
 
   const mediaDir = join(dataDir, "media");
   const origDeleteNote = db.deleteNote.bind(db);
-  const media = await createMediaHandler(mediaDir, sqlDb, origDeleteNote);
+  const origDeleteNotes = db.deleteNotes.bind(db);
+  const media = await createMediaHandler(mediaDir, sqlDb, origDeleteNote, origDeleteNotes);
   db.storeMedia = media.storeMedia.bind(media);
   db.deleteMedia = media.deleteMedia.bind(media);
   db.deleteNote = media.deleteNoteWithMedia.bind(media);
+  db.deleteNotes = media.deleteNotesWithMedia.bind(media);
 
   const backup = createBackupService({
     dataDir,
@@ -127,6 +138,7 @@ export async function createFileBackedTestApp(): Promise<TestApp> {
     db,
     sqlDb,
     media,
+    mediaDir,
     cleanup: async () => {
       sqlDb.close();
       await rm(dataDir, { recursive: true, force: true });

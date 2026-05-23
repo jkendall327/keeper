@@ -15,8 +15,8 @@
   background: var(--surface-card);
   border-radius: var(--radius-lg);
   padding: 24px;
-  width: 560px;
-  max-width: 90vw;
+  width: 720px;
+  max-width: calc(100vw - 48px);
   max-height: 86vh;
   overflow-y: auto;
 }

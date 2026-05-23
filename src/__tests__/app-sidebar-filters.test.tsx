@@ -153,12 +153,12 @@ it('redirects unknown routes back to inbox', async () => {
   });
 });
 
-it('archives tagged notes from the inbox header only', async () => {
+it('archives tagged notes from the cleanup button', async () => {
   const user = userEvent.setup();
   await renderApp();
 
-  const archiveTaggedBtn = await screen.findByRole('button', { name: 'Archive tagged notes' });
-  expect(archiveTaggedBtn).toBeDisabled();
+  const cleanupButton = await screen.findByRole('button', { name: 'Clean up notes' });
+  expect(cleanupButton).toBeEnabled();
 
   const input = await screen.findByPlaceholderText('Take a note...');
   await user.type(input, 'Tagged inbox note');
@@ -174,14 +174,10 @@ it('archives tagged notes from the inbox header only', async () => {
   await screen.findByLabelText('Remove tag work');
   await user.keyboard('{Escape}');
 
-  await waitFor(() => {
-    expect(archiveTaggedBtn).toBeEnabled();
-  });
-
   const workTag = await waitFor(() => getSidebarTagButton('work'));
 
   await user.click(workTag);
-  expect(screen.queryByRole('button', { name: 'Archive tagged notes' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Clean up notes' })).toBeInTheDocument();
 
   await user.click(screen.getByText('Inbox'));
   const searchInput = screen.getByPlaceholderText(/Search notes/);
@@ -189,17 +185,18 @@ it('archives tagged notes from the inbox header only', async () => {
   expect(screen.getByText('Plain inbox note')).toBeInTheDocument();
   expect(screen.queryByText('Tagged inbox note')).not.toBeInTheDocument();
 
-  await user.click(screen.getByRole('button', { name: 'Archive tagged notes' }));
+  await user.click(screen.getByRole('button', { name: 'Clean up notes' }));
   await user.clear(searchInput);
 
   await waitFor(() => {
     expect(screen.queryByText('Tagged inbox note')).not.toBeInTheDocument();
   });
   expect(screen.getByText('Plain inbox note')).toBeInTheDocument();
+  expect(screen.getByText('0 matched, 1 archived')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: /^Archive$/ }));
   await screen.findByText('Tagged inbox note');
-  expect(screen.queryByRole('button', { name: 'Archive tagged notes' })).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Clean up notes' })).toBeInTheDocument();
 });
 
 it('does not reopen a stale modal after removing the active tag from a note', async () => {

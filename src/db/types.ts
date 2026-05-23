@@ -109,6 +109,10 @@ export interface AutoTagRunResult {
   appliedTagCount: number;
 }
 
+export interface ArchiveTaggedNotesResult {
+  archivedNoteCount: number;
+}
+
 export const DEFAULT_EXTENSION_TITLE_MAX_LENGTH = 120;
 export const MIN_EXTENSION_TITLE_MAX_LENGTH = 4;
 export const MAX_EXTENSION_TITLE_MAX_LENGTH = 500;
@@ -136,6 +140,8 @@ export interface AppSettings {
   popularTagSuggestionsEnabled: boolean;
   popularTagSuggestionLimit: number;
   quickAddAutofocusEnabled: boolean;
+  cleanupAutoTagRulesEnabled: boolean;
+  cleanupArchiveTaggedEnabled: boolean;
 }
 
 export interface UpdateAppSettingsInput {
@@ -146,6 +152,8 @@ export interface UpdateAppSettingsInput {
   popularTagSuggestionsEnabled?: boolean;
   popularTagSuggestionLimit?: number;
   quickAddAutofocusEnabled?: boolean;
+  cleanupAutoTagRulesEnabled?: boolean;
+  cleanupArchiveTaggedEnabled?: boolean;
 }
 
 // ── Input types ─────────────────────────────────────────────
@@ -216,6 +224,7 @@ export interface KeeperDB {
   updateAutoTagRule(input: UpdateAutoTagRuleInput): Promise<AutoTagRule>;
   deleteAutoTagRule(id: number): Promise<void>;
   runAutoTagRules(): Promise<AutoTagRunResult>;
+  archiveTaggedNotes(): Promise<ArchiveTaggedNotesResult>;
 
   // App settings
   getAppSettings(): Promise<AppSettings>;

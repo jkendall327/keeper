@@ -17,6 +17,8 @@ interface NotesSettingsProps {
   popularTagSuggestionsEnabled: boolean;
   popularTagSuggestionLimit: number;
   quickAddAutofocusEnabled: boolean;
+  cleanupAutoTagRulesEnabled: boolean;
+  cleanupArchiveTaggedEnabled: boolean;
   onAutoApplyActiveTagChange: (enabled: boolean) => void;
 }
 
@@ -27,6 +29,8 @@ export function NotesSettings({
   popularTagSuggestionsEnabled,
   popularTagSuggestionLimit,
   quickAddAutofocusEnabled,
+  cleanupAutoTagRulesEnabled,
+  cleanupArchiveTaggedEnabled,
   onAutoApplyActiveTagChange,
 }: NotesSettingsProps) {
   const updateAppSettings = useUpdateAppSettings();
@@ -39,7 +43,12 @@ export function NotesSettings({
   const [settingsError, setSettingsError] = useState('');
 
   const saveBooleanSetting = async (
-    setting: 'extensionBadgeEnabled' | 'popularTagSuggestionsEnabled' | 'quickAddAutofocusEnabled',
+    setting:
+      | 'extensionBadgeEnabled'
+      | 'popularTagSuggestionsEnabled'
+      | 'quickAddAutofocusEnabled'
+      | 'cleanupAutoTagRulesEnabled'
+      | 'cleanupArchiveTaggedEnabled',
     enabled: boolean,
   ) => {
     setSettingsError('');
@@ -88,6 +97,30 @@ export function NotesSettings({
         <span>
           <span className={styles.label}>Apply current tag to new notes</span>
           <span className={styles.hint}>New notes created from a tag view inherit that tag.</span>
+        </span>
+      </label>
+      <label className={styles.toggleRow} htmlFor="cleanup-autotag-rules-enabled">
+        <input
+          id="cleanup-autotag-rules-enabled"
+          type="checkbox"
+          checked={cleanupAutoTagRulesEnabled}
+          onChange={(e) => { void saveBooleanSetting('cleanupAutoTagRulesEnabled', e.target.checked); }}
+        />
+        <span>
+          <span className={styles.label}>Run autotag rules during cleanup</span>
+          <span className={styles.hint}>The top bar cleanup button applies matching URL rules first.</span>
+        </span>
+      </label>
+      <label className={styles.toggleRow} htmlFor="cleanup-archive-tagged-enabled">
+        <input
+          id="cleanup-archive-tagged-enabled"
+          type="checkbox"
+          checked={cleanupArchiveTaggedEnabled}
+          onChange={(e) => { void saveBooleanSetting('cleanupArchiveTaggedEnabled', e.target.checked); }}
+        />
+        <span>
+          <span className={styles.label}>Archive tagged notes during cleanup</span>
+          <span className={styles.hint}>After autotagging, the cleanup button archives active notes that already have tags.</span>
         </span>
       </label>
       <label className={styles.toggleRow} htmlFor="extension-badge-enabled">

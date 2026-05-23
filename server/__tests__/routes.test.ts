@@ -172,6 +172,22 @@ describe("Fastify API routes", () => {
     expect(restoredTrashNotes).toHaveLength(0);
   });
 
+  it("archives active tagged notes through the cleanup route", async () => {
+    const { app } = await setup();
+    await app.inject({ method: "POST", url: "/api/notes", payload: { body: "tagged" } });
+    await app.inject({ method: "POST", url: "/api/notes", payload: { body: "plain" } });
+    await app.inject({ method: "POST", url: "/api/notes/test-id-1/tags", payload: { name: "work" } });
+
+    const archived = await app.inject({ method: "POST", url: "/api/notes/archive-tagged" });
+    expect(archived.statusCode).toBe(200);
+    expect(parseJson(archived)).toEqual({ archivedNoteCount: 1 });
+
+    const activeNotes = parseJson(await app.inject({ method: "GET", url: "/api/notes" })) as NoteDto[];
+    expect(activeNotes.map((note) => note.body)).toEqual(["plain"]);
+    const archivedNotes = parseJson(await app.inject({ method: "GET", url: "/api/views/archived" })) as NoteDto[];
+    expect(archivedNotes[0]?.body).toBe("tagged");
+  });
+
   it("resolves notes in request order including trashed notes", async () => {
     const { app } = await setup();
     await app.inject({ method: "POST", url: "/api/notes", payload: { body: "one" } });

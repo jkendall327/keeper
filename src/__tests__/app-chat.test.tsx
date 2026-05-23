@@ -106,7 +106,7 @@ describe('App chat view', () => {
 
     expect(await screen.findByText('API key required')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText(/Search notes/)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Run autotag rules')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Clean up notes')).not.toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Take a note...')).not.toBeInTheDocument();
   });
 

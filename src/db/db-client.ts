@@ -1,5 +1,6 @@
 import type {
   AppSettings,
+  ArchiveTaggedNotesResult,
   AutoTagRule,
   AutoTagRuleInput,
   AutoTagRunResult,
@@ -33,6 +34,7 @@ export interface KeeperClient {
     delete(id: NoteId): Promise<void>;
     deleteMany(ids: NoteId[]): Promise<void>;
     archiveMany(ids: NoteId[]): Promise<void>;
+    archiveTagged(): Promise<ArchiveTaggedNotesResult>;
     trash(id: NoteId): Promise<void>;
     trashMany(ids: NoteId[]): Promise<void>;
     restore(id: NoteId): Promise<void>;
@@ -134,6 +136,7 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
       delete: (id) => fetchVoid(fetchFn, `/api/notes/${id}`, { method: 'DELETE' }),
       deleteMany: (ids) => fetchVoid(fetchFn, '/api/notes/delete', jsonOpts('POST', { ids })),
       archiveMany: (ids) => fetchVoid(fetchFn, '/api/notes/archive', jsonOpts('POST', { ids })),
+      archiveTagged: () => fetchJson<ArchiveTaggedNotesResult>(fetchFn, '/api/notes/archive-tagged', { method: 'POST' }),
       trash: (id) => fetchVoid(fetchFn, `/api/notes/${id}/trash`, { method: 'POST' }),
       trashMany: (ids) => fetchVoid(fetchFn, '/api/notes/trash', jsonOpts('POST', { ids })),
       restore: (id) => fetchVoid(fetchFn, `/api/notes/${id}/restore`, { method: 'POST' }),

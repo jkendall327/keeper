@@ -116,6 +116,8 @@ describe('Link metadata', () => {
       popularTagSuggestionsEnabled: true,
       popularTagSuggestionLimit: 5,
       quickAddAutofocusEnabled: true,
+      cleanupAutoTagRulesEnabled: true,
+      cleanupArchiveTaggedEnabled: true,
     });
 
     await api.updateAppSettings({
@@ -125,6 +127,8 @@ describe('Link metadata', () => {
       popularTagSuggestionsEnabled: false,
       popularTagSuggestionLimit: 7,
       quickAddAutofocusEnabled: false,
+      cleanupAutoTagRulesEnabled: false,
+      cleanupArchiveTaggedEnabled: false,
     });
 
     await expect(api.getAppSettings()).resolves.toMatchObject({
@@ -134,6 +138,8 @@ describe('Link metadata', () => {
       popularTagSuggestionsEnabled: false,
       popularTagSuggestionLimit: 7,
       quickAddAutofocusEnabled: false,
+      cleanupAutoTagRulesEnabled: false,
+      cleanupArchiveTaggedEnabled: false,
     });
   });
 });

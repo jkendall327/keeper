@@ -36,6 +36,8 @@ export function createAppSettingsMethods(ctx: KeeperDBContext): Pick<
         ? current.popularTagSuggestionLimit
         : normalizePopularTagSuggestionLimit(input.popularTagSuggestionLimit);
       const quickAddAutofocusEnabled = input.quickAddAutofocusEnabled ?? current.quickAddAutofocusEnabled;
+      const cleanupAutoTagRulesEnabled = input.cleanupAutoTagRulesEnabled ?? current.cleanupAutoTagRulesEnabled;
+      const cleanupArchiveTaggedEnabled = input.cleanupArchiveTaggedEnabled ?? current.cleanupArchiveTaggedEnabled;
 
       upsertSetting("extensionTitleMaxLength", String(extensionTitleMaxLength));
       upsertSetting("extensionBadgeEnabled", String(extensionBadgeEnabled));
@@ -44,6 +46,8 @@ export function createAppSettingsMethods(ctx: KeeperDBContext): Pick<
       upsertSetting("popularTagSuggestionsEnabled", String(popularTagSuggestionsEnabled));
       upsertSetting("popularTagSuggestionLimit", String(popularTagSuggestionLimit));
       upsertSetting("quickAddAutofocusEnabled", String(quickAddAutofocusEnabled));
+      upsertSetting("cleanupAutoTagRulesEnabled", String(cleanupAutoTagRulesEnabled));
+      upsertSetting("cleanupArchiveTaggedEnabled", String(cleanupArchiveTaggedEnabled));
 
       return Promise.resolve({
         extensionTitleMaxLength,
@@ -53,6 +57,8 @@ export function createAppSettingsMethods(ctx: KeeperDBContext): Pick<
         popularTagSuggestionsEnabled,
         popularTagSuggestionLimit,
         quickAddAutofocusEnabled,
+        cleanupAutoTagRulesEnabled,
+        cleanupArchiveTaggedEnabled,
       });
     },
   };

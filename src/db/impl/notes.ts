@@ -20,10 +20,11 @@ export function createNoteMethods(ctx: KeeperDBContext): Pick<
   | "deleteNote"
   | "deleteNotes"
   | "archiveNotes"
+  | "archiveTaggedNotes"
   | "togglePinNote"
   | "toggleArchiveNote"
 > {
-  const { db, generateId, now, rowToNote, syncNoteLinks, withTags, withTagsBatch } = ctx;
+  const { db, generateId, now, rowNumber, rowToNote, syncNoteLinks, withTags, withTagsBatch } = ctx;
 
   function getNote(id: NoteId): Promise<NoteWithTags | null> {
     const rows = db.query("SELECT * FROM notes WHERE id = ?", [id]);
@@ -147,6 +148,33 @@ export function createNoteMethods(ctx: KeeperDBContext): Pick<
         ids,
       );
       return Promise.resolve();
+    },
+
+    archiveTaggedNotes(): Promise<{ archivedNoteCount: number }> {
+      const countRow = db.query(
+        `SELECT COUNT(*) AS count
+         FROM notes
+         WHERE archived = 0
+           AND trashed = 0
+           AND EXISTS (
+             SELECT 1 FROM note_tags WHERE note_tags.note_id = notes.id
+           )`,
+      )[0];
+      const archivedNoteCount = countRow === undefined ? 0 : rowNumber(countRow, "count");
+      if (archivedNoteCount === 0) {
+        return Promise.resolve({ archivedNoteCount });
+      }
+
+      db.run(
+        `UPDATE notes
+         SET archived = 1
+         WHERE archived = 0
+           AND trashed = 0
+           AND EXISTS (
+             SELECT 1 FROM note_tags WHERE note_tags.note_id = notes.id
+           )`,
+      );
+      return Promise.resolve({ archivedNoteCount });
     },
 
     async togglePinNote(id: NoteId): Promise<NoteWithTags> {

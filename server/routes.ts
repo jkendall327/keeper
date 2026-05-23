@@ -117,6 +117,10 @@ export function registerRoutes(
     },
   );
 
+  app.post("/api/notes/archive-tagged", async () => {
+    return db.archiveTaggedNotes();
+  });
+
   app.post<{ Params: { id: string } }>(
     "/api/notes/:id/trash",
     async (req) => {

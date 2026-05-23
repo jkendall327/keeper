@@ -33,21 +33,19 @@ export function AppHeader({
   const { data: allTags } = useTags();
   const { activeFilter, searchQuery, setSearchQuery } = useKeeperRouteState();
   const isArchiveView = activeFilter.type === 'archive';
-  const isInboxView = activeFilter.type === 'all';
   const isTrashView = activeFilter.type === 'trash';
   const {
-    autoTagStatus,
     bulkAppliedTags,
     bulkIndeterminateTags,
+    cleanupEnabled,
+    cleanupStatus,
     displayedNoteIds,
-    handleArchiveTaggedInboxNotes,
     handleBulkArchive,
     handleBulkDelete,
     handleBulkRestore,
-    handleRunAutoTagRules,
+    handleRunCleanupActions,
     handleSelectAll,
     selectedNoteIds,
-    taggedInboxNoteIds,
   } = bulkActions;
   const displayedNoteCount = displayedNoteIds.length;
   const allDisplayedSelected = selectedNoteIds.size === displayedNoteCount && displayedNoteCount > 0;
@@ -70,28 +68,18 @@ export function AppHeader({
         {selectedNoteIds.size > 0 && (
           <span className={styles.bulkCount}>{selectedNoteIds.size} selected</span>
         )}
-        {autoTagStatus !== '' && (
-          <span className={styles.status} role="status">{autoTagStatus}</span>
+        {cleanupStatus !== '' && (
+          <span className={styles.status} role="status">{cleanupStatus}</span>
         )}
         <button
           className={styles.actionButton}
-          onClick={() => { void handleRunAutoTagRules(); }}
-          title="Run autotag rules"
-          aria-label="Run autotag rules"
+          onClick={() => { void handleRunCleanupActions(); }}
+          title="Clean up notes"
+          aria-label="Clean up notes"
+          disabled={!cleanupEnabled}
         >
           <Icon name="auto_mode" size={20} />
         </button>
-        {isInboxView && (
-          <button
-            className={styles.actionButton}
-            onClick={() => { void handleArchiveTaggedInboxNotes(); }}
-            title="Archive tagged notes"
-            aria-label="Archive tagged notes"
-            disabled={taggedInboxNoteIds.length === 0}
-          >
-            {isMobile ? <Icon name="archive" size={20} /> : 'Archive tagged'}
-          </button>
-        )}
         {displayedNoteCount > 0 && (
           <button
             className={styles.actionButton}

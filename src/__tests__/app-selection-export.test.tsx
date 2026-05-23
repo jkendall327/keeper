@@ -288,7 +288,7 @@ it('runs autotag rules from the toolbar and archives matching notes', async () =
   await user.keyboard('{/Control}');
   expect(screen.getByText('1 selected')).toBeInTheDocument();
 
-  await user.click(screen.getByLabelText('Run autotag rules'));
+  await user.click(screen.getByLabelText('Clean up notes'));
 
   await waitFor(() => {
     expect(screen.queryByText('https://example.com')).not.toBeInTheDocument();

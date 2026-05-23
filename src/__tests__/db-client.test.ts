@@ -32,6 +32,7 @@ describe("KeeperDB HTTP client contract", () => {
     await client.notes.delete(n1);
     await client.notes.deleteMany([n1, n2]);
     await client.notes.archiveMany([n1]);
+    await client.notes.archiveTagged();
     await client.notes.resolve([n2, n1]);
     await client.notes.trash(n1);
     await client.notes.trashMany([n1]);
@@ -45,12 +46,13 @@ describe("KeeperDB HTTP client contract", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(5, "/api/notes/n1", { method: "DELETE" });
     expect(fetchMock).toHaveBeenNthCalledWith(6, "/api/notes/delete", expect.objectContaining({ method: "POST" }));
     expect(fetchMock).toHaveBeenNthCalledWith(7, "/api/notes/archive", expect.objectContaining({ method: "POST" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(8, "/api/notes/resolve", expect.objectContaining({ method: "POST" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(9, "/api/notes/n1/trash", { method: "POST" });
-    expect(fetchMock).toHaveBeenNthCalledWith(10, "/api/notes/trash", expect.objectContaining({ method: "POST" }));
-    expect(fetchMock).toHaveBeenNthCalledWith(11, "/api/notes/n1/restore", { method: "POST" });
-    expect(fetchMock).toHaveBeenNthCalledWith(12, "/api/notes/restore", expect.objectContaining({ method: "POST" }));
-    const resolveInit = fetchMock.mock.calls[7]?.[1] as RequestInit | undefined;
+    expect(fetchMock).toHaveBeenNthCalledWith(8, "/api/notes/archive-tagged", { method: "POST" });
+    expect(fetchMock).toHaveBeenNthCalledWith(9, "/api/notes/resolve", expect.objectContaining({ method: "POST" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(10, "/api/notes/n1/trash", { method: "POST" });
+    expect(fetchMock).toHaveBeenNthCalledWith(11, "/api/notes/trash", expect.objectContaining({ method: "POST" }));
+    expect(fetchMock).toHaveBeenNthCalledWith(12, "/api/notes/n1/restore", { method: "POST" });
+    expect(fetchMock).toHaveBeenNthCalledWith(13, "/api/notes/restore", expect.objectContaining({ method: "POST" }));
+    const resolveInit = fetchMock.mock.calls[8]?.[1] as RequestInit | undefined;
     expect(resolveInit?.body).toBe('{"ids":["n2","n1"]}');
   });
 

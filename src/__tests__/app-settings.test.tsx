@@ -198,6 +198,31 @@ it('settings button renders the settings icon glyph', async () => {
     await expect(getTestDB().getAppSettings()).resolves.toMatchObject({ quickAddAutofocusEnabled: false });
   });
 
+  it('toggles cleanup button actions', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    await user.click(screen.getByLabelText('Open settings'));
+    await user.click(screen.getByRole('tab', { name: 'Notes' }));
+
+    const autotagToggle = screen.getByRole('checkbox', { name: /Run autotag rules during cleanup/ });
+    const archiveTaggedToggle = screen.getByRole('checkbox', { name: /Archive tagged notes during cleanup/ });
+    expect(autotagToggle).toBeChecked();
+    expect(archiveTaggedToggle).toBeChecked();
+
+    await user.click(autotagToggle);
+    await user.click(archiveTaggedToggle);
+
+    await waitFor(() => {
+      expect(autotagToggle).not.toBeChecked();
+      expect(archiveTaggedToggle).not.toBeChecked();
+    });
+    await expect(getTestDB().getAppSettings()).resolves.toMatchObject({
+      cleanupAutoTagRulesEnabled: false,
+      cleanupArchiveTaggedEnabled: false,
+    });
+  });
+
   it('downloads a backup from settings', async () => {
     const user = userEvent.setup();
     await useFileBackedTestApp();

@@ -12,7 +12,6 @@ import {
   useAppSettings,
   useDisplayedNotes,
   useExtensionEvents,
-  useInboxNotes,
   useNoteMutations,
   useTags,
 } from './hooks/useKeeperQuery.ts';
@@ -40,7 +39,6 @@ const SIDEBAR_SWIPE_OPEN_DISTANCE = 48;
 const SIDEBAR_SWIPE_VERTICAL_TOLERANCE = 1.5;
 
 function KeeperApp() {
-  const { data: inboxNotes } = useInboxNotes();
   const { data: allTags } = useTags();
   const noteMutations = useNoteMutations();
   const extensionNoteCreatedCount = useExtensionEvents();
@@ -63,9 +61,11 @@ function KeeperApp() {
   const displayedNotes = useDisplayedNotes(activeFilter, searchQuery);
   const bulkActions = useBulkNoteActions({
     archiveNotes: noteMutations.archiveNotes,
+    archiveTaggedNotes: noteMutations.archiveTaggedNotes,
+    cleanupArchiveTaggedEnabled: appSettings.cleanupArchiveTaggedEnabled,
+    cleanupAutoTagRulesEnabled: appSettings.cleanupAutoTagRulesEnabled,
     deleteNotes: noteMutations.deleteNotes,
     displayedNotes,
-    inboxNotes,
     isTrashView,
     restoreNotes: noteMutations.restoreNotes,
     runAutoTagRules: noteMutations.runAutoTagRules,

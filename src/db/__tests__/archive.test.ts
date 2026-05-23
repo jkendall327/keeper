@@ -161,4 +161,25 @@ describe('Note archiving', () => {
       expect(notes[0]?.id).toBe(note.id);
     });
   });
+
+  it('archives active tagged notes and returns the archived count', async () => {
+    const tagged = await api.createNote({ body: 'Tagged note' });
+    const plain = await api.createNote({ body: 'Plain note' });
+    const alreadyArchived = await api.createNote({ body: 'Already archived' });
+    const trashed = await api.createNote({ body: 'Trashed tagged note' });
+    await api.addTag(tagged.id, 'work');
+    await api.addTag(alreadyArchived.id, 'work');
+    await api.addTag(trashed.id, 'work');
+    await api.toggleArchiveNote(alreadyArchived.id);
+    await api.trashNote(trashed.id);
+
+    await expect(api.archiveTaggedNotes()).resolves.toEqual({ archivedNoteCount: 1 });
+
+    const taggedAfter = await api.getNote(tagged.id);
+    const plainAfter = await api.getNote(plain.id);
+    const trashedAfter = await api.getNote(trashed.id);
+    expect(taggedAfter?.archived).toBe(true);
+    expect(plainAfter?.archived).toBe(false);
+    expect(trashedAfter?.archived).toBe(false);
+  });
 });

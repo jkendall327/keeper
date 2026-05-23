@@ -72,6 +72,8 @@ export function SettingsModal({
             popularTagSuggestionsEnabled={appSettings.popularTagSuggestionsEnabled}
             popularTagSuggestionLimit={appSettings.popularTagSuggestionLimit}
             quickAddAutofocusEnabled={appSettings.quickAddAutofocusEnabled}
+            cleanupAutoTagRulesEnabled={appSettings.cleanupAutoTagRulesEnabled}
+            cleanupArchiveTaggedEnabled={appSettings.cleanupArchiveTaggedEnabled}
             onAutoApplyActiveTagChange={setAutoApplyActiveTag}
           />
         )}

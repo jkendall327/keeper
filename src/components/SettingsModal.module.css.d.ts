@@ -2,6 +2,8 @@ declare const styles: {
   readonly "autotagChipInput": string;
   readonly "autotagTagInputWrapper": string;
   readonly "backdrop": string;
+  readonly "checkList": string;
+  readonly "checkRow": string;
   readonly "chip": string;
   readonly "clearBtn": string;
   readonly "closeBtn": string;
@@ -14,6 +16,7 @@ declare const styles: {
   readonly "keyRow": string;
   readonly "label": string;
   readonly "modal": string;
+  readonly "monoValue": string;
   readonly "ruleActions": string;
   readonly "ruleList": string;
   readonly "ruleMain": string;
@@ -23,8 +26,15 @@ declare const styles: {
   readonly "section": string;
   readonly "settingBlock": string;
   readonly "status": string;
+  readonly "statusGrid": string;
+  readonly "statusHeader": string;
+  readonly "statusItem": string;
   readonly "statusNone": string;
   readonly "statusOk": string;
+  readonly "statusPill": string;
+  readonly "statusPillError": string;
+  readonly "statusPillOk": string;
+  readonly "statusPillWarning": string;
   readonly "subheading": string;
   readonly "tab": string;
   readonly "tabActive": string;

@@ -219,6 +219,88 @@
   font-size: 0.85rem;
 }
 
+.statusHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  padding: 2px 8px;
+  border: 1px solid var(--color-border-soft);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.statusPillOk {
+  border-color: rgba(76, 175, 80, 0.35);
+  background: rgba(76, 175, 80, 0.12);
+  color: var(--color-success);
+}
+
+.statusPillWarning {
+  border-color: rgba(255, 152, 0, 0.35);
+  background: rgba(255, 152, 0, 0.12);
+  color: var(--color-warning);
+}
+
+.statusPillError {
+  border-color: rgba(255, 68, 68, 0.35);
+  background: var(--color-danger-muted);
+  color: var(--color-danger);
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: minmax(120px, max-content) minmax(0, 1fr);
+  gap: 8px 16px;
+  margin: 0;
+}
+
+.statusItem {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
+  min-width: 0;
+}
+
+.statusItem dt {
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.65;
+}
+
+.statusItem dd {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.85rem;
+}
+
+.monoValue {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.checkList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkRow {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
 .toggleRow {
   display: flex;
   align-items: flex-start;

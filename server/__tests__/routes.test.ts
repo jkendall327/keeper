@@ -431,6 +431,55 @@ describe("Fastify API routes", () => {
     expect(archive.has("keeper.sqlite3")).toBe(true);
     expect([...archive.keys()]).toContain(`media/${mediaId}.png`);
     expect(archive.get(`media/${mediaId}.png`)?.toString()).toBe("png-bytes");
+
+    const status = await app.inject({ method: "GET", url: "/api/status" });
+    expect(status.statusCode).toBe(200);
+    expect(parseJson(status) as { counts: { notes: number; media: number }; backups: { backupCount: number; lastBackup: { filename: string } | null } }).toMatchObject({
+      counts: { notes: 1, media: 1 },
+      backups: {
+        backupCount: 1,
+        lastBackup: { filename: expect.stringContaining("keeper-backup") as string },
+      },
+    });
+  });
+
+  it("reports health and installed system status for file-backed runs", async () => {
+    current = await createFileBackedTestApp();
+    const { app } = current;
+
+    const health = await app.inject({ method: "GET", url: "/api/health" });
+    expect(health.statusCode).toBe(200);
+    expect(parseJson(health) as { status: string; schemaVersion: number; currentSchemaVersion: number }).toMatchObject({
+      status: "ok",
+      schemaVersion: expect.any(Number) as number,
+      currentSchemaVersion: expect.any(Number) as number,
+    });
+
+    const status = await app.inject({ method: "GET", url: "/api/status" });
+    expect(status.statusCode).toBe(200);
+    expect(parseJson(status) as {
+      status: string;
+      paths: { dataDir: string; mediaDir: string; backupDir: string; databasePath: string };
+      database: { migrationState: string; integrity: string; foreignKeys: string };
+      checks: unknown[];
+    }).toMatchObject({
+      status: "ok",
+      paths: {
+        dataDir: expect.stringContaining("keeper-test-data-") as string,
+        mediaDir: expect.stringContaining("media") as string,
+        backupDir: expect.stringContaining("backups") as string,
+        databasePath: expect.stringContaining("keeper.sqlite3") as string,
+      },
+      database: {
+        migrationState: "current",
+        integrity: "ok",
+        foreignKeys: "ok",
+      },
+      checks: expect.arrayContaining([
+        expect.objectContaining({ id: "data-dir", status: "ok" }),
+        expect.objectContaining({ id: "database-migration", status: "ok" }),
+      ]) as unknown[],
+    });
   });
 
   it("restores a backup archive over the current database and media directory", async () => {

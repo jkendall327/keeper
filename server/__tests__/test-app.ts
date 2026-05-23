@@ -12,6 +12,7 @@ import { createMediaHandler, type MediaHandler } from "../media-handler.ts";
 import type { FastifyInstance } from "fastify";
 import { createSqliteAdapter, type ServerSqliteAdapter } from "../sqlite-adapter.ts";
 import { createBackupService } from "../backup-service.ts";
+import { createSystemStatusService } from "../system-status.ts";
 
 export interface TestApp {
   app: FastifyInstance;
@@ -116,6 +117,8 @@ export async function createFileBackedTestApp(): Promise<TestApp> {
   });
 
   const mediaDir = join(dataDir, "media");
+  const backupDir = join(dataDir, "backups");
+  const databasePath = join(dataDir, "keeper.sqlite3");
   const origDeleteNote = db.deleteNote.bind(db);
   const origDeleteNotes = db.deleteNotes.bind(db);
   const media = await createMediaHandler(mediaDir, sqlDb, origDeleteNote, origDeleteNotes);
@@ -129,8 +132,16 @@ export async function createFileBackedTestApp(): Promise<TestApp> {
     mediaDir,
     db: sqlDb,
   });
+  const system = createSystemStatusService({
+    dataDir,
+    mediaDir,
+    backupDir,
+    databasePath,
+    db: sqlDb,
+  });
+  await system.runStartupChecks();
 
-  registerRoutes(app, db, media, backup);
+  registerRoutes(app, db, media, backup, system);
   await app.ready();
 
   return {

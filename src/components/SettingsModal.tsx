@@ -6,11 +6,12 @@ import { AutotagSettings } from './settings/AutotagSettings.tsx';
 import { BackupImportSettings } from './settings/BackupImportSettings.tsx';
 import { LinkPreviewSettings } from './settings/LinkPreviewSettings.tsx';
 import { NotesSettings } from './settings/NotesSettings.tsx';
+import { SystemStatusSettings } from './settings/SystemStatusSettings.tsx';
 import { useAppSettings, useTags } from '../hooks/useKeeperQuery.ts';
 import { useAutoApplyActiveTag } from '../settings.ts';
 import styles from './SettingsModal.module.css';
 
-type SettingsTab = 'api' | 'autotag' | 'notes' | 'link-previews' | 'backup-import';
+type SettingsTab = 'api' | 'autotag' | 'notes' | 'link-previews' | 'backup-import' | 'system';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -22,6 +23,7 @@ const tabs: { id: SettingsTab; label: string }[] = [
   { id: 'notes', label: 'Notes' },
   { id: 'link-previews', label: 'Link Previews' },
   { id: 'backup-import', label: 'Backup & Import' },
+  { id: 'system', label: 'System' },
 ];
 
 export function SettingsModal({
@@ -80,6 +82,7 @@ export function SettingsModal({
           />
         )}
         {activeTab === 'backup-import' && <BackupImportSettings />}
+        {activeTab === 'system' && <SystemStatusSettings />}
       </div>
     </div>
   );

@@ -9,6 +9,7 @@ import { registerRoutes } from "./routes.ts";
 import { createKeeperDB } from "../src/db/db-impl.ts";
 import { randomUUID } from "node:crypto";
 import { createBackupService } from "./backup-service.ts";
+import { createSystemStatusService } from "./system-status.ts";
 
 const dataDir = process.env["DATA_DIR"] ?? "./data";
 const portRaw = Number(process.env["PORT"] ?? "3001");
@@ -22,7 +23,8 @@ const app = Fastify({ logger: true });
 await app.register(fastifyMultipart, { limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Initialize database
-const adapter = createSqliteAdapter(join(dataDir, "keeper.sqlite3"));
+const databasePath = join(dataDir, "keeper.sqlite3");
+const adapter = createSqliteAdapter(databasePath);
 const keeperDb = createKeeperDB({
   db: adapter,
   generateId: () => randomUUID(),
@@ -31,6 +33,7 @@ const keeperDb = createKeeperDB({
 
 // Set up filesystem-backed media, overriding the base DB stubs
 const mediaDir = join(dataDir, "media");
+const backupDir = join(dataDir, "backups");
 const origDeleteNote = keeperDb.deleteNote.bind(keeperDb);
 const origDeleteNotes = keeperDb.deleteNotes.bind(keeperDb);
 const media = await createMediaHandler(mediaDir, adapter, origDeleteNote, origDeleteNotes);
@@ -39,6 +42,14 @@ const backup = createBackupService({
   mediaDir,
   db: adapter,
 });
+const system = createSystemStatusService({
+  dataDir,
+  mediaDir,
+  backupDir,
+  databasePath,
+  db: adapter,
+});
+await system.runStartupChecks();
 
 keeperDb.storeMedia = media.storeMedia.bind(media);
 keeperDb.deleteMedia = media.deleteMedia.bind(media);
@@ -51,7 +62,7 @@ keeperDb.getMedia = async (id: string) => {
 };
 
 // Register API routes
-registerRoutes(app, keeperDb, media, backup);
+registerRoutes(app, keeperDb, media, backup, system);
 
 // Serve built frontend
 const distDir = join(import.meta.dirname, "..", "dist");

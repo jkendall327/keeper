@@ -11,6 +11,7 @@ import type {
   UpdateAutoTagRuleInput,
   UpdateNoteInput,
 } from '../db/types.ts';
+import type { SystemStatus } from '../system-status.ts';
 import type { FilterType } from '../components/Sidebar.tsx';
 
 const EMPTY_NOTES: NoteWithTags[] = [];
@@ -24,6 +25,7 @@ export const keeperKeys = {
   tags: ['tags'] as const,
   popularTagSuggestions: (noteId: NoteId, limit: number) => ['tags', 'popularSuggestions', noteId, limit] as const,
   settings: ['settings'] as const,
+  systemStatus: ['systemStatus'] as const,
   autoTagRules: ['autoTagRules'] as const,
   mediaForNote: (noteId: NoteId) => ['media', 'note', noteId] as const,
 };
@@ -33,6 +35,18 @@ export function useInboxNotes() {
   return useSuspenseQuery({
     queryKey: keeperKeys.inbox,
     queryFn: ({ signal }) => client.notes.list({ signal }),
+  });
+}
+
+export function useSystemStatus() {
+  const { apiFetch } = useKeeperServices();
+  return useQuery({
+    queryKey: keeperKeys.systemStatus,
+    queryFn: async ({ signal }) => {
+      const response = await apiFetch('/api/status', { signal });
+      if (!response.ok) throw new Error(`GET /api/status: ${String(response.status)}`);
+      return response.json() as Promise<SystemStatus>;
+    },
   });
 }
 

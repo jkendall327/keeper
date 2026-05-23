@@ -1,4 +1,6 @@
 import { useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { keeperKeys } from '../../hooks/useKeeperQuery.ts';
 import { useKeeperServices } from '../../services.ts';
 import { Icon } from '../Icon.tsx';
 import styles from '../SettingsModal.module.css';
@@ -11,6 +13,7 @@ interface RestoreResult {
 
 export function BackupImportSettings() {
   const { apiFetch } = useKeeperServices();
+  const queryClient = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [includeMedia, setIncludeMedia] = useState(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -39,6 +42,7 @@ export function BackupImportSettings() {
       link.remove();
       URL.revokeObjectURL(url);
       setStatus('Backup download started.');
+      await queryClient.invalidateQueries({ queryKey: keeperKeys.systemStatus });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to create backup');
     } finally {
@@ -70,6 +74,7 @@ export function BackupImportSettings() {
       );
       setSelectedFile(null);
       if (fileInputRef.current !== null) fileInputRef.current.value = '';
+      await queryClient.invalidateQueries({ queryKey: keeperKeys.systemStatus });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unable to restore backup');
     } finally {

@@ -237,4 +237,19 @@ it('settings button renders the settings icon glyph', async () => {
     await screen.findByText(/Restore complete/);
     expect(confirmMock).toHaveBeenCalled();
   });
+
+  it('shows installed system status in settings', async () => {
+    const user = userEvent.setup();
+    await useFileBackedTestApp();
+    await renderApp();
+
+    await user.click(screen.getByLabelText('Open settings'));
+    await user.click(screen.getByRole('tab', { name: 'System' }));
+
+    expect(await screen.findByText('System Status')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Database' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Backups' })).toBeInTheDocument();
+    expect(screen.getByText('Data path')).toBeInTheDocument();
+    expect(screen.getAllByText(/keeper-test-data-/).length).toBeGreaterThan(0);
+  });
 });

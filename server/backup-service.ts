@@ -30,7 +30,7 @@ export interface BackupManifest {
 }
 
 export interface BackupService {
-  createBackup(input?: { includeMedia?: boolean }): Promise<Buffer>;
+  createBackup(input?: { includeMedia?: boolean; saveCopy?: boolean; filenamePrefix?: string }): Promise<Buffer>;
   restoreBackup(input: { archive: Buffer }): Promise<{ preRestoreBackupPath: string }>;
 }
 
@@ -42,21 +42,28 @@ export interface BackupServiceOptions {
 
 export function createBackupService(options: BackupServiceOptions): BackupService {
   const { dataDir, mediaDir, db } = options;
+  const backupDir = join(dataDir, "backups");
 
   return {
     async createBackup(input = {}) {
       const includeMedia = input.includeMedia ?? true;
-      return createBackupArchive({
+      const archive = await createBackupArchive({
         db,
         mediaDir,
         includeMedia,
         createdAt: new Date().toISOString(),
       });
+      if (input.saveCopy === true) {
+        await mkdir(backupDir, { recursive: true });
+        const prefix = input.filenamePrefix ?? "keeper-backup";
+        const path = join(backupDir, `${prefix}-${backupFilenameStamp()}-${randomUUID()}.keeper.zip`);
+        await writeFile(path, archive);
+      }
+      return archive;
     },
 
     async restoreBackup(input) {
       const tempDir = await mkdtemp(join(tmpdir(), "keeper-restore-"));
-      const backupDir = join(dataDir, "backups");
       await mkdir(backupDir, { recursive: true });
 
       try {
@@ -99,6 +106,10 @@ export function createBackupService(options: BackupServiceOptions): BackupServic
       }
     },
   };
+}
+
+function backupFilenameStamp(): string {
+  return new Date().toISOString().replace(/[:.]/g, "-");
 }
 
 async function createBackupArchive(input: {

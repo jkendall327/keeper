@@ -12,12 +12,14 @@ import { truncateExtensionTitle } from "../src/utils/extension-title.ts";
 import { createEventBroadcaster } from "./events.ts";
 import { createLinkMetadataQueue } from "./link-preview-queue.ts";
 import type { BackupService } from "./backup-service.ts";
+import type { SystemStatusService } from "./system-status.ts";
 
 export function registerRoutes(
   app: FastifyInstance,
   db: KeeperDB,
   media: MediaHandler,
   backup?: BackupService,
+  system?: SystemStatusService,
 ): void {
   const { broadcast, registerEventRoutes } = createEventBroadcaster();
   const linkMetadataQueue = createLinkMetadataQueue({
@@ -29,6 +31,18 @@ export function registerRoutes(
 
   registerEventRoutes(app);
 
+  // ── Health & status ───────────────────────
+
+  if (system !== undefined) {
+    app.get("/api/health", async (_req, reply) => {
+      const health = await system.getHealth();
+      return reply.code(health.status === "error" ? 503 : 200).send(health);
+    });
+
+    app.get("/api/status", async () => {
+      return system.getStatus();
+    });
+  }
 
   // ── Notes ──────────────────────────────────
 
@@ -330,7 +344,7 @@ export function registerRoutes(
       "/api/backup",
       async (req, reply) => {
         const includeMedia = req.query.includeMedia !== "false";
-        const archive = await backup.createBackup({ includeMedia });
+        const archive = await backup.createBackup({ includeMedia, saveCopy: true });
         const stamp = new Date().toISOString().slice(0, 10);
         return reply
           .header("Content-Type", "application/zip")

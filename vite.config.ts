@@ -6,6 +6,13 @@ import { appMetadataDefines } from "./app-metadata.ts";
 // https://vite.dev/config/
 export default defineConfig({
   define: appMetadataDefines(),
+  build: {
+    rolldownOptions: {
+      checks: {
+        pluginTimings: false,
+      },
+    },
+  },
   server: {
     host: "0.0.0.0",
     allowedHosts: [".ts.net"],

@@ -75,7 +75,7 @@ describe('App chat view', () => {
     const chatBtn = screen.getByText('Chat');
     await user.click(chatBtn);
 
-    const keyRequired = screen.getByText('API key required');
+    const keyRequired = await screen.findByText('API key required');
     expect(keyRequired).toBeInTheDocument();
     const hint = screen.getByText(/Configure your OpenRouter API key/);
     expect(hint).toBeInTheDocument();

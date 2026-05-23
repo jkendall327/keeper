@@ -1,4 +1,4 @@
-import { Suspense, useRef, useState, type PointerEvent } from 'react';
+import { lazy, Suspense, useRef, useState, type PointerEvent } from 'react';
 import {
   Navigate,
   Outlet,
@@ -22,13 +22,17 @@ import { useKeeperRouteState } from './hooks/useKeeperRouteState.ts';
 import { useWebShareTarget } from './hooks/useWebShareTarget.ts';
 import { AppHeader } from './components/AppHeader.tsx';
 import { AppLayout } from './components/app/AppLayout.tsx';
-import { ChatPanel } from './components/ChatPanel.tsx';
 import { ExportModal } from './components/ExportModal.tsx';
 import { NotesPanel } from './components/NotesPanel.tsx';
 import { SidebarContainer } from './components/app/SidebarContainer.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
 import type { FilterType } from './components/Sidebar.tsx';
 import { useAutoApplyActiveTag } from './settings.ts';
+
+const ChatPanel = lazy(async () => {
+  const module = await import('./components/ChatPanel.tsx');
+  return { default: module.ChatPanel };
+});
 
 function filterKey(filter: FilterType) {
   return filter.type === 'tag' ? `tag:${String(filter.tagId)}` : filter.type;

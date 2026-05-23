@@ -5,7 +5,11 @@ import { getApiKey, getLLMClient } from '../llm/client.ts';
 import { useRefreshKeeperData } from '../hooks/useKeeperQuery.ts';
 import styles from './ChatPanel.module.css';
 
-export function ChatPanel() {
+interface ChatPanelProps {
+  advancedModeEnabled: boolean;
+}
+
+export function ChatPanel({ advancedModeEnabled }: ChatPanelProps) {
   const { client } = useKeeperServices();
   const refresh = useRefreshKeeperData();
   const llmClient = getLLMClient();
@@ -26,6 +30,7 @@ export function ChatPanel() {
       client={llmClient}
       keeper={client}
       apiKey={apiKey}
+      advancedModeEnabled={advancedModeEnabled}
       onMutation={() => { void refresh(); }}
     />
   );

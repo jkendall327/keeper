@@ -3,6 +3,7 @@ import { useKeeperRouteState } from '../../hooks/useKeeperRouteState.ts';
 import { useTagMutations, useTags } from '../../hooks/useKeeperQuery.ts';
 
 interface SidebarContainerProps {
+  advancedModeEnabled: boolean;
   clearSelectedNotes: () => void;
   isMobile: boolean;
   onOpenSettings: () => void;
@@ -11,6 +12,7 @@ interface SidebarContainerProps {
 }
 
 export function SidebarContainer({
+  advancedModeEnabled,
   clearSelectedNotes,
   isMobile,
   onOpenSettings,
@@ -25,6 +27,7 @@ export function SidebarContainer({
     <Sidebar
       tags={allTags}
       activeFilter={activeFilter}
+      advancedModeEnabled={advancedModeEnabled}
       onFilterChange={(filter) => {
         navigateToFilter(filter);
         clearSelectedNotes();

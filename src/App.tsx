@@ -140,6 +140,7 @@ function KeeperApp() {
             isMobile={isMobile}
             sidebar={(
               <SidebarContainer
+                advancedModeEnabled={appSettings.advancedModeEnabled}
                 clearSelectedNotes={clearSelectedNotes}
                 isMobile={isMobile}
                 onOpenSettings={() => { setShowSettings(true); }}
@@ -154,7 +155,7 @@ function KeeperApp() {
             )}
           >
             {isChatView ? (
-              <ChatPanel />
+              <ChatPanel advancedModeEnabled={appSettings.advancedModeEnabled} />
             ) : (
               <NotesPanel
                 key={filterKey(activeFilter)}
@@ -166,6 +167,7 @@ function KeeperApp() {
                 isMobile={isMobile}
                 linkPreviewDisplayEnabled={appSettings.linkPreviewDisplayEnabled}
                 quickAddAutofocusEnabled={appSettings.quickAddAutofocusEnabled}
+                advancedModeEnabled={appSettings.advancedModeEnabled}
                 showSettings={showSettings}
               />
             )}

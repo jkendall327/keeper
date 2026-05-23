@@ -144,6 +144,18 @@ it('shows modal note actions and copies the current modal body', async () => {
   expect(writeText).toHaveBeenCalledWith('Unsaved modal copy');
 });
 
+it('shows the note id in the modal when advanced mode is enabled', async () => {
+  const user = userEvent.setup();
+  const note = await getTestDB().createNote({ body: 'Debug identity note' });
+  await getTestDB().updateAppSettings({ advancedModeEnabled: true });
+  await renderApp();
+
+  await user.click(await screen.findByText('Debug identity note'));
+
+  const modal = screen.getByRole('dialog', { name: 'Edit note' });
+  expect(within(modal).getByText(note.id)).toBeInTheDocument();
+});
+
 it('archives from the modal without switching to the archive view', async () => {
   const user = userEvent.setup();
   await renderApp();

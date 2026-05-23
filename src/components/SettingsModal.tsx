@@ -84,7 +84,9 @@ export function SettingsModal({
           />
         )}
         {activeTab === 'backup-import' && <BackupImportSettings />}
-        {activeTab === 'system' && <SystemStatusSettings />}
+        {activeTab === 'system' && (
+          <SystemStatusSettings advancedModeEnabled={appSettings.advancedModeEnabled} />
+        )}
       </div>
     </div>
   );

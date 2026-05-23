@@ -333,7 +333,7 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
 
   function getAppSettingsSync(): AppSettings {
     const rows = db.query(
-      "SELECT key, value FROM app_settings WHERE key IN (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "SELECT key, value FROM app_settings WHERE key IN (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         "extensionTitleMaxLength",
         "extensionBadgeEnabled",
@@ -344,6 +344,7 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
         "quickAddAutofocusEnabled",
         "cleanupAutoTagRulesEnabled",
         "cleanupArchiveTaggedEnabled",
+        "advancedModeEnabled",
       ],
     );
     const values = new Map<string, string>();
@@ -364,6 +365,7 @@ export function createKeeperDBContext(deps: KeeperDBDeps): KeeperDBContext {
       quickAddAutofocusEnabled: values.get("quickAddAutofocusEnabled") !== "false",
       cleanupAutoTagRulesEnabled: values.get("cleanupAutoTagRulesEnabled") !== "false",
       cleanupArchiveTaggedEnabled: values.get("cleanupArchiveTaggedEnabled") !== "false",
+      advancedModeEnabled: values.get("advancedModeEnabled") === "true",
     };
   }
 

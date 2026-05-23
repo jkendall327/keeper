@@ -118,6 +118,7 @@ describe('Link metadata', () => {
       quickAddAutofocusEnabled: true,
       cleanupAutoTagRulesEnabled: true,
       cleanupArchiveTaggedEnabled: true,
+      advancedModeEnabled: false,
     });
 
     await api.updateAppSettings({
@@ -129,6 +130,7 @@ describe('Link metadata', () => {
       quickAddAutofocusEnabled: false,
       cleanupAutoTagRulesEnabled: false,
       cleanupArchiveTaggedEnabled: false,
+      advancedModeEnabled: true,
     });
 
     await expect(api.getAppSettings()).resolves.toMatchObject({
@@ -140,6 +142,7 @@ describe('Link metadata', () => {
       quickAddAutofocusEnabled: false,
       cleanupAutoTagRulesEnabled: false,
       cleanupArchiveTaggedEnabled: false,
+      advancedModeEnabled: true,
     });
   });
 });

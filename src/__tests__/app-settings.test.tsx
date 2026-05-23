@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { screen, waitFor, within } from '@testing-library/react';
 import { userEvent } from '@testing-library/user-event';
-import { getTestApiFetch, getTestDB, renderApp, useFileBackedTestApp } from './app-test-utils';
+import { getSidebar, getTestApiFetch, getTestDB, renderApp, useFileBackedTestApp } from './app-test-utils';
 
 describe('App settings', () => {
 it('settings button renders the settings icon glyph', async () => {
@@ -221,6 +221,27 @@ it('settings button renders the settings icon glyph', async () => {
       cleanupAutoTagRulesEnabled: false,
       cleanupArchiveTaggedEnabled: false,
     });
+  });
+
+  it('toggles advanced mode details', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    expect(within(getSidebar()).queryByText(/v0\.0\.0 \(/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByLabelText('Open settings'));
+    await user.click(screen.getByRole('tab', { name: 'System' }));
+
+    const toggle = screen.getByRole('checkbox', { name: /Advanced mode/ });
+    expect(toggle).not.toBeChecked();
+
+    await user.click(toggle);
+
+    await waitFor(() => {
+      expect(toggle).toBeChecked();
+    });
+    await expect(getTestDB().getAppSettings()).resolves.toMatchObject({ advancedModeEnabled: true });
+    expect(within(getSidebar()).getByText(/v0\.0\.0 \(/)).toBeInTheDocument();
   });
 
   it('downloads a backup from settings', async () => {

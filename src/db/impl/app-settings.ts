@@ -38,6 +38,7 @@ export function createAppSettingsMethods(ctx: KeeperDBContext): Pick<
       const quickAddAutofocusEnabled = input.quickAddAutofocusEnabled ?? current.quickAddAutofocusEnabled;
       const cleanupAutoTagRulesEnabled = input.cleanupAutoTagRulesEnabled ?? current.cleanupAutoTagRulesEnabled;
       const cleanupArchiveTaggedEnabled = input.cleanupArchiveTaggedEnabled ?? current.cleanupArchiveTaggedEnabled;
+      const advancedModeEnabled = input.advancedModeEnabled ?? current.advancedModeEnabled;
 
       upsertSetting("extensionTitleMaxLength", String(extensionTitleMaxLength));
       upsertSetting("extensionBadgeEnabled", String(extensionBadgeEnabled));
@@ -48,6 +49,7 @@ export function createAppSettingsMethods(ctx: KeeperDBContext): Pick<
       upsertSetting("quickAddAutofocusEnabled", String(quickAddAutofocusEnabled));
       upsertSetting("cleanupAutoTagRulesEnabled", String(cleanupAutoTagRulesEnabled));
       upsertSetting("cleanupArchiveTaggedEnabled", String(cleanupArchiveTaggedEnabled));
+      upsertSetting("advancedModeEnabled", String(advancedModeEnabled));
 
       return Promise.resolve({
         extensionTitleMaxLength,
@@ -59,6 +61,7 @@ export function createAppSettingsMethods(ctx: KeeperDBContext): Pick<
         quickAddAutofocusEnabled,
         cleanupAutoTagRulesEnabled,
         cleanupArchiveTaggedEnabled,
+        advancedModeEnabled,
       });
     },
   };

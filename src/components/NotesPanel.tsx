@@ -19,6 +19,7 @@ interface NotesPanelProps {
   isMobile: boolean;
   linkPreviewDisplayEnabled: boolean;
   quickAddAutofocusEnabled: boolean;
+  advancedModeEnabled: boolean;
   showSettings: boolean;
 }
 
@@ -31,6 +32,7 @@ export function NotesPanel({
   isMobile,
   linkPreviewDisplayEnabled,
   quickAddAutofocusEnabled,
+  advancedModeEnabled,
   showSettings,
 }: NotesPanelProps) {
   const quickAddRef = useRef<HTMLTextAreaElement>(null);
@@ -122,6 +124,7 @@ export function NotesPanel({
           note={currentNote}
           allTags={allTags}
           noteCommands={noteCommands}
+          showDebugDetails={advancedModeEnabled}
           showLinkPreviews={linkPreviewDisplayEnabled}
           isTrashView={isTrashView}
           onClose={() => { setSelectedNote(null); }}

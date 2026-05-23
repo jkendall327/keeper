@@ -23,10 +23,11 @@ interface ChatViewProps {
   client: LLMClient;
   keeper: KeeperClient;
   apiKey: string;
+  advancedModeEnabled: boolean;
   onMutation: () => void;
 }
 
-export function ChatView({ client, keeper, apiKey, onMutation }: ChatViewProps) {
+export function ChatView({ client, keeper, apiKey, advancedModeEnabled, onMutation }: ChatViewProps) {
   const [conversations, setConversations] = useState<StoredChatConversation[]>(readStoredConversations);
   const initialConversation = conversations[0] ?? null;
   const initialConversationId = initialConversation?.id ?? null;
@@ -256,6 +257,7 @@ export function ChatView({ client, keeper, apiKey, onMutation }: ChatViewProps) 
           note={modalNote}
           allTags={modalTags}
           noteCommands={modalNoteCommands}
+          showDebugDetails={advancedModeEnabled}
           showLinkPreviews={modalShowLinkPreviews}
           isTrashView={modalNote.trashed}
           onClose={() => { setModalNote(null); }}

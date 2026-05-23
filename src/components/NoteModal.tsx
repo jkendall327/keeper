@@ -14,6 +14,7 @@ interface NoteModalProps {
   note: NoteWithTags;
   allTags: Tag[];
   noteCommands: NoteCommands;
+  showDebugDetails: boolean;
   showLinkPreviews: boolean;
   isTrashView?: boolean;
   onClose: () => void;
@@ -23,6 +24,7 @@ export function NoteModal({
   note,
   allTags,
   noteCommands,
+  showDebugDetails,
   showLinkPreviews,
   isTrashView,
   onClose,
@@ -69,13 +71,20 @@ export function NoteModal({
       >
         <div className={styles.editor}>
           <div className={styles.header}>
-            <input
-              className={styles.titleInput}
-              type="text"
-              placeholder="Title"
-              value={editor.title}
-              onChange={(e) => { editor.patchTitle(e.target.value); }}
-            />
+            <div className={styles.titleGroup}>
+              <input
+                className={styles.titleInput}
+                type="text"
+                placeholder="Title"
+                value={editor.title}
+                onChange={(e) => { editor.patchTitle(e.target.value); }}
+              />
+              {showDebugDetails && (
+                <div className={styles.noteId} title={note.id}>
+                  {note.id}
+                </div>
+              )}
+            </div>
             <button
               className={styles.closeButton}
               onClick={() => { void editor.close(); }}

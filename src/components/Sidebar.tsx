@@ -18,6 +18,7 @@ export type FilterType =
 interface SidebarProps {
   tags: Tag[];
   activeFilter: FilterType;
+  advancedModeEnabled: boolean;
   onFilterChange: (filter: FilterType) => void;
   onRenameTag: (oldName: string, newName: string) => void;
   onDeleteTag: (tagId: number) => void;
@@ -26,7 +27,7 @@ interface SidebarProps {
   isOpen?: boolean;
 }
 
-export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDeleteTag, onUpdateTagIcon, onOpenSettings, isOpen }: SidebarProps) {
+export function Sidebar({ tags, activeFilter, advancedModeEnabled, onFilterChange, onRenameTag, onDeleteTag, onUpdateTagIcon, onOpenSettings, isOpen }: SidebarProps) {
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [iconPickerTagId, setIconPickerTagId] = useState<number | null>(null);
@@ -190,9 +191,11 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
         <button className={styles.settingsButton} onClick={onOpenSettings} aria-label="Open settings">
           <Icon name="settings" size={20} />
         </button>
-        <div className={styles.appMetadata} title={appVersionLabel}>
-          {appVersionLabel}
-        </div>
+        {advancedModeEnabled && (
+          <div className={styles.appMetadata} title={appVersionLabel}>
+            {appVersionLabel}
+          </div>
+        )}
       </div>
     </aside>
   );

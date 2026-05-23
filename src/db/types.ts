@@ -142,6 +142,7 @@ export interface AppSettings {
   quickAddAutofocusEnabled: boolean;
   cleanupAutoTagRulesEnabled: boolean;
   cleanupArchiveTaggedEnabled: boolean;
+  advancedModeEnabled: boolean;
 }
 
 export interface UpdateAppSettingsInput {
@@ -154,6 +155,7 @@ export interface UpdateAppSettingsInput {
   quickAddAutofocusEnabled?: boolean;
   cleanupAutoTagRulesEnabled?: boolean;
   cleanupArchiveTaggedEnabled?: boolean;
+  advancedModeEnabled?: boolean;
 }
 
 // ── Input types ─────────────────────────────────────────────

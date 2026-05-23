@@ -36,7 +36,6 @@
 
 .titleInput {
   min-width: 0;
-  flex: 1;
   margin: 0;
   padding: 0;
   border: none;
@@ -47,6 +46,24 @@
   font-weight: 600;
   outline: none;
   box-sizing: border-box;
+}
+
+.titleGroup {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.noteId {
+  overflow: hidden;
+  color: inherit;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  opacity: 0.42;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .closeButton {

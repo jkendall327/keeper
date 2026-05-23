@@ -49,6 +49,7 @@ function renderChatView(client: LLMClient, keeper: KeeperClient) {
         client={client}
         keeper={keeper}
         apiKey="test-key"
+        advancedModeEnabled={false}
         onMutation={vi.fn()}
       />
     </KeeperServicesProvider>,
@@ -190,6 +191,7 @@ describe('App chat view', () => {
         client={createChatViewClient()}
         keeper={createChatViewKeeper()}
         apiKey="test-key"
+        advancedModeEnabled={false}
         onMutation={vi.fn()}
       />,
     );

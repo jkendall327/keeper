@@ -1,14 +1,47 @@
-import { Icon } from '../Icon.tsx';
-import { useSystemStatus } from '../../hooks/useKeeperQuery.ts';
+import { useState } from 'react';
+import { useSystemStatus, useUpdateAppSettings } from '../../hooks/useKeeperQuery.ts';
 import type { SystemStatusLevel } from '../../system-status.ts';
+import { Icon } from '../Icon.tsx';
 import styles from '../SettingsModal.module.css';
 
-export function SystemStatusSettings() {
+interface SystemStatusSettingsProps {
+  advancedModeEnabled: boolean;
+}
+
+export function SystemStatusSettings({ advancedModeEnabled }: SystemStatusSettingsProps) {
   const status = useSystemStatus();
+  const updateAppSettings = useUpdateAppSettings();
+  const [settingsError, setSettingsError] = useState('');
+
+  const saveAdvancedModeSetting = async (enabled: boolean) => {
+    setSettingsError('');
+    try {
+      await updateAppSettings({ advancedModeEnabled: enabled });
+    } catch (error) {
+      setSettingsError(error instanceof Error ? error.message : 'Unable to save setting');
+    }
+  };
+
+  const advancedModeToggle = (
+    <label className={styles.toggleRow} htmlFor="advanced-mode-enabled">
+      <input
+        id="advanced-mode-enabled"
+        type="checkbox"
+        checked={advancedModeEnabled}
+        onChange={(e) => { void saveAdvancedModeSetting(e.target.checked); }}
+      />
+      <span>
+        <span className={styles.label}>Advanced mode</span>
+        <span className={styles.hint}>Show debug details in the main interface.</span>
+      </span>
+    </label>
+  );
 
   if (status.isPending) {
     return (
       <div className={styles.section}>
+        {advancedModeToggle}
+        {settingsError !== '' && <p className={styles.error}>{settingsError}</p>}
         <p className={styles.status}>Loading system status...</p>
       </div>
     );
@@ -17,6 +50,8 @@ export function SystemStatusSettings() {
   if (status.isError) {
     return (
       <div className={styles.section}>
+        {advancedModeToggle}
+        {settingsError !== '' && <p className={styles.error}>{settingsError}</p>}
         <p className={styles.error}>Unable to load system status.</p>
       </div>
     );
@@ -26,6 +61,9 @@ export function SystemStatusSettings() {
 
   return (
     <div className={styles.section}>
+      {advancedModeToggle}
+      {settingsError !== '' && <p className={styles.error}>{settingsError}</p>}
+
       <div className={styles.settingBlock}>
         <div className={styles.statusHeader}>
           <div>

@@ -258,6 +258,10 @@ export function registerRoutes(
     return db.getLinkedNotes();
   });
 
+  app.get("/api/views/duplicates", async () => {
+    return db.getDuplicateNotes();
+  });
+
   app.get("/api/views/archived", async () => {
     return db.getArchivedNotes();
   });

@@ -78,6 +78,8 @@ export function useDisplayedNotes(activeFilter: FilterType, searchQuery: string)
           return client.views.trashed({ signal });
         case 'links':
           return client.views.linked({ signal });
+        case 'duplicates':
+          return client.views.duplicates({ signal });
         case 'tag':
           return client.views.tag(activeFilter.tagId, { signal });
         case 'all':
@@ -310,6 +312,7 @@ function getViewKey(activeFilter: FilterType, searchQuery: string) {
     case 'archive':
     case 'trash':
     case 'links':
+    case 'duplicates':
       return keeperKeys.view(activeFilter.type);
   }
 }

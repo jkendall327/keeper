@@ -55,6 +55,8 @@ function filterFromRouteMatch(match: KeeperRouteMatch | undefined): FilterType {
       return { type: 'chat' };
     case '/links':
       return { type: 'links' };
+    case '/duplicates':
+      return { type: 'duplicates' };
     case '/trash':
       return { type: 'trash' };
     case '/untagged':
@@ -85,6 +87,8 @@ function filterToPath(filter: Exclude<FilterType, { type: 'tag' }>) {
       return '/chat';
     case 'links':
       return '/links';
+    case 'duplicates':
+      return '/duplicates';
     case 'trash':
       return '/trash';
     case 'untagged':

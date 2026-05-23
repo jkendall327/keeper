@@ -92,6 +92,7 @@ export function NotesPanel({
         showLinkPreviews={linkPreviewDisplayEnabled}
         isMobile={isMobile}
         isTrashView={isTrashView}
+        preserveOrder={activeFilter.type === 'duplicates'}
         topContent={(
           <>
             {searchQuery.trim() !== '' && (

@@ -293,6 +293,11 @@ describe("Fastify API routes", () => {
 
     const tagView = await app.inject({ method: "GET", url: "/api/views/tag/1" });
     expect((parseJson(tagView) as NoteDto[]).map((note) => note.id)).toEqual(["test-id-1"]);
+
+    await app.inject({ method: "POST", url: "/api/notes", payload: { body: "duplicate body" } });
+    await app.inject({ method: "POST", url: "/api/notes", payload: { body: "duplicate body" } });
+    const duplicates = await app.inject({ method: "GET", url: "/api/views/duplicates" });
+    expect((parseJson(duplicates) as NoteDto[]).map((note) => note.id)).toEqual(["test-id-4", "test-id-3"]);
   });
 
   it("validates and runs autotag rules through HTTP", async () => {

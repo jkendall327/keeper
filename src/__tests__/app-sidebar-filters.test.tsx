@@ -39,6 +39,23 @@ it('Links sidebar filter shows only notes containing URLs', async () => {
   });
 });
 
+it('Duplicates sidebar filter shows notes with matching bodies', async () => {
+  const user = userEvent.setup();
+  const db = getTestDB();
+  await db.createNote({ body: 'same body' });
+  await db.createNote({ body: 'different body' });
+  await db.createNote({ body: 'same body' });
+  await renderApp();
+
+  await user.click(screen.getByText('Duplicates'));
+
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/duplicates');
+    expect(screen.getAllByText('same body')).toHaveLength(2);
+    expect(screen.queryByText('different body')).not.toBeInTheDocument();
+  });
+});
+
 it('tag sidebar filter shows notes with the selected tag', async () => {
   const user = userEvent.setup();
   await renderApp();

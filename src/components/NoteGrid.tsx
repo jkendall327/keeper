@@ -15,6 +15,7 @@ interface NoteGridProps {
   showLinkPreviews: boolean;
   isMobile: boolean;
   isTrashView?: boolean;
+  preserveOrder?: boolean;
   topContent?: ReactNode;
 }
 
@@ -31,7 +32,7 @@ const DRAG_THRESHOLD = 5;
 
 export function NoteGrid({
   notes, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
-  showLinkPreviews, isMobile, isTrashView, topContent,
+  showLinkPreviews, isMobile, isTrashView, preserveOrder = false, topContent,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -149,10 +150,10 @@ export function NoteGrid({
 
   const lastClickedRef = useRef<NoteId | null>(null);
 
-  const pinnedNotes = notes.filter((note) => note.pinned && !note.archived);
-  const regularNotes = notes.filter((note) => !note.pinned && !note.archived);
-  const archivedNotes = notes.filter((note) => note.archived);
-  const flatNotes = [...pinnedNotes, ...regularNotes, ...archivedNotes];
+  const pinnedNotes = preserveOrder ? [] : notes.filter((note) => note.pinned && !note.archived);
+  const regularNotes = preserveOrder ? notes : notes.filter((note) => !note.pinned && !note.archived);
+  const archivedNotes = preserveOrder ? [] : notes.filter((note) => note.archived);
+  const flatNotes = preserveOrder ? notes : [...pinnedNotes, ...regularNotes, ...archivedNotes];
 
   const handleNoteClick = (note: NoteWithTags, e?: React.MouseEvent) => {
     // If we just finished a drag, don't do anything

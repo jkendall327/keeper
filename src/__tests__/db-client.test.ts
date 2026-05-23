@@ -73,6 +73,7 @@ describe("KeeperDB HTTP client contract", () => {
     await client.search.notes("hello world");
     await client.views.untagged();
     await client.views.linked();
+    await client.views.duplicates();
     await client.views.archived();
     await client.views.trashed();
     await client.views.tag(3);
@@ -89,9 +90,10 @@ describe("KeeperDB HTTP client contract", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(10, "/api/search?q=hello%20world", undefined);
     expect(fetchMock).toHaveBeenNthCalledWith(11, "/api/views/untagged", undefined);
     expect(fetchMock).toHaveBeenNthCalledWith(12, "/api/views/links", undefined);
-    expect(fetchMock).toHaveBeenNthCalledWith(13, "/api/views/archived", undefined);
-    expect(fetchMock).toHaveBeenNthCalledWith(14, "/api/views/trash", undefined);
-    expect(fetchMock).toHaveBeenNthCalledWith(15, "/api/views/tag/3", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(13, "/api/views/duplicates", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(14, "/api/views/archived", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(15, "/api/views/trash", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(16, "/api/views/tag/3", undefined);
   });
 
   it("maps 404 nullable reads to null and non-ok responses to errors", async () => {

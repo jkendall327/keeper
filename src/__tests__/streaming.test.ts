@@ -399,6 +399,7 @@ function localKeeperClient(db: KeeperDB): KeeperClient {
     views: {
       untagged: () => db.getUntaggedNotes(),
       linked: () => db.getLinkedNotes(),
+      duplicates: () => db.getDuplicateNotes(),
       archived: () => db.getArchivedNotes(),
       trashed: () => db.getTrashedNotes(),
       tag: (tagId) => db.getNotesForTag(tagId),

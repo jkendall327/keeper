@@ -152,4 +152,62 @@ describe('Smart Views', () => {
       expect(linked[0]?.tags).toEqual([{ id: 1, name: 'resource', icon: null }]);
     });
   });
+
+  describe('getDuplicateNotes', () => {
+    it('returns notes whose bodies appear more than once', async () => {
+      const first = await api.createNote({ body: 'same' });
+      const unique = await api.createNote({ body: 'different' });
+      const second = await api.createNote({ body: 'same' });
+
+      const duplicates = await api.getDuplicateNotes();
+
+      expect(duplicates.map((note) => note.id)).toEqual([second.id, first.id]);
+      expect(duplicates.map((note) => note.id)).not.toContain(unique.id);
+    });
+
+    it('keeps duplicate groups adjacent and orders newer groups first', async () => {
+      const groupA1 = await api.createNote({ body: 'alpha' });
+      const groupA2 = await api.createNote({ body: 'alpha' });
+      const groupB1 = await api.createNote({ body: 'beta' });
+      const groupB2 = await api.createNote({ body: 'beta' });
+
+      const duplicates = await api.getDuplicateNotes();
+
+      expect(duplicates.map((note) => note.id)).toEqual([groupB2.id, groupB1.id, groupA2.id, groupA1.id]);
+    });
+
+    it('excludes trashed notes when deciding whether a body is duplicated', async () => {
+      const active = await api.createNote({ body: 'same' });
+      const trashed = await api.createNote({ body: 'same' });
+      await api.trashNote(trashed.id);
+
+      const duplicates = await api.getDuplicateNotes();
+
+      expect(duplicates.map((note) => note.id)).not.toContain(active.id);
+      expect(duplicates.map((note) => note.id)).not.toContain(trashed.id);
+    });
+
+    it('includes archived duplicate notes after active ones in the group', async () => {
+      const archived = await api.createNote({ body: 'same' });
+      const active = await api.createNote({ body: 'same' });
+      await api.archiveNotes([archived.id]);
+
+      const duplicates = await api.getDuplicateNotes();
+
+      expect(duplicates.map((note) => note.id)).toEqual([active.id, archived.id]);
+      expect(duplicates[1]?.archived).toBe(true);
+    });
+
+    it('includes tags on duplicate notes', async () => {
+      const note = await api.createNote({ body: 'same' });
+      await api.createNote({ body: 'same' });
+      await api.addTag(note.id, 'review');
+
+      const duplicates = await api.getDuplicateNotes();
+
+      expect(duplicates.find((candidate) => candidate.id === note.id)?.tags).toEqual([
+        { id: 1, name: 'review', icon: null },
+      ]);
+    });
+  });
 });

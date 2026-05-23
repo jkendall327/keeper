@@ -11,6 +11,7 @@ export type FilterType =
   | { type: 'archive' }
   | { type: 'trash' }
   | { type: 'links' }
+  | { type: 'duplicates' }
   | { type: 'chat' }
   | { type: 'tag'; tagId: number };
 
@@ -155,6 +156,13 @@ export function Sidebar({ tags, activeFilter, onFilterChange, onRenameTag, onDel
           onClick={() => { onFilterChange({ type: 'links' }); }}
         >
           <Icon name="link" size={18} /> Links
+        </button>
+
+        <button
+          className={clsx(styles.tab, styles.viewTab, isActive({ type: 'duplicates' }) && styles.tabActive)}
+          onClick={() => { onFilterChange({ type: 'duplicates' }); }}
+        >
+          <Icon name="content_copy" size={18} /> Duplicates
         </button>
 
         <button

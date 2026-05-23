@@ -59,6 +59,7 @@ export interface KeeperClient {
   views: {
     untagged(options?: RequestOptions): Promise<NoteWithTags[]>;
     linked(options?: RequestOptions): Promise<NoteWithTags[]>;
+    duplicates(options?: RequestOptions): Promise<NoteWithTags[]>;
     archived(options?: RequestOptions): Promise<NoteWithTags[]>;
     trashed(options?: RequestOptions): Promise<NoteWithTags[]>;
     tag(tagId: number, options?: RequestOptions): Promise<NoteWithTags[]>;
@@ -177,6 +178,7 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
     views: {
       untagged: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/untagged', withSignal(options)),
       linked: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/links', withSignal(options)),
+      duplicates: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/duplicates', withSignal(options)),
       archived: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/archived', withSignal(options)),
       trashed: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/trash', withSignal(options)),
       tag: (tagId, options) => fetchJson<NoteWithTags[]>(fetchFn, `/api/views/tag/${String(tagId)}`, withSignal(options)),

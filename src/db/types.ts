@@ -215,6 +215,7 @@ export interface KeeperDB {
   // Smart views
   getUntaggedNotes(): Promise<NoteWithTags[]>;
   getLinkedNotes(): Promise<NoteWithTags[]>;
+  getDuplicateNotes(): Promise<NoteWithTags[]>;
   getNotesForTag(tagId: number): Promise<NoteWithTags[]>;
   getArchivedNotes(): Promise<NoteWithTags[]>;
 

@@ -35,13 +35,22 @@ export function ChatMessageBubble({
   const html = msg.role === 'assistant' ? renderMarkdownSafe(msg.content) : null;
 
   if (msg.role === 'tool') {
+    const collapseToolResult = msg.toolResult.name === 'get_notes_for_tag';
+
     return (
       <div className={clsx(styles.message, styles.toolMessage)}>
         <div className={styles.toolLabel}>
           <Icon name="build" size={14} />
           {msg.toolResult.name}
         </div>
-        <pre className={styles.toolResult}>{msg.content}</pre>
+        {collapseToolResult ? (
+          <details className={styles.toolResultDetails}>
+            <summary className={styles.toolResultSummary}>Output</summary>
+            <pre className={styles.toolResult}>{msg.content}</pre>
+          </details>
+        ) : (
+          <pre className={styles.toolResult}>{msg.content}</pre>
+        )}
         {msg.toolResult.noteLinks !== undefined && (
           <ChatNoteLinks links={msg.toolResult.noteLinks} onOpen={onOpenNote} />
         )}

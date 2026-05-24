@@ -31,6 +31,8 @@ declare const styles: {
   readonly "toolLabel": string;
   readonly "toolMessage": string;
   readonly "toolResult": string;
+  readonly "toolResultDetails": string;
+  readonly "toolResultSummary": string;
   readonly "userMessage": string;
   readonly "userMessageStack": string;
   readonly "view": string;

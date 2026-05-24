@@ -245,6 +245,36 @@ describe('App chat view', () => {
     expect(writeText).toHaveBeenNthCalledWith(2, 'Assistant answer');
   });
 
+  it('collapses get_notes_for_tag tool output until opened', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [] }))));
+    localStorage.setItem('keeper-chat-conversations', JSON.stringify([
+      {
+        id: 'chat',
+        title: 'Tagged notes',
+        updatedAt: 1,
+        messages: [
+          {
+            role: 'tool',
+            content: 'Tagged note output',
+            toolResult: {
+              name: 'get_notes_for_tag',
+              result: 'Tagged note output',
+              needsConfirmation: false,
+            },
+          },
+        ],
+      },
+    ]));
+
+    renderChatView(createChatViewClient(), createChatViewKeeper());
+
+    expect(screen.getByText('get_notes_for_tag')).toBeInTheDocument();
+    expect(screen.getByText('Tagged note output')).not.toBeVisible();
+    await user.click(screen.getByText('Output'));
+    expect(screen.getByText('Tagged note output')).toBeVisible();
+  });
+
   it('edits a user message, drops later history, and asks the LLM again', async () => {
     const user = userEvent.setup();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [] }))));

@@ -207,6 +207,23 @@
   opacity: 0.8;
 }
 
+.toolResultDetails {
+  font-size: 0.8rem;
+}
+
+.toolResultSummary {
+  width: fit-content;
+  margin-bottom: 2px;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 600;
+  opacity: 0.65;
+}
+
+.toolResultDetails[open] .toolResultSummary {
+  margin-bottom: 4px;
+}
+
 .messageActions {
   display: flex;
   flex-wrap: wrap;

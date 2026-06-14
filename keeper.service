@@ -4,14 +4,14 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/jackkendall/src/keeper
-Environment=PATH=/home/jackkendall/.local/share/nvm/v24.15.0/bin:/usr/local/bin:/usr/bin:/bin
-ExecStartPre=/home/jackkendall/.local/share/nvm/v24.15.0/bin/npm run build
-ExecStart=/home/jackkendall/.local/share/nvm/v24.15.0/bin/npx tsx server/index.ts
+WorkingDirectory=%h/src/keeper
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStartPre=/usr/bin/env npm run build
+ExecStart=/usr/bin/env npm run server
 Restart=on-failure
 RestartSec=5
 Environment=PORT=3001
-Environment=DATA_DIR=/home/jackkendall/src/keeper/data
+Environment=DATA_DIR=%h/src/keeper/data
 
 [Install]
 WantedBy=default.target

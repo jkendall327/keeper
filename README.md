@@ -42,7 +42,7 @@ There is also a browser extension in this repo for sending content to the app; i
 To run Keeper on startup as a systemd user service:
 
 ```bash
-# Link the service file
+# Install the service file
 mkdir -p ~/.config/systemd/user
 cp keeper.service ~/.config/systemd/user/keeper.service
 
@@ -51,6 +51,8 @@ systemctl --user daemon-reload
 systemctl --user enable keeper
 systemctl --user start keeper
 ```
+
+The checked-in unit assumes this repo lives at `~/src/keeper` and that `npm` is available through the service `PATH`. If either differs, edit `WorkingDirectory`, `DATA_DIR`, or `PATH` in `~/.config/systemd/user/keeper.service`.
 
 Keeper will be available at **http://localhost:3001**. The service builds the frontend on start and runs the API server.
 

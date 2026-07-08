@@ -15,7 +15,7 @@ async function getServerUrl() {
 
 async function saveNote({ title, body }) {
   const serverUrl = await getServerUrl();
-  const payload = { body };
+  const payload = { body: body.trimEnd() };
   if (title) payload.title = title;
   const response = await fetch(`${serverUrl}/api/notes`, {
     method: "POST",
@@ -64,7 +64,48 @@ async function saveRightwardTabs({ includeCurrent }) {
   return { saved, failed };
 }
 
-function buildNote(info, tab) {
+function getSelectionScriptTarget(info, tab) {
+  if (typeof tab?.id !== "number") return null;
+
+  const target = { tabId: tab.id };
+  if (typeof info.frameId === "number") {
+    target.frameIds = [info.frameId];
+  }
+  return target;
+}
+
+function getSelectedText() {
+  const activeElement = document.activeElement;
+  if (
+    activeElement instanceof HTMLTextAreaElement ||
+    activeElement instanceof HTMLInputElement
+  ) {
+    const start = activeElement.selectionStart ?? 0;
+    const end = activeElement.selectionEnd ?? start;
+    return activeElement.value.slice(start, end);
+  }
+
+  return window.getSelection()?.toString() ?? "";
+}
+
+async function getPageSelectionText(info, tab) {
+  const target = getSelectionScriptTarget(info, tab);
+  if (target === null) return "";
+
+  try {
+    const results = await chrome.scripting.executeScript({
+      target,
+      func: getSelectedText,
+    });
+    const result = results[0]?.result;
+    return typeof result === "string" ? result : "";
+  } catch (err) {
+    console.debug("Keeper: could not read page selection, using context menu text", err);
+    return "";
+  }
+}
+
+async function buildNote(info, tab) {
   if (info.menuItemId === "save-page") {
     return { title: tab.title || undefined, body: tab.url || "" };
   }
@@ -75,7 +116,8 @@ function buildNote(info, tab) {
     return { body: info.linkUrl || "" };
   }
   if (info.menuItemId === "save-selection") {
-    return { body: info.selectionText || "" };
+    const pageSelection = await getPageSelectionText(info, tab);
+    return { body: pageSelection || info.selectionText || "" };
   }
   if (info.selectionText) {
     return { body: info.selectionText };
@@ -156,7 +198,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
-    const note = buildNote(info, tab);
+    const note = await buildNote(info, tab);
     await saveNote(note);
     chrome.action.setBadgeText({ text: "✓", tabId: tab.id });
     chrome.action.setBadgeBackgroundColor({ color: "#16a34a", tabId: tab.id });

@@ -3,7 +3,7 @@
   "name": "Keeper",
   "description": "Quick-capture notes to your Keeper instance",
   "version": "1.0.0",
-  "permissions": ["contextMenus", "activeTab", "storage", "tabs"],
+  "permissions": ["contextMenus", "activeTab", "storage", "tabs", "scripting"],
   "host_permissions": ["http://localhost:*/*"],
   "background": {
     "service_worker": "background.js"

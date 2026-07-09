@@ -218,10 +218,7 @@ it('clears selected notes that leave the active filtered view', async () => {
   const user = userEvent.setup();
   const db = getTestDB();
   await db.createNote({ body: 'Selected foo note', initialTagNames: ['foo'] });
-  const fooTag = (await db.getAllTags()).find((tag) => tag.name === 'foo');
-  if (fooTag === undefined) throw new Error('foo tag was not created');
-
-  await renderApp(`/tag/${String(fooTag.id)}`);
+  await renderApp('/tag/foo');
 
   await screen.findByText('Selected foo note');
   await user.keyboard('{Control>}');

@@ -13,7 +13,6 @@ import {
   useDisplayedNotes,
   useExtensionEvents,
   useNoteMutations,
-  useTags,
 } from './hooks/useKeeperQuery.ts';
 import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
 import { useExtensionBadge } from './hooks/useExtensionBadge.ts';
@@ -35,7 +34,7 @@ const ChatPanel = lazy(async () => {
 });
 
 function filterKey(filter: FilterType) {
-  return filter.type === 'tag' ? `tag:${String(filter.tagId)}` : filter.type;
+  return filter.type === 'tag' ? `tag:${filter.tagName}` : filter.type;
 }
 
 const SIDEBAR_SWIPE_EDGE_WIDTH = 48;
@@ -43,7 +42,6 @@ const SIDEBAR_SWIPE_OPEN_DISTANCE = 48;
 const SIDEBAR_SWIPE_VERTICAL_TOLERANCE = 1.5;
 
 function KeeperApp() {
-  const { data: allTags } = useTags();
   const noteMutations = useNoteMutations();
   const extensionNoteCreatedCount = useExtensionEvents();
   const { activeFilter, searchQuery } = useKeeperRouteState();
@@ -109,7 +107,7 @@ function KeeperApp() {
     }
   };
 
-  if (activeFilter.type === 'tag' && !allTags.some((tag) => tag.id === activeFilter.tagId)) {
+  if (activeFilter.type === 'tag' && activeFilter.tagId === null) {
     return <Navigate to="/inbox" replace search={{}} />;
   }
 
@@ -225,13 +223,12 @@ const trashRoute = createRoute({ getParentRoute: () => rootRoute, path: 'trash',
 const shareRoute = createRoute({ getParentRoute: () => rootRoute, path: 'share', component: KeeperApp });
 const tagRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: 'tag/$tagId',
+  path: 'tag/$tagName',
   params: {
-    parse: ({ tagId }) => {
-      const parsedTagId = Number(tagId);
-      return Number.isSafeInteger(parsedTagId) && parsedTagId > 0 ? { tagId: parsedTagId } : false;
+    parse: ({ tagName }) => {
+      return tagName !== '' ? { tagName } : false;
     },
-    stringify: ({ tagId }) => ({ tagId: String(tagId) }),
+    stringify: ({ tagName }) => ({ tagName }),
   },
   component: KeeperApp,
 });

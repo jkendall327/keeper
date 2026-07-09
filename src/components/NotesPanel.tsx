@@ -67,7 +67,7 @@ export function NotesPanel({
     setSelectedNoteIds(ids);
   };
 
-  const activeTag = activeFilter.type === 'tag'
+  const activeTag = activeFilter.type === 'tag' && activeFilter.tagId !== null
     ? allTags.find((tag) => tag.id === activeFilter.tagId)
     : undefined;
   const isTrashView = activeFilter.type === 'trash';

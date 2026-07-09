@@ -13,7 +13,7 @@ export type FilterType =
   | { type: 'links' }
   | { type: 'duplicates' }
   | { type: 'chat' }
-  | { type: 'tag'; tagId: number };
+  | { type: 'tag'; tagId: number | null; tagName: string };
 
 interface SidebarProps {
   tags: Tag[];
@@ -123,8 +123,8 @@ export function Sidebar({ tags, activeFilter, advancedModeEnabled, onFilterChang
                   )}
                 </div>
                 <button
-                  className={clsx(styles.tab, styles.tagName, isActive({ type: 'tag', tagId: tag.id }) && styles.tabActive)}
-                  onClick={() => { onFilterChange({ type: 'tag', tagId: tag.id }); }}
+                  className={clsx(styles.tab, styles.tagName, isActive({ type: 'tag', tagId: tag.id, tagName: tag.name }) && styles.tabActive)}
+                  onClick={() => { onFilterChange({ type: 'tag', tagId: tag.id, tagName: tag.name }); }}
                   onDoubleClick={() => { handleStartEdit(tag); }}
                 >
                   {tag.name}

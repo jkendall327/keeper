@@ -79,6 +79,7 @@ it('tag sidebar filter shows notes with the selected tag', async () => {
   await user.click(workTag);
 
   await waitFor(() => {
+    expect(window.location.pathname).toBe('/tag/work');
     expect(screen.getByText('Tagged work note')).toBeInTheDocument();
     expect(screen.queryByText('Plain untagged note')).not.toBeInTheDocument();
   });
@@ -89,14 +90,26 @@ it('opens filter and search state from the URL', async () => {
   const tagged = await db.createNote({ body: 'Deep linked work note' });
   await db.addTag(tagged.id, 'deep');
   await db.createNote({ body: 'Plain unlinked note' });
-  const deepTag = (await db.getAllTags()).find((tag) => tag.name === 'deep');
-  if (deepTag === undefined) throw new Error('deep tag was not created');
 
-  await renderApp(`/tag/${String(deepTag.id)}?q=work`);
+  await renderApp('/tag/deep?q=work');
 
   expect(await screen.findByDisplayValue('work')).toBeInTheDocument();
   expect(await screen.findByText('Deep linked work note')).toBeInTheDocument();
   expect(screen.queryByText('Plain unlinked note')).not.toBeInTheDocument();
+});
+
+it('encodes tag names in the URL path', async () => {
+  const user = userEvent.setup();
+  const db = getTestDB();
+  await db.createNote({ body: 'Vacation packing list', initialTagNames: ['summer vacation'] });
+  await renderApp();
+
+  await user.click(await waitFor(() => getSidebarTagButton('summer vacation')));
+
+  await waitFor(() => {
+    expect(window.location.pathname).toBe('/tag/summer%20vacation');
+    expect(screen.getByText('Vacation packing list')).toBeInTheDocument();
+  });
 });
 
 it('opens the mobile sidebar from a left-edge swipe', async () => {
@@ -147,14 +160,14 @@ it('updates browser history when switching filters', async () => {
 });
 
 it('redirects missing tag routes back to inbox', async () => {
-  await renderApp('/tag/999999');
+  await renderApp('/tag/missing-tag');
 
   await waitFor(() => {
     expect(window.location.pathname).toBe('/inbox');
   });
 });
 
-it('redirects invalid tag route params back to inbox', async () => {
+it('redirects unmatched tag names back to inbox', async () => {
   await renderApp('/tag/not-a-number');
 
   await waitFor(() => {
@@ -253,10 +266,8 @@ it('commits unsaved note text before removing the active tag from an open note',
   const user = userEvent.setup();
   const db = getTestDB();
   const note = await db.createNote({ body: 'Original tagged body', initialTagNames: ['foo'] });
-  const fooTag = (await db.getAllTags()).find((tag) => tag.name === 'foo');
-  if (fooTag === undefined) throw new Error('foo tag was not created');
 
-  await renderApp(`/tag/${String(fooTag.id)}`);
+  await renderApp('/tag/foo');
 
   await user.click(await screen.findByText('Original tagged body'));
   const bodyInput = await screen.findByPlaceholderText('Note');

@@ -34,7 +34,12 @@ export function SidebarContainer({
         if (isMobile) onSidebarClose();
       }}
       onRenameTag={(old, new_) => {
-        renameTag(old, new_).catch((err: unknown) => {
+        const renamedActiveTag = activeFilter.type === 'tag' && activeFilter.tagName === old;
+        renameTag(old, new_).then(() => {
+          if (renamedActiveTag) {
+            navigateToFilter({ type: 'tag', tagId: activeFilter.tagId, tagName: new_ });
+          }
+        }).catch((err: unknown) => {
           console.error('Failed to rename tag:', err);
         });
       }}

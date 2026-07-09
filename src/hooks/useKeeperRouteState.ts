@@ -1,11 +1,14 @@
 import { useNavigate, useRouterState } from '@tanstack/react-router';
 import type { FilterType } from '../components/Sidebar.tsx';
+import { useTags } from './useKeeperQuery.ts';
 
 export function useKeeperRouteState() {
   const navigate = useNavigate();
-  const activeFilter = useRouterState({
-    select: (state) => filterFromRouteMatch(state.matches[state.matches.length - 1]),
+  const { data: allTags } = useTags();
+  const routeMatch = useRouterState({
+    select: (state) => state.matches[state.matches.length - 1],
   });
+  const activeFilter = filterFromRouteMatch(routeMatch, allTags);
   const searchQuery = useRouterState({
     select: (state) => typeof state.location.search.q === 'string' ? state.location.search.q : '',
   });
@@ -13,8 +16,8 @@ export function useKeeperRouteState() {
   const navigateToFilter = (filter: FilterType) => {
     if (filter.type === 'tag') {
       void navigate({
-        to: '/tag/$tagId',
-        params: { tagId: filter.tagId },
+        to: '/tag/$tagName',
+        params: { tagName: filter.tagName },
         search: (previousSearch) => previousSearch,
       });
       return;
@@ -47,7 +50,7 @@ interface KeeperRouteMatch {
   params: Record<string, unknown>;
 }
 
-function filterFromRouteMatch(match: KeeperRouteMatch | undefined): FilterType {
+function filterFromRouteMatch(match: KeeperRouteMatch | undefined, allTags: { id: number; name: string }[]): FilterType {
   switch (match?.fullPath) {
     case '/archive':
       return { type: 'archive' };
@@ -61,18 +64,21 @@ function filterFromRouteMatch(match: KeeperRouteMatch | undefined): FilterType {
       return { type: 'trash' };
     case '/untagged':
       return { type: 'untagged' };
-    case '/tag/$tagId':
-      return { type: 'tag', tagId: routeNumberParam(match, 'tagId') };
+    case '/tag/$tagName': {
+      const tagName = routeStringParam(match, 'tagName');
+      const tag = allTags.find((candidate) => candidate.name === tagName);
+      return { type: 'tag', tagId: tag?.id ?? null, tagName };
+    }
     case '/inbox':
     default:
       return { type: 'all' };
   }
 }
 
-function routeNumberParam(match: KeeperRouteMatch, name: string): number {
+function routeStringParam(match: KeeperRouteMatch, name: string): string {
   const value = match.params[name];
-  if (typeof value !== 'number') {
-    throw new Error(`Route param ${name} was not parsed as a number`);
+  if (typeof value !== 'string') {
+    throw new Error(`Route param ${name} was not parsed as a string`);
   }
   return value;
 }

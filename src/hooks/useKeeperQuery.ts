@@ -81,6 +81,7 @@ export function useDisplayedNotes(activeFilter: FilterType, searchQuery: string)
         case 'duplicates':
           return client.views.duplicates({ signal });
         case 'tag':
+          if (activeFilter.tagId === null) return Promise.resolve(EMPTY_NOTES);
           return client.views.tag(activeFilter.tagId, { signal });
         case 'all':
         case 'chat':
@@ -300,6 +301,7 @@ export function useRefreshKeeperData() {
 }
 
 function getViewKey(activeFilter: FilterType, searchQuery: string) {
+  if (activeFilter.type === 'tag' && activeFilter.tagId === null) return null;
   if (searchQuery !== '') return keeperKeys.search(searchQuery);
 
   switch (activeFilter.type) {

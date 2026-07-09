@@ -27,6 +27,9 @@ export function registerRoutes(
     log: app.log,
     broadcast,
   });
+  app.addHook("onClose", () => {
+    linkMetadataQueue.stop();
+  });
   void linkMetadataQueue.start();
 
   registerEventRoutes(app);

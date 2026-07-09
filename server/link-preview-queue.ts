@@ -15,6 +15,7 @@ export function createLinkMetadataQueue(params: {
   const { db, log, broadcast } = params;
   const now = params.now ?? (() => new Date().toISOString().replace("T", " ").slice(0, 19));
   let running = false;
+  let stopped = true;
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   async function processNext(): Promise<void> {
@@ -50,6 +51,7 @@ export function createLinkMetadataQueue(params: {
   }
 
   function schedule(delay = 0): void {
+    if (stopped) return;
     if (timer !== null) return;
     timer = setTimeout(() => {
       timer = null;
@@ -64,11 +66,13 @@ export function createLinkMetadataQueue(params: {
     },
 
     async start(): Promise<void> {
+      stopped = false;
       await db.enqueueMissingLinkMetadataJobs();
       schedule();
     },
 
     stop(): void {
+      stopped = true;
       if (timer !== null) {
         clearTimeout(timer);
         timer = null;

@@ -214,7 +214,35 @@ it('plain click in selection mode toggles selection instead of opening modal', a
   });
 });
 
-it('burn button appears only after export and deletes notes on click', async () => {
+it('clears selected notes that leave the active filtered view', async () => {
+  const user = userEvent.setup();
+  const db = getTestDB();
+  await db.createNote({ body: 'Selected foo note', initialTagNames: ['foo'] });
+  const fooTag = (await db.getAllTags()).find((tag) => tag.name === 'foo');
+  if (fooTag === undefined) throw new Error('foo tag was not created');
+
+  await renderApp(`/tag/${String(fooTag.id)}`);
+
+  await screen.findByText('Selected foo note');
+  await user.keyboard('{Control>}');
+  await user.click(screen.getByText('Selected foo note'));
+  await user.keyboard('{/Control}');
+
+  expect(screen.getByText('1 selected')).toBeInTheDocument();
+
+  await user.click(screen.getByText('Label'));
+  const fooCheckbox = await screen.findByRole('checkbox', { name: 'foo' });
+  expect(fooCheckbox).toBeChecked();
+  await user.click(fooCheckbox);
+
+  await waitFor(() => {
+    expect(screen.queryByText('Selected foo note')).not.toBeInTheDocument();
+  });
+  expect(screen.queryByText('1 selected')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export')).not.toBeInTheDocument();
+});
+
+it('burn button appears only after export and moves notes to trash on click', async () => {
   const user = userEvent.setup();
   await renderApp();
 
@@ -245,22 +273,21 @@ it('burn button appears only after export and deletes notes on click', async () 
   await screen.findByText('Copy to clipboard');
 
   // Burn button should NOT be visible before export
-  expect(screen.queryByText(/Permanently delete/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Move .* to trash/)).not.toBeInTheDocument();
 
   // Click download (triggers export completion)
   await user.click(screen.getByText('Download .txt'));
 
   // Burn button should now appear
-  const burnBtn = await screen.findByText(/Permanently delete/);
+  const burnBtn = await screen.findByText('Move these 2 notes to trash');
   expect(burnBtn).toBeInTheDocument();
 
-  // Click burn — notes should be deleted after confirmation
-  // The handleBulkDelete uses window.confirm; jsdom doesn't provide it by default
+  // Click burn — notes should leave the active inbox view
   const originalConfirm = window.confirm;
   window.confirm = vi.fn(() => true);
   await user.click(burnBtn);
 
-  // Notes should be deleted
+  // Notes should be moved out of the inbox
   await waitFor(() => {
     expect(screen.queryByText('Burn note 1')).not.toBeInTheDocument();
     expect(screen.queryByText('Burn note 2')).not.toBeInTheDocument();

@@ -8,11 +8,12 @@ type Mode = 'text' | 'urls';
 
 interface ExportModalProps {
   notes: NoteWithTags[];
+  deletesPermanently: boolean;
   onClose: () => void;
   onDelete: () => void;
 }
 
-export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
+export function ExportModal({ notes, deletesPermanently, onClose, onDelete }: ExportModalProps) {
   const [mode, setMode] = useState<Mode>('text');
   const [sorted, setSorted] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -29,6 +30,9 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
   const output = mode === 'text' ? textOutput : urlOutput;
 
   const [copyFailed, setCopyFailed] = useState(false);
+  const deleteLabel = deletesPermanently
+    ? `Permanently delete ${notes.length === 1 ? 'this note' : `these ${String(notes.length)} notes`}`
+    : `Move ${notes.length === 1 ? 'this note' : `these ${String(notes.length)} notes`} to trash`;
 
   const handleCopy = async () => {
     try {
@@ -127,7 +131,7 @@ export function ExportModal({ notes, onClose, onDelete }: ExportModalProps) {
           </button>
           {exportCompleted && (
             <button className={clsx(styles.actionButton, styles.burnButton)} onClick={handleBurn}>
-              Permanently delete {notes.length === 1 ? 'this note' : `these ${String(notes.length)} notes`}
+              {deleteLabel}
             </button>
           )}
         </div>

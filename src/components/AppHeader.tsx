@@ -37,6 +37,7 @@ export function AppHeader({
   const {
     bulkAppliedTags,
     bulkIndeterminateTags,
+    clearSelection,
     cleanupEnabled,
     cleanupStatus,
     displayedNoteIds,
@@ -49,6 +50,14 @@ export function AppHeader({
   } = bulkActions;
   const displayedNoteCount = displayedNoteIds.length;
   const allDisplayedSelected = selectedNoteIds.size === displayedNoteCount && displayedNoteCount > 0;
+  const handleAddTagToSelectedNotes = async (noteIds: NoteId[], tagName: string) => {
+    await onAddTagToNotes(noteIds, tagName);
+    clearSelection();
+  };
+  const handleRemoveTagFromSelectedNotes = async (noteIds: NoteId[], tagName: string) => {
+    await onRemoveTagFromNotes(noteIds, tagName);
+    clearSelection();
+  };
 
   return (
     <header className={styles.header}>
@@ -120,8 +129,8 @@ export function AppHeader({
                     appliedTags={bulkAppliedTags}
                     indeterminateTags={bulkIndeterminateTags}
                     allTags={allTags}
-                    onAddTag={onAddTagToNotes}
-                    onRemoveTag={onRemoveTagFromNotes}
+                    onAddTag={handleAddTagToSelectedNotes}
+                    onRemoveTag={handleRemoveTagFromSelectedNotes}
                     onClose={() => { setShowBulkTagApplier(false); }}
                     anchorRef={bulkTagBtnRef}
                     direction="down"

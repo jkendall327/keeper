@@ -182,6 +182,7 @@ export function useNoteEditorSession({
   };
 
   const removeExistingTag = async (tagName: string) => {
+    await commitNonEmptyTextChanges();
     await noteCommands.removeTag(note.id, tagName);
   };
 

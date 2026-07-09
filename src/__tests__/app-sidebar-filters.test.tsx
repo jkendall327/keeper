@@ -249,6 +249,31 @@ it('does not reopen a stale modal after removing the active tag from a note', as
   });
 });
 
+it('commits unsaved note text before removing the active tag from an open note', async () => {
+  const user = userEvent.setup();
+  const db = getTestDB();
+  const note = await db.createNote({ body: 'Original tagged body', initialTagNames: ['foo'] });
+  const fooTag = (await db.getAllTags()).find((tag) => tag.name === 'foo');
+  if (fooTag === undefined) throw new Error('foo tag was not created');
+
+  await renderApp(`/tag/${String(fooTag.id)}`);
+
+  await user.click(await screen.findByText('Original tagged body'));
+  const bodyInput = await screen.findByPlaceholderText('Note');
+  await user.clear(bodyInput);
+  await user.type(bodyInput, 'Edited before tag removal');
+
+  await user.click(await screen.findByLabelText('Remove tag foo'));
+
+  await waitFor(() => {
+    expect(screen.queryByRole('dialog', { name: 'Edit note' })).not.toBeInTheDocument();
+  });
+
+  await expect(db.getNote(note.id)).resolves.toMatchObject({
+    body: 'Edited before tag removal',
+  });
+});
+
 it('does not reopen a stale modal after adding a tag to an untagged note', async () => {
   const user = userEvent.setup();
   await renderApp();

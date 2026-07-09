@@ -177,6 +177,7 @@ function KeeperApp() {
       {showExportModal && selectedNoteIds.size > 0 && (
         <ExportModal
           notes={selectedNotes}
+          deletesPermanently={isTrashView}
           onClose={() => { setShowExportModal(false); }}
           onDelete={() => { void handleBulkDelete(); }}
         />

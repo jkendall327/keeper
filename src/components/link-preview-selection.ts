@@ -1,5 +1,6 @@
 import type { NoteWithTags } from '../db/types.ts';
 import { getImageUrl } from '../utils/image-url.ts';
+import { isPublicHttpUrlByProtocolAndHost } from '../utils/url-safety.ts';
 
 export interface SelectedPreviewImage {
   url: string;
@@ -23,7 +24,9 @@ const NON_IMAGE_EXTENSIONS = new Set([
 
 export function isLikelyRenderableImageUrl(url: string): boolean {
   try {
-    const { pathname } = new URL(url);
+    const parsed = new URL(url);
+    if (!isPublicHttpUrlByProtocolAndHost(parsed)) return false;
+    const { pathname } = parsed;
     const extension = /\.[a-z0-9]+$/i.exec(pathname)?.[0]?.toLowerCase();
     return extension === undefined || !NON_IMAGE_EXTENSIONS.has(extension);
   } catch {

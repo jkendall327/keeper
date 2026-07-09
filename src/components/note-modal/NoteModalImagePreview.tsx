@@ -29,7 +29,7 @@ export function NoteModalImagePreview({
         onClick={() => { onOpen(previewImage.url); }}
         aria-label="Open image preview"
       >
-        <img src={previewImage.url} alt={previewImage.alt} />
+        <img src={previewImage.url} alt={previewImage.alt} referrerPolicy="no-referrer" />
       </button>
     </div>
   );

@@ -24,7 +24,7 @@ export function ImageLightbox({
       }}
     >
       <div className={styles.panel}>
-        <img src={imageUrl} alt={altText} />
+        <img src={imageUrl} alt={altText} referrerPolicy="no-referrer" />
       </div>
     </div>
   );

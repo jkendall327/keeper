@@ -1,8 +1,18 @@
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { extractLinkMetadata, extractOgImage, fetchLinkMetadata } from '../link-preview.ts';
 
+const lookupMock = vi.hoisted(() => vi.fn());
+
+vi.mock('node:dns/promises', () => ({
+  default: {
+    lookup: lookupMock,
+  },
+  lookup: lookupMock,
+}));
+
 afterEach(() => {
   vi.unstubAllGlobals();
+  lookupMock.mockReset();
 });
 
 describe('extractOgImage', () => {
@@ -30,6 +40,37 @@ describe('extractOgImage', () => {
 
   it('ignores pages without og:image', () => {
     expect(extractOgImage('<meta property="og:title" content="Example">', 'https://example.com')).toBe(null);
+  });
+
+  it.each([
+    'javascript:alert(1)',
+    'data:image/png;base64,abc',
+    'file:///tmp/private.png',
+    'http://localhost/private.png',
+    'http://printer.local/private.png',
+    'http://127.0.0.1/private.png',
+    'http://127.0.0.1./private.png',
+    'http://[::1]/private.png',
+  ])('ignores unsafe image URL %s', (imageUrl) => {
+    const html = `<meta property="og:image" content="${imageUrl}">`;
+
+    expect(extractLinkMetadata(html, 'https://example.com/post/1')).toMatchObject({
+      status: 'missing',
+      image_url: null,
+    });
+    expect(extractOgImage(html, 'https://example.com/post/1')).toBe(null);
+  });
+
+  it('falls back from unsafe Open Graph image URLs to safe Twitter images', () => {
+    const html = `
+      <meta property="og:image" content="javascript:alert(1)">
+      <meta name="twitter:image" content="/twitter.jpg">
+    `;
+
+    expect(extractLinkMetadata(html, 'https://example.com/post/1')).toMatchObject({
+      status: 'found',
+      image_url: 'https://example.com/twitter.jpg',
+    });
   });
 
   it('extracts rich Open Graph metadata', () => {
@@ -171,5 +212,71 @@ describe('fetchLinkMetadata', () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[1]?.[0]).toHaveProperty('href', 'http://93.184.216.34/redirected/post');
+  });
+
+  it('keeps image metadata hostnames that resolve to public addresses', async () => {
+    lookupMock.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]);
+    const html = '<meta property="og:image" content="https://assets.example.test/preview.jpg">';
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(html, {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await fetchLinkMetadata('http://93.184.216.34/start');
+
+    expect(result).toMatchObject({
+      url: 'http://93.184.216.34/start',
+      status: 'found',
+      image_url: 'https://assets.example.test/preview.jpg',
+    });
+    expect(lookupMock).toHaveBeenCalledWith('assets.example.test', { all: true, verbatim: true });
+  });
+
+  it('drops image metadata hostnames that resolve to private network addresses', async () => {
+    lookupMock.mockResolvedValue([{ address: '127.0.0.1', family: 4 }]);
+    const html = '<meta property="og:image" content="https://assets.example.test/private.jpg">';
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(html, {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await fetchLinkMetadata('http://93.184.216.34/start');
+
+    expect(result).toMatchObject({
+      url: 'http://93.184.216.34/start',
+      status: 'missing',
+      image_url: null,
+    });
+    expect(lookupMock).toHaveBeenCalledWith('assets.example.test', { all: true, verbatim: true });
+  });
+
+  it('falls back to the next image candidate when a hostname resolves private', async () => {
+    lookupMock.mockResolvedValue([{ address: '10.0.0.2', family: 4 }]);
+    const html = `
+      <meta property="og:image" content="https://assets.example.test/private.jpg">
+      <meta name="twitter:image" content="http://93.184.216.34/public.jpg">
+    `;
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(html, {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await fetchLinkMetadata('http://93.184.216.34/start');
+
+    expect(result).toMatchObject({
+      url: 'http://93.184.216.34/start',
+      status: 'found',
+      image_url: 'http://93.184.216.34/public.jpg',
+    });
+    expect(lookupMock).toHaveBeenCalledWith('assets.example.test', { all: true, verbatim: true });
   });
 });

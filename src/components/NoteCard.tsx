@@ -236,6 +236,7 @@ function NotePreviewImage({ previewImage }: { previewImage: SelectedPreviewImage
         src={previewImage.url}
         alt={previewImage.alt}
         loading="lazy"
+        referrerPolicy="no-referrer"
         onError={() => { setFailed(true); }}
       />
     </div>

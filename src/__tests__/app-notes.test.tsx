@@ -423,6 +423,45 @@ it('does not render link previews for non-image metadata URLs', async () => {
   expect(within(bodyDiv).getByRole('link', { name: url })).toHaveAttribute('href', url);
 });
 
+it('does not render link previews for unsafe metadata image URLs', async () => {
+  const db = getTestDB();
+  const notes = [
+    {
+      url: 'https://example.com/script-preview',
+      imageUrl: 'javascript:alert(1)',
+    },
+    {
+      url: 'https://example.com/private-preview',
+      imageUrl: 'http://127.0.0.1/private.png',
+    },
+    {
+      url: 'https://example.com/localhost-preview',
+      imageUrl: 'http://localhost/private.png',
+    },
+  ];
+
+  for (const note of notes) {
+    await db.createNote({ body: note.url });
+    await db.upsertLinkMetadata({
+      url: note.url,
+      image_url: note.imageUrl,
+      status: 'found',
+    });
+  }
+
+  await renderApp();
+
+  for (const note of notes) {
+    const noteCard = await screen.findByText(note.url);
+    const card = noteCard.closest<HTMLElement>('[data-note-id][role="button"]');
+    if (card === null) throw new Error('Note card not found');
+
+    const bodyDiv = within(card).getByTestId('note-card-body');
+    expect(within(bodyDiv).queryByRole('img')).not.toBeInTheDocument();
+    expect(within(bodyDiv).getByRole('link', { name: note.url })).toHaveAttribute('href', note.url);
+  }
+});
+
 it('clicking a note in archive view opens the modal', async () => {
   const user = userEvent.setup();
   await renderApp();

@@ -100,6 +100,7 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
         if (longPressFired.current) e.preventDefault();
       }}
       onKeyDown={(e) => {
+        if (e.target !== e.currentTarget) return;
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onSelect(note);

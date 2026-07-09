@@ -296,6 +296,33 @@ it('pinning a note updates the pin action state', async () => {
   });
 });
 
+it('keyboard activates focused note action buttons without toggling the selected card', async () => {
+  const user = userEvent.setup();
+  await renderApp();
+
+  const input = await screen.findByPlaceholderText('Take a note...');
+  await user.type(input, 'Keyboard pin me');
+  await user.keyboard('{Enter}');
+
+  await screen.findByText('Keyboard pin me');
+  let noteCard = getNoteCardByText('Keyboard pin me');
+  await user.click(within(noteCard).getByLabelText('Select note'));
+  expect(getNoteCardByText('Keyboard pin me')).toHaveAttribute('aria-pressed', 'true');
+
+  noteCard = getNoteCardByText('Keyboard pin me');
+  const pinButton = within(noteCard).getByLabelText('Pin note');
+  pinButton.focus();
+  expect(pinButton).toHaveFocus();
+  await user.keyboard('{Enter}');
+
+  await waitFor(() => {
+    const updatedCard = getNoteCardByText('Keyboard pin me');
+    expect(within(updatedCard).getByLabelText('Unpin note')).toBeInTheDocument();
+    expect(updatedCard).toHaveAttribute('aria-pressed', 'true');
+  });
+  expect(screen.queryByRole('dialog', { name: 'Edit note' })).not.toBeInTheDocument();
+});
+
 it('shows empty-note deletion warning when body is cleared', async () => {
   const user = userEvent.setup();
   await renderApp();

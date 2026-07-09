@@ -10,24 +10,144 @@ const MAX_REDIRECTS = 5;
 export type LinkMetadataFetchResult =
   Partial<LinkMetadata> & Pick<LinkMetadata, "url" | "status">;
 
-function isPrivateIp(address: string): boolean {
-  if (address === "::1") return true;
-  if (address.startsWith("fc") || address.startsWith("fd")) return true;
-  if (address.startsWith("fe80:")) return true;
+const BLOCKED_IPV4_RANGES: [base: string, prefix: number][] = [
+  ["0.0.0.0", 8],
+  ["10.0.0.0", 8],
+  ["100.64.0.0", 10],
+  ["127.0.0.0", 8],
+  ["169.254.0.0", 16],
+  ["172.16.0.0", 12],
+  ["192.0.0.0", 24],
+  ["192.0.2.0", 24],
+  ["192.88.99.0", 24],
+  ["192.168.0.0", 16],
+  ["198.18.0.0", 15],
+  ["198.51.100.0", 24],
+  ["203.0.113.0", 24],
+  ["224.0.0.0", 4],
+  ["240.0.0.0", 4],
+];
 
-  const parts = address.split(".").map(Number);
-  if (parts.length !== 4 || parts.some((part) => Number.isNaN(part))) {
-    return false;
+const BLOCKED_IPV6_RANGES: [base: string, prefix: number][] = [
+  ["::", 128],
+  ["::1", 128],
+  ["::", 96],
+  ["::ffff:0:0", 96],
+  ["64:ff9b::", 96],
+  ["64:ff9b:1::", 48],
+  ["100::", 64],
+  ["2001::", 32],
+  ["2001:2::", 48],
+  ["2001:db8::", 32],
+  ["2002::", 16],
+  ["fc00::", 7],
+  ["fe80::", 10],
+  ["ff00::", 8],
+];
+
+function stripIpBrackets(address: string): string {
+  return address.startsWith("[") && address.endsWith("]")
+    ? address.slice(1, -1)
+    : address;
+}
+
+function parseIpv4Address(address: string): number | null {
+  const parts = address.split(".");
+  if (parts.length !== 4) return null;
+
+  const octets = parts.map((part) => {
+    if (!/^\d+$/.test(part)) return null;
+    const value = Number(part);
+    return Number.isInteger(value) && value >= 0 && value <= 255 ? value : null;
+  });
+  if (octets.some((octet) => octet === null)) return null;
+
+  const [a, b, c, d] = octets as [number, number, number, number];
+  return ((a * 256 + b) * 256 + c) * 256 + d;
+}
+
+function ipv4InRange(address: number, baseAddress: number, prefix: number): boolean {
+  const blockSize = 2 ** (32 - prefix);
+  return Math.floor(address / blockSize) === Math.floor(baseAddress / blockSize);
+}
+
+function isBlockedIpv4Address(address: string): boolean {
+  const parsedAddress = parseIpv4Address(address);
+  if (parsedAddress === null) return true;
+
+  return BLOCKED_IPV4_RANGES.some(([base, prefix]) => {
+    const parsedBase = parseIpv4Address(base);
+    return parsedBase !== null && ipv4InRange(parsedAddress, parsedBase, prefix);
+  });
+}
+
+function normalizeIpv6Address(address: string): string {
+  const zoneIndex = address.indexOf("%");
+  const withoutZone = zoneIndex === -1 ? address : address.slice(0, zoneIndex);
+  const lastColon = withoutZone.lastIndexOf(":");
+  if (lastColon === -1 || !withoutZone.slice(lastColon + 1).includes(".")) {
+    return withoutZone.toLowerCase();
   }
-  const a = parts[0] ?? 0;
-  const b = parts[1] ?? 0;
-  return (
-    a === 10 ||
-    a === 127 ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168)
-  );
+
+  const ipv4 = parseIpv4Address(withoutZone.slice(lastColon + 1));
+  if (ipv4 === null) return withoutZone.toLowerCase();
+  const high = Math.floor(ipv4 / 65536).toString(16);
+  const low = (ipv4 % 65536).toString(16);
+  return `${withoutZone.slice(0, lastColon)}:${high}:${low}`.toLowerCase();
+}
+
+function parseIpv6Address(address: string): bigint | null {
+  const normalized = normalizeIpv6Address(address);
+  if (normalized === "") return null;
+
+  const compressedParts = normalized.split("::");
+  if (compressedParts.length > 2) return null;
+
+  const headPart = compressedParts[0];
+  if (headPart === undefined) return null;
+  const tailPart = compressedParts[1] ?? "";
+  const head = headPart === "" ? [] : headPart.split(":");
+  const tail = compressedParts.length === 1 || tailPart === "" ? [] : tailPart.split(":");
+  const missingGroupCount = 8 - head.length - tail.length;
+  if (compressedParts.length === 1 && missingGroupCount !== 0) return null;
+  if (compressedParts.length === 2 && missingGroupCount < 1) return null;
+
+  const groups = [
+    ...head,
+    ...Array.from({ length: compressedParts.length === 2 ? missingGroupCount : 0 }, () => "0"),
+    ...tail,
+  ];
+  if (groups.length !== 8) return null;
+
+  let value = 0n;
+  for (const group of groups) {
+    if (!/^[0-9a-f]{1,4}$/u.test(group)) return null;
+    value = (value << 16n) + BigInt(Number.parseInt(group, 16));
+  }
+  return value;
+}
+
+function ipv6InRange(address: bigint, baseAddress: bigint, prefix: number): boolean {
+  const shift = BigInt(128 - prefix);
+  return (address >> shift) === (baseAddress >> shift);
+}
+
+function isBlockedIpv6Address(address: string): boolean {
+  const parsedAddress = parseIpv6Address(address);
+  if (parsedAddress === null) return true;
+
+  return BLOCKED_IPV6_RANGES.some(([base, prefix]) => {
+    const parsedBase = parseIpv6Address(base);
+    return parsedBase !== null && ipv6InRange(parsedAddress, parsedBase, prefix);
+  });
+}
+
+function isBlockedIpAddress(address: string): boolean {
+  const normalized = stripIpBrackets(address).toLowerCase();
+  const ipVersion = isIP(normalized);
+  if (ipVersion === 4) return isBlockedIpv4Address(normalized);
+  if (ipVersion === 6) return isBlockedIpv6Address(normalized);
+  return true;
 }
 
 async function assertPublicHttpUrl(url: URL): Promise<void> {
@@ -35,13 +155,14 @@ async function assertPublicHttpUrl(url: URL): Promise<void> {
     throw new Error("Only HTTP(S) URLs can be previewed");
   }
 
-  if (isIP(url.hostname) !== 0) {
-    if (isPrivateIp(url.hostname)) throw new Error("Private IPs cannot be previewed");
+  const hostname = stripIpBrackets(url.hostname);
+  if (isIP(hostname) !== 0) {
+    if (isBlockedIpAddress(hostname)) throw new Error("Private IPs cannot be previewed");
     return;
   }
 
   const addresses = await lookup(url.hostname, { all: true, verbatim: true });
-  if (addresses.some((address) => isPrivateIp(address.address))) {
+  if (addresses.some((address) => isBlockedIpAddress(address.address))) {
     throw new Error("Private network URLs cannot be previewed");
   }
 }

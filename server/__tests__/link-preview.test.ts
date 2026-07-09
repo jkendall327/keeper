@@ -90,6 +90,40 @@ describe('extractOgImage', () => {
 });
 
 describe('fetchLinkMetadata', () => {
+  it.each([
+    'http://0.0.0.0/',
+    'http://10.1.2.3/',
+    'http://100.64.0.1/',
+    'http://127.0.0.1/',
+    'http://169.254.1.1/',
+    'http://172.16.0.1/',
+    'http://192.0.2.1/',
+    'http://192.168.1.10/',
+    'http://198.18.0.1/',
+    'http://203.0.113.1/',
+    'http://224.0.0.1/',
+    'http://[::]/',
+    'http://[::1]/',
+    'http://[::ffff:127.0.0.1]/',
+    'http://[fc00::1]/',
+    'http://[fe80::1]/',
+    'http://[2001:db8::1]/',
+    'http://[ff02::1]/',
+  ])('rejects non-public IP literal %s before fetching', async (url) => {
+    const fetchMock = vi.fn<typeof fetch>();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await fetchLinkMetadata(url);
+
+    expect(result).toMatchObject({
+      url,
+      status: 'error',
+      image_url: null,
+      failure_reason: 'Private IPs cannot be previewed',
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('rejects redirects to private network URLs before following them', async () => {
     const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
       new Response('', {

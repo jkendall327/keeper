@@ -114,27 +114,31 @@ describe('Tool executor', () => {
     await db.createNote({ body: 'To delete' });
     const result = await executeTool(keeper, { name: 'delete_note', args: { id: 'test-id-1' } });
     expect(result.needsConfirmation).toBe(true);
-    expect(result.result).toContain('Are you sure');
+    expect(result.result).toContain('Move note');
     // Note should still exist
     const note = await db.getNote(toNoteId('test-id-1'));
     expect(note?.body).toBe('To delete');
   });
 
-  it('confirm_delete_note actually deletes', async () => {
+  it('confirm_delete_note moves the note to trash', async () => {
     await db.createNote({ body: 'To delete' });
-    // Prove note exists before deletion
+    // Prove note exists before trashing
     const notesBefore = await db.getAllNotes();
     expect(notesBefore).toHaveLength(1);
     expect(notesBefore[0]?.body).toBe('To delete');
 
     const result = await executeTool(keeper, { name: 'confirm_delete_note', args: { id: 'test-id-1' } });
-    expect(result.result).toContain('deleted');
+    expect(result.result).toContain('moved to trash');
 
-    // Verify note no longer appears in any retrieval
+    // Verify note leaves the inbox but remains recoverable from trash.
     const notesAfter = await db.getAllNotes();
     expect(notesAfter).not.toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'test-id-1' }),
     ]));
+    const trashedNote = await db.getNote(toNoteId('test-id-1'));
+    expect(trashedNote).toMatchObject({ id: 'test-id-1', trashed: true });
+    const trash = await db.getTrashedNotes();
+    expect(trash.map((note) => note.id)).toContain(toNoteId('test-id-1'));
   });
 
   it('add_tag adds a tag to a note', async () => {

@@ -315,13 +315,13 @@ export async function executeTool(
     case "delete_note": {
       return confirm(
         call.name,
-        `Are you sure you want to delete note "${call.args.id}"? This cannot be undone.`,
+        `Move note "${call.args.id}" to trash?`,
       );
     }
 
     case "confirm_delete_note": {
-      await keeper.notes.delete(toNoteId(call.args.id));
-      return ok(call.name, `Note "${call.args.id}" deleted.`);
+      await keeper.notes.trash(toNoteId(call.args.id));
+      return ok(call.name, `Note "${call.args.id}" moved to trash.`);
     }
 
     case "add_tag": {

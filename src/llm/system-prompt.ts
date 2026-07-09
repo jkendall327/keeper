@@ -100,7 +100,7 @@ Update an existing note's body and/or title.
   - title (string, optional): The new title
 
 ### delete_note
-Delete a note (requires confirmation).
+Move a note to trash (requires confirmation).
 - Parameters:
   - id (string, required): The note ID
 

@@ -1,4 +1,5 @@
 const DEFAULT_SERVER_URL = "http://localhost:3001";
+const INVALID_SERVER_URL_ERROR = "Use http://localhost:<port>, for example http://localhost:3001.";
 
 const quickNoteInput = document.getElementById("quickNote");
 const sendQuickNoteBtn = document.getElementById("sendQuickNote");
@@ -14,10 +15,28 @@ function showStatus(text, ok) {
   statusEl.className = ok ? "ok" : "err";
 }
 
+function normalizeKeeperServerUrl(value) {
+  let url;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    return null;
+  }
+
+  if (url.protocol !== "http:" || url.hostname !== "localhost" || url.port === "") {
+    return null;
+  }
+
+  url.pathname = "";
+  url.search = "";
+  url.hash = "";
+  return url.toString().replace(/\/$/, "");
+}
+
 function testConnection(url) {
   return new Promise((resolve) => {
     chrome.runtime.sendMessage({ type: "test-connection", url }, (response) => {
-      resolve(response?.ok ?? false);
+      resolve(response ?? { ok: false, error: chrome.runtime.lastError?.message || "No response" });
     });
   });
 }
@@ -97,20 +116,27 @@ chrome.storage.local.get("recentErrors", (result) => {
 quickNoteInput.focus();
 
 saveBtn.addEventListener("click", async () => {
-  const url = serverUrlInput.value.trim();
-  if (!url) {
+  const inputUrl = serverUrlInput.value.trim();
+  if (!inputUrl) {
     showStatus("URL is required", false);
+    return;
+  }
+
+  const url = normalizeKeeperServerUrl(inputUrl);
+  if (url === null) {
+    showStatus(INVALID_SERVER_URL_ERROR, false);
     return;
   }
 
   showStatus("Testing connection...", true);
 
-  const ok = await testConnection(url);
-  if (ok) {
+  const result = await testConnection(url);
+  if (result.ok) {
     chrome.storage.sync.set({ serverUrl: url });
+    serverUrlInput.value = url;
     showStatus("Connected and saved", true);
   } else {
-    showStatus("Could not reach server", false);
+    showStatus(result.error || "Could not reach server", false);
   }
 });
 

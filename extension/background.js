@@ -1,4 +1,5 @@
 const DEFAULT_SERVER_URL = "http://localhost:3001";
+const INVALID_SERVER_URL_ERROR = "Server URL must be http://localhost:<port>.";
 const MAX_ERRORS = 3;
 
 async function storeError(message) {
@@ -10,7 +11,28 @@ async function storeError(message) {
 
 async function getServerUrl() {
   const result = await chrome.storage.sync.get({ serverUrl: DEFAULT_SERVER_URL });
-  return result.serverUrl.replace(/\/+$/, "");
+  const url = normalizeKeeperServerUrl(result.serverUrl);
+  if (url === null) throw new Error(INVALID_SERVER_URL_ERROR);
+  return url;
+}
+
+function normalizeKeeperServerUrl(value) {
+  if (typeof value !== "string") return null;
+  let url;
+  try {
+    url = new URL(value.trim());
+  } catch {
+    return null;
+  }
+
+  if (url.protocol !== "http:" || url.hostname !== "localhost" || url.port === "") {
+    return null;
+  }
+
+  url.pathname = "";
+  url.search = "";
+  url.hash = "";
+  return url.toString().replace(/\/$/, "");
 }
 
 async function saveNote({ title, body }) {
@@ -157,7 +179,11 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.type === "test-connection") {
-    const url = msg.url.replace(/\/+$/, "");
+    const url = normalizeKeeperServerUrl(msg.url);
+    if (url === null) {
+      sendResponse({ ok: false, error: INVALID_SERVER_URL_ERROR });
+      return false;
+    }
     fetch(`${url}/api/notes`, { method: "GET" })
       .then((res) => sendResponse({ ok: res.ok }))
       .catch(() => {

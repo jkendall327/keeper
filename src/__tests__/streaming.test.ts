@@ -271,6 +271,31 @@ describe('Streaming', () => {
     expect(lastAssistant.content).toContain('maximum number of actions');
   });
 
+  it('does not show max iterations message when the final response arrives on the last allowed iteration', async () => {
+    const toolCallText = '```tool_call\n{"name": "list_notes", "args": {}}\n```';
+    const finalResponse = 'Done after checking.';
+    const { client, onMutation } = setup([]);
+    let callCount = 0;
+    client.stream = (_messages: Message[], _options?: ChatOptions): AsyncIterable<string> => {
+      callCount++;
+      return createMockClient([callCount < 10 ? toolCallText : finalResponse]).stream([], {});
+    };
+
+    const { result } = renderHook(() =>
+      useChatLoop({ client, keeper, onMutation }),
+    );
+
+    await act(async () => {
+      await result.current.send('Check until done');
+    });
+
+    expect(callCount).toBe(10);
+    const assistantMsgs = result.current.messages.filter(m => m.role === 'assistant');
+    const lastAssistant = assistantMsgs[assistantMsgs.length - 1];
+    expect(lastAssistant?.content).toBe(finalResponse);
+    expect(assistantMsgs.some((msg) => msg.content.includes('maximum number of actions'))).toBe(false);
+  });
+
   it('preserves partial text on abort', async () => {
     // Create a stream that will be aborted mid-way
     const { onMutation } = setup([]);

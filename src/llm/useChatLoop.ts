@@ -207,6 +207,7 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
 
     let iterMessages = startingMessages;
     let iterations = 0;
+    let exhausted = true;
     let pausedForConfirmation = false;
     // acc is mutated by streamOnce so partial text survives an AbortError throw
     const acc = { text: '' };
@@ -236,6 +237,7 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
             iterMessages = nextMessages;
             commitMessages(iterMessages);
           }
+          exhausted = false;
           break;
         }
 
@@ -282,11 +284,14 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
         if (needsConfirmStop) return;
 
         commitMessages(iterMessages);
-        if (executedToolCalls > 0 && allExecutedToolsTerminal) break;
+        if (executedToolCalls > 0 && allExecutedToolsTerminal) {
+          exhausted = false;
+          break;
+        }
       }
 
       // If we exhausted the iteration limit, inform the user
-      if (iterations >= MAX_TOOL_ITERATIONS) {
+      if (exhausted) {
         const limitMsg: ChatMessage = {
           role: 'assistant',
           content: "I've reached the maximum number of actions. Please try a simpler request.",

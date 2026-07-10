@@ -3,7 +3,7 @@ import { createTestDb } from '../db/__tests__/test-db.ts';
 import { createKeeperDB } from '../db/db-impl.ts';
 import type { KeeperClient } from '../db/db-client.ts';
 import { toNoteId, type KeeperDB } from '../db/types.ts';
-import { executeTool, parseToolCall } from '../llm/tools.ts';
+import { executeConfirmedDelete, executeTool, isToolResult, parseToolCall } from '../llm/tools.ts';
 
 describe('Tool executor', () => {
   let db: KeeperDB;
@@ -120,14 +120,25 @@ describe('Tool executor', () => {
     expect(note?.body).toBe('To delete');
   });
 
-  it('confirm_delete_note moves the note to trash', async () => {
+  it('loads legacy confirmed-delete results without making the action model-callable', () => {
+    expect(parseToolCall('confirm_delete_note', { id: 'test-id-1' })).toBeNull();
+    expect(isToolResult({
+      name: 'confirm_delete_note',
+      result: 'Note "test-id-1" moved to trash.',
+      needsConfirmation: false,
+    })).toBe(true);
+  });
+
+  it('confirmed deletion moves the note to trash outside the model tool boundary', async () => {
     await db.createNote({ body: 'To delete' });
     // Prove note exists before trashing
     const notesBefore = await db.getAllNotes();
     expect(notesBefore).toHaveLength(1);
     expect(notesBefore[0]?.body).toBe('To delete');
 
-    const result = await executeTool(keeper, { name: 'confirm_delete_note', args: { id: 'test-id-1' } });
+    const result = await executeConfirmedDelete(keeper, { id: 'test-id-1' });
+    expect(result.name).toBe('delete_note');
+    expect(result.needsConfirmation).toBe(false);
     expect(result.result).toContain('moved to trash');
 
     // Verify note leaves the inbox but remains recoverable from trash.

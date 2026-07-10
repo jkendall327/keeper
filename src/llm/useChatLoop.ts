@@ -1,7 +1,14 @@
 import { useReducer, useCallback, useRef } from 'react';
 import type { Message, LLMClient } from '@motioneffector/llm';
 import { parseMCPResponse } from './mcp-parser.ts';
-import { executeTool, TOOL_METADATA, type ToolArgsByName, type ToolCall, type ToolResult } from './tools.ts';
+import {
+  executeConfirmedDelete,
+  executeTool,
+  TOOL_METADATA,
+  type ToolArgsByName,
+  type ToolCall,
+  type ToolResult,
+} from './tools.ts';
 import { buildSystemPrompt } from './system-prompt.ts';
 import { normalizeAssistantReply } from './chat-formatting.ts';
 import type { KeeperClient } from '../db/db-client.ts';
@@ -14,7 +21,7 @@ export type ChatMessage =
 
 interface PendingConfirmation {
   toolResult: ToolResult;
-  args: ToolArgsByName['confirm_delete_note'];
+  args: ToolArgsByName['delete_note'];
 }
 
 interface UseChatLoopOptions {
@@ -123,7 +130,7 @@ function uniqueToolCalls(toolCalls: ToolCall[]): ToolCall[] {
   });
 }
 
-function confirmationArgsFor(call: ToolCall): ToolArgsByName['confirm_delete_note'] | null {
+function confirmationArgsFor(call: ToolCall): ToolArgsByName['delete_note'] | null {
   return call.name === 'delete_note' ? call.args : null;
 }
 
@@ -360,10 +367,7 @@ export function useChatLoop({ client, keeper, onMutation, initialMessages = [], 
           toolResult: { name: pendingConfirmation.toolResult.name, result: 'Delete cancelled by user.', needsConfirmation: false },
         };
       } else {
-        const result = await executeTool(keeper, {
-          name: 'confirm_delete_note',
-          args: pendingConfirmation.args,
-        });
+        const result = await executeConfirmedDelete(keeper, pendingConfirmation.args);
         toolMsg = toolResultMessage(result);
         onMutation();
       }

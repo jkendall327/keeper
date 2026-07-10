@@ -98,6 +98,16 @@ After the bad block.`;
     expect(result.toolCalls).toHaveLength(0);
   });
 
+  it('rejects the internal delete confirmation action while accepting delete requests', () => {
+    const deleteRequest = parseMCPResponse('```tool_call\n{"name": "delete_note", "args": {"id": "note-1"}}\n```');
+    expect(deleteRequest.toolCalls).toEqual([
+      { name: 'delete_note', args: { id: 'note-1' } },
+    ]);
+
+    const internalConfirmation = parseMCPResponse('```tool_call\n{"name": "confirm_delete_note", "args": {"id": "note-1"}}\n```');
+    expect(internalConfirmation.toolCalls).toEqual([]);
+  });
+
   it('skips blocks without a name field', () => {
     // Prove valid blocks with name field are extracted
     const valid = parseMCPResponse('```tool_call\n{"name": "list_tags", "args": {}}\n```');

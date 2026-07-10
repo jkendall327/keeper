@@ -3,6 +3,8 @@ import { toNoteId, type NoteWithTags, type Tag } from "../db/types.ts";
 
 type EmptyArgs = Record<string, never>;
 
+// This map is the model-callable boundary: every entry is accepted from
+// tool_call output. Trusted application continuations must stay outside it.
 export interface ToolArgsByName {
   list_notes: EmptyArgs;
   search_notes: { query: string };
@@ -11,7 +13,6 @@ export interface ToolArgsByName {
   create_note: { body: string; title?: string };
   update_note: { id: string; body: string; title?: string };
   delete_note: { id: string };
-  confirm_delete_note: { id: string };
   add_tag: { note_id: string; tag_name: string };
   remove_tag: { note_id: string; tag_name: string };
   get_notes_for_tag: { tag_name: string };
@@ -34,8 +35,13 @@ export interface ToolMetadata {
   terminal: boolean;
 }
 
+// Kept only so chat histories written by older versions remain loadable.
+// Legacy result names are never accepted as model-issued tool calls.
+type LegacyToolResultName = "confirm_delete_note";
+export type ToolResultName = ToolName | LegacyToolResultName;
+
 export interface ToolResult {
-  name: ToolName;
+  name: ToolResultName;
   result: string;
   needsConfirmation: boolean;
   noteLinks?: NoteLink[];
@@ -130,7 +136,6 @@ export const TOOL_SPECS = {
   create_note: { terminal: false, parseArgs: parseCreateNoteArgs },
   update_note: { terminal: false, parseArgs: parseUpdateNoteArgs },
   delete_note: { terminal: false, parseArgs: parseStringArg("id") },
-  confirm_delete_note: { terminal: false, parseArgs: parseStringArg("id") },
   add_tag: { terminal: false, parseArgs: parseTagMutationArgs },
   remove_tag: { terminal: false, parseArgs: parseTagMutationArgs },
   get_notes_for_tag: { terminal: false, parseArgs: parseStringArg("tag_name", { nonEmpty: true }) },
@@ -146,6 +151,10 @@ export const TOOL_METADATA: Record<ToolName, ToolMetadata> = Object.fromEntries(
 
 export function isToolName(value: string): value is ToolName {
   return Object.hasOwn(TOOL_SPECS, value);
+}
+
+function isToolResultName(value: string): value is ToolResultName {
+  return isToolName(value) || value === "confirm_delete_note";
 }
 
 export function parseToolCall(name: string, args: unknown): ToolCall | null {
@@ -185,7 +194,7 @@ export function isToolResult(value: unknown): value is ToolResult {
   const noteLinks = value["noteLinks"];
   return (
     typeof name === "string" &&
-    isToolName(name) &&
+    isToolResultName(name) &&
     typeof value["result"] === "string" &&
     typeof value["needsConfirmation"] === "boolean" &&
     (noteLinks === undefined || (Array.isArray(noteLinks) && noteLinks.every(isNoteLink)))
@@ -254,6 +263,16 @@ export function snapshotNoteLink(note: NoteWithTags): NoteLinkSnapshot {
 
 // ── Tool executor ───────────────────────────────────────────
 
+// This is an application-only continuation of delete_note. It deliberately is
+// not represented as a ToolCall, so model output cannot invoke it.
+export async function executeConfirmedDelete(
+  keeper: KeeperClient,
+  args: ToolArgsByName["delete_note"],
+): Promise<ToolResult> {
+  await keeper.notes.trash(toNoteId(args.id));
+  return ok("delete_note", `Note "${args.id}" moved to trash.`);
+}
+
 export async function executeTool(
   keeper: KeeperClient,
   call: ToolCall,
@@ -317,11 +336,6 @@ export async function executeTool(
         call.name,
         `Move note "${call.args.id}" to trash?`,
       );
-    }
-
-    case "confirm_delete_note": {
-      await keeper.notes.trash(toNoteId(call.args.id));
-      return ok(call.name, `Note "${call.args.id}" moved to trash.`);
     }
 
     case "add_tag": {

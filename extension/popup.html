@@ -123,8 +123,18 @@
   <h2>Keeper</h2>
   <div class="quick-note">
     <label for="quickNote">Quick note</label>
-    <textarea id="quickNote" placeholder="Type a note"></textarea>
-    <button id="sendQuickNote" type="button">Send to Keeper</button>
+    <textarea
+      id="quickNote"
+      placeholder="Type a note"
+      aria-describedby="quickNoteHint"
+      autofocus
+    ></textarea>
+    <p id="quickNoteHint" class="hint">Ctrl/Cmd+Enter to send · Enter for a new line</p>
+    <button
+      id="sendQuickNote"
+      type="button"
+      aria-keyshortcuts="Control+Enter Meta+Enter"
+    >Send to Keeper</button>
   </div>
   <div class="settings">
     <label for="serverUrl">Server URL</label>

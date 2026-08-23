@@ -113,7 +113,15 @@ chrome.storage.sync.get({ serverUrl: DEFAULT_SERVER_URL }, (result) => {
 chrome.storage.local.get("recentErrors", (result) => {
   renderErrors(result.recentErrors);
 });
-quickNoteInput.focus();
+
+function focusQuickNote() {
+  if (!quickNoteInput.disabled) quickNoteInput.focus();
+}
+
+// Browser action popups can gain window focus after their scripts run. Cover both
+// that lifecycle and browsers where the popup is already focused by the first frame.
+window.addEventListener("focus", focusQuickNote, { once: true });
+requestAnimationFrame(focusQuickNote);
 
 saveBtn.addEventListener("click", async () => {
   const inputUrl = serverUrlInput.value.trim();
@@ -196,7 +204,7 @@ sendQuickNoteBtn.addEventListener("click", () => {
 });
 
 quickNoteInput.addEventListener("keydown", (event) => {
-  if (event.key !== "Enter" || event.shiftKey) return;
+  if (event.key !== "Enter" || (!event.ctrlKey && !event.metaKey)) return;
   event.preventDefault();
   handleSaveQuickNote();
 });

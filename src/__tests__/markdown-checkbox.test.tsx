@@ -37,4 +37,38 @@ describe('MarkdownPreview task checkboxes', () => {
       '```\n- [ ] code example\n```\n\n- [x] actual task',
     );
   });
+
+  it('ignores task-like markers inside indented code blocks', async () => {
+    const user = userEvent.setup();
+    const onCheckboxToggle = vi.fn();
+    render(
+      <MarkdownPreview
+        content={'    - [ ] code example\n\n- [ ] actual task'}
+        onCheckboxToggle={onCheckboxToggle}
+      />,
+    );
+
+    await user.click(screen.getByRole('checkbox'));
+
+    expect(onCheckboxToggle).toHaveBeenCalledWith(
+      '    - [ ] code example\n\n- [x] actual task',
+    );
+  });
+
+  it('continues to toggle deeply nested tasks', async () => {
+    const user = userEvent.setup();
+    const onCheckboxToggle = vi.fn();
+    render(
+      <MarkdownPreview
+        content={'- parent\n  - child\n    - [ ] grandchild task'}
+        onCheckboxToggle={onCheckboxToggle}
+      />,
+    );
+
+    await user.click(screen.getByRole('checkbox'));
+
+    expect(onCheckboxToggle).toHaveBeenCalledWith(
+      '- parent\n  - child\n    - [x] grandchild task',
+    );
+  });
 });

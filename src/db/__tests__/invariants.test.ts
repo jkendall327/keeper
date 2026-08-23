@@ -562,7 +562,7 @@ describe('CRUD Invariants (Property-Based)', () => {
     );
   });
 
-  it('auto-tag rule runs are idempotent over matching active linked notes', async () => {
+  it('auto-tag rule tag application is idempotent over matching active linked notes', async () => {
     interface AutoTagFixture {
       domain: 'docs.example.com' | 'news.example.com' | 'other.example.com';
       active: boolean;
@@ -616,14 +616,19 @@ describe('CRUD Invariants (Property-Based)', () => {
           const firstRun = await api.runAutoTagRules();
           const secondRun = await api.runAutoTagRules();
 
-          expect(firstRun.matchedNoteCount).toBe(notes.filter((note) => note.shouldMatch).length);
-          expect(firstRun.archivedNoteCount).toBe(firstRun.matchedNoteCount);
-          expect(secondRun).toEqual({ matchedNoteCount: 0, archivedNoteCount: 0, appliedTagCount: 0 });
+          const expectedMatchCount = notes.filter((note) => note.shouldMatch).length;
+          expect(firstRun.matchedNoteCount).toBe(expectedMatchCount);
+          expect(firstRun.archivedNoteCount).toBe(0);
+          expect(secondRun).toEqual({
+            matchedNoteCount: expectedMatchCount,
+            archivedNoteCount: 0,
+            appliedTagCount: 0,
+          });
 
           for (const expected of notes) {
             const note = await api.getNote(expected.id);
             expect(note).not.toBeNull();
-            expect(note?.archived).toBe(expected.shouldMatch);
+            expect(note?.archived).toBe(false);
             expect(new Set(note?.tags.map((tag) => tag.name))).toEqual(expected.expectedTags);
           }
         },

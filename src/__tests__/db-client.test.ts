@@ -19,6 +19,18 @@ function asFetch(fetchMock: ReturnType<typeof vi.fn>): typeof fetch {
 }
 
 describe("KeeperDB HTTP client contract", () => {
+  it("requests trashed search results explicitly", async () => {
+    const fetchMock = mockFetch([]);
+    const client = createHttpClient(asFetch(fetchMock));
+
+    await client.search.notes("deleted note", { trashed: true });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/search?q=deleted%20note&trashed=true",
+      undefined,
+    );
+  });
+
   it("uses the expected note routes", async () => {
     const fetchMock = mockFetch([]);
     const client = createHttpClient(asFetch(fetchMock));

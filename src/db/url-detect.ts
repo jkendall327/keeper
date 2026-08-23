@@ -2,7 +2,16 @@ const URL_RE = /https?:\/\/\S+/;
 
 /** Strip trailing punctuation that's likely not part of the URL */
 function cleanUrl(url: string): string {
-  return url.replace(/[.,;:!?)>\]'"]+$/, "");
+  let cleaned = url.replace(/[.,;:!?>\]'"]+$/, "");
+  const openParentheses = (cleaned.match(/\(/g) ?? []).length;
+  let closeParentheses = (cleaned.match(/\)/g) ?? []).length;
+
+  while (cleaned.endsWith(")") && closeParentheses > openParentheses) {
+    cleaned = cleaned.slice(0, -1);
+    closeParentheses--;
+  }
+
+  return cleaned;
 }
 
 export function containsUrl(text: string | null): boolean {

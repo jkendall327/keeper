@@ -71,7 +71,15 @@ export function AppHeader({
         </button>
       )}
       <div className={styles.search}>
-        <SearchBar ref={searchInputRef} isMobile={isMobile} value={searchQuery} onChange={setSearchQuery} />
+        <SearchBar
+          ref={searchInputRef}
+          isMobile={isMobile}
+          value={searchQuery}
+          onChange={(query) => {
+            clearSelection();
+            setSearchQuery(query);
+          }}
+        />
       </div>
       <div className={styles.actions}>
         {selectedNoteIds.size > 0 && (

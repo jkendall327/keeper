@@ -107,7 +107,6 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
 
       return db.transaction(() => {
         let matchedNoteCount = 0;
-        let archivedNoteCount = 0;
         let appliedTagCount = 0;
 
         for (const row of noteRows) {
@@ -142,16 +141,9 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
 
             if (before.length === 0) appliedTagCount++;
           }
-
-          db.run("UPDATE notes SET archived = 1, updated_at = ? WHERE id = ?", [
-            now(),
-            note.id,
-          ]);
-
-          archivedNoteCount++;
         }
 
-        return { matchedNoteCount, archivedNoteCount, appliedTagCount };
+        return { matchedNoteCount, archivedNoteCount: 0, appliedTagCount };
       });
     },
   };

@@ -4,6 +4,26 @@ import { userEvent } from '@testing-library/user-event';
 import { getNoteCardByText, getTestDB, renderApp } from './app-test-utils';
 
 describe('App selection, export, and toolbar actions', () => {
+it('clears bulk selection when the search query changes', async () => {
+  const user = userEvent.setup();
+  const db = getTestDB();
+  await db.createNote({ body: 'Alpha selected note' });
+  await db.createNote({ body: 'Beta selected note' });
+  await renderApp();
+
+  await user.keyboard('{Control>}');
+  await user.click(await screen.findByText('Alpha selected note'));
+  await user.click(screen.getByText('Beta selected note'));
+  await user.keyboard('{/Control}');
+  expect(screen.getByText('2 selected')).toBeInTheDocument();
+
+  await user.type(screen.getByPlaceholderText(/Search notes/), 'Alpha');
+
+  expect(await screen.findByText('Alpha selected note')).toBeInTheDocument();
+  expect(screen.queryByText('2 selected')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export')).not.toBeInTheDocument();
+});
+
 it('ctrl-drag rectangle selection adds to the existing selected notes', async () => {
   const user = userEvent.setup();
   await renderApp();
@@ -325,6 +345,28 @@ it('runs autotag rules from the toolbar and archives matching notes', async () =
   await screen.findByText('https://example.com');
   const webLabels = screen.getAllByText('web');
   expect(webLabels[0]).toBeInTheDocument();
+});
+
+it('does not archive autotag matches when archive-tagged cleanup is disabled', async () => {
+  const user = userEvent.setup();
+  const db = getTestDB();
+  await db.createAutoTagRule({ pattern: 'example\\.com', tagNames: ['web'] });
+  await db.updateAppSettings({
+    cleanupAutoTagRulesEnabled: true,
+    cleanupArchiveTaggedEnabled: false,
+  });
+  const note = await db.createNote({ body: 'Keep https://example.com visible' });
+  await renderApp();
+
+  await screen.findByText('https://example.com');
+  await user.click(screen.getByLabelText('Clean up notes'));
+
+  expect(await screen.findByText('https://example.com')).toBeInTheDocument();
+  expect(screen.getByText('1 matched, 0 archived')).toBeInTheDocument();
+  await expect(db.getNote(note.id)).resolves.toMatchObject({
+    archived: false,
+    tags: [{ name: 'web' }],
+  });
 });
 
 it('export separator toggle switches between compact and spaced output', async () => {

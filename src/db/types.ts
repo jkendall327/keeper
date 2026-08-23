@@ -86,6 +86,10 @@ export interface SearchResult extends NoteWithTags {
   rank: number;
 }
 
+export interface SearchOptions {
+  trashed?: boolean;
+}
+
 export interface AutoTagRule {
   id: number;
   pattern: string;
@@ -205,7 +209,7 @@ export interface KeeperDB {
   getAllTags(): Promise<Tag[]>;
 
   // Search
-  search(query: string): Promise<SearchResult[]>;
+  search(query: string, options?: SearchOptions): Promise<SearchResult[]>;
 
   // Trash
   trashNote(id: NoteId): Promise<void>;

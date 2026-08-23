@@ -10,6 +10,55 @@ interface MarkdownPreviewProps {
   className?: string;
 }
 
+interface TaskCheckboxMarker {
+  index: number;
+  checked: boolean;
+}
+
+function taskCheckboxMarkers(content: string): TaskCheckboxMarker[] {
+  const markers: TaskCheckboxMarker[] = [];
+  let lineStart = 0;
+  let activeFence: { character: string; length: number } | null = null;
+
+  for (const line of content.split('\n')) {
+    const withoutQuotePrefix = line.replace(/^(?: {0,3}>[ \t]?)+/, '');
+    const fenceMatch = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(withoutQuotePrefix);
+
+    if (fenceMatch !== null) {
+      const fence = fenceMatch[1];
+      const trailing = fenceMatch[2];
+      if (fence !== undefined && trailing !== undefined) {
+        if (activeFence === null) {
+          activeFence = { character: fence.startsWith('`') ? '`' : '~', length: fence.length };
+        } else if (
+          fence.startsWith(activeFence.character) &&
+          fence.length >= activeFence.length &&
+          trailing.trim() === ''
+        ) {
+          activeFence = null;
+        }
+      }
+      lineStart += line.length + 1;
+      continue;
+    }
+
+    if (activeFence === null) {
+      const taskMatch = /^(?: {0,3}>[ \t]?)*[ \t]*(?:[-+*]|\d{1,9}[.)])[ \t]+\[( |x|X)\](?=[ \t]|$)/.exec(line);
+      if (taskMatch !== null) {
+        const bracketOffset = taskMatch[0].lastIndexOf('[');
+        markers.push({
+          index: lineStart + bracketOffset,
+          checked: taskMatch[1] !== ' ',
+        });
+      }
+    }
+
+    lineStart += line.length + 1;
+  }
+
+  return markers;
+}
+
 export function MarkdownPreview({
   content,
   onCheckboxToggle,
@@ -48,22 +97,7 @@ export function MarkdownPreview({
     );
 
     const handleCheckboxClick = (index: number) => {
-      // Find all checkbox patterns in the original markdown
-      const checkboxPattern = /\[( |x|X)\]/g;
-      let match;
-      let currentIndex = 0;
-      let targetMatch: { index: number; checked: boolean } | null = null;
-
-      while ((match = checkboxPattern.exec(content)) !== null) {
-        if (currentIndex === index) {
-          targetMatch = {
-            index: match.index,
-            checked: match[1] !== ' ',
-          };
-          break;
-        }
-        currentIndex++;
-      }
+      const targetMatch = taskCheckboxMarkers(content)[index] ?? null;
 
       if (targetMatch !== null) {
         // Toggle the checkbox in the markdown

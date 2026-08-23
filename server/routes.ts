@@ -249,8 +249,8 @@ export function registerRoutes(
 
   // ── Search & Views ─────────────────────────
 
-  app.get<{ Querystring: { q?: string } }>("/api/search", async (req) => {
-    return db.search(req.query.q ?? "");
+  app.get<{ Querystring: { q?: string; trashed?: string } }>("/api/search", async (req) => {
+    return db.search(req.query.q ?? "", { trashed: req.query.trashed === "true" });
   });
 
   app.get("/api/views/untagged", async () => {

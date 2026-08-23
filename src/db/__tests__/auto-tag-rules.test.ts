@@ -58,12 +58,12 @@ describe('Auto tag rules', () => {
 
     const result = await api.runAutoTagRules();
     expect(result.matchedNoteCount).toBe(1);
-    expect(result.archivedNoteCount).toBe(1);
+    expect(result.archivedNoteCount).toBe(0);
     expect(result.appliedTagCount).toBe(1);
 
     const tagged = await api.getNote(urlNote.id);
     expect(tagged?.tags[0]?.name).toBe('link');
-    expect(tagged?.archived).toBe(true);
+    expect(tagged?.archived).toBe(false);
 
     const untouched = await api.getNote(textOnlyNote.id);
     expect(untouched?.body).toBe('example.com appears without a URL scheme');
@@ -71,7 +71,7 @@ describe('Auto tag rules', () => {
     expect(untouched?.tags.some((tag) => tag.name === 'link')).toBe(false);
   });
 
-  it('applies the union of tags from all matching rules and archives once', async () => {
+  it('applies the union of tags from all matching rules without archiving', async () => {
     const note = await api.createNote({
       body: 'Useful links: https://Docs.Example.com/guide and https://example.com/home',
     });
@@ -80,7 +80,7 @@ describe('Auto tag rules', () => {
 
     const result = await api.runAutoTagRules();
     expect(result.matchedNoteCount).toBe(1);
-    expect(result.archivedNoteCount).toBe(1);
+    expect(result.archivedNoteCount).toBe(0);
     expect(result.appliedTagCount).toBe(3);
 
     const updated = await api.getNote(note.id);
@@ -88,7 +88,7 @@ describe('Auto tag rules', () => {
     expect(names?.[0]).toBe('docs');
     expect(names?.[1]).toBe('shared');
     expect(names?.[2]).toBe('web');
-    expect(updated?.archived).toBe(true);
+    expect(updated?.archived).toBe(false);
   });
 
   it('reuses existing tags and only counts newly applied tag links', async () => {
@@ -121,10 +121,10 @@ describe('Auto tag rules', () => {
 
     const result = await api.runAutoTagRules();
     expect(result.matchedNoteCount).toBe(1);
-    expect(result.archivedNoteCount).toBe(1);
+    expect(result.archivedNoteCount).toBe(0);
 
     const activeAfter = await api.getNote(active.id);
-    expect(activeAfter?.archived).toBe(true);
+    expect(activeAfter?.archived).toBe(false);
     expect(activeAfter?.tags[0]?.name).toBe('matched');
 
     const archivedAfter = await api.getNote(archived.id);

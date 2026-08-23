@@ -3,6 +3,7 @@ import { mkdir, writeFile, readFile, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import type { Media, NoteId, StoreMediaInput } from "../src/db/types.ts";
 import type { SqliteDb } from "../src/db/sqlite-db.ts";
+import { formatSqliteTimestamp } from "../src/db/timestamps.ts";
 
 function mimeToExt(mime: string): string {
   const map: Record<string, string> = {
@@ -61,7 +62,7 @@ export async function createMediaHandler(
 
       await writeFile(path, Buffer.from(input.data));
 
-      const now = new Date().toISOString().replace("T", " ").slice(0, 19);
+      const now = formatSqliteTimestamp();
 
       try {
         db.run(

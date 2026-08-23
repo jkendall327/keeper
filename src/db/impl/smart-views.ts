@@ -12,7 +12,7 @@ export function createSmartViewMethods(ctx: KeeperDBContext): Pick<
       const rows = db.query(
         `SELECT * FROM notes
          WHERE id NOT IN (SELECT note_id FROM note_tags) AND trashed = 0
-         ORDER BY archived ASC, pinned DESC, updated_at DESC`,
+         ORDER BY archived ASC, pinned DESC, updated_at DESC, rowid DESC`,
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },
@@ -21,7 +21,7 @@ export function createSmartViewMethods(ctx: KeeperDBContext): Pick<
       const rows = db.query(
         `SELECT * FROM notes
          WHERE has_links = 1 AND trashed = 0
-         ORDER BY archived ASC, pinned DESC, updated_at DESC`,
+         ORDER BY archived ASC, pinned DESC, updated_at DESC, rowid DESC`,
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },
@@ -39,7 +39,7 @@ export function createSmartViewMethods(ctx: KeeperDBContext): Pick<
          FROM notes n
          JOIN duplicate_bodies duplicate ON duplicate.body = n.body
          WHERE n.trashed = 0
-         ORDER BY duplicate.group_updated_at DESC, n.body ASC, n.archived ASC, n.pinned DESC, n.updated_at DESC`,
+         ORDER BY duplicate.group_updated_at DESC, n.body ASC, n.archived ASC, n.pinned DESC, n.updated_at DESC, n.rowid DESC`,
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },
@@ -49,7 +49,7 @@ export function createSmartViewMethods(ctx: KeeperDBContext): Pick<
         `SELECT n.* FROM notes n
          JOIN note_tags nt ON nt.note_id = n.id
          WHERE nt.tag_id = ? AND n.trashed = 0
-         ORDER BY n.archived ASC, n.pinned DESC, n.updated_at DESC`,
+         ORDER BY n.archived ASC, n.pinned DESC, n.updated_at DESC, n.rowid DESC`,
         [tagId],
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
@@ -57,7 +57,7 @@ export function createSmartViewMethods(ctx: KeeperDBContext): Pick<
 
     getArchivedNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
-        "SELECT * FROM notes WHERE archived = 1 AND trashed = 0 ORDER BY pinned DESC, updated_at DESC",
+        "SELECT * FROM notes WHERE archived = 1 AND trashed = 0 ORDER BY pinned DESC, updated_at DESC, rowid DESC",
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },

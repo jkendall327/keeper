@@ -125,6 +125,39 @@ describe('Note CRUD', () => {
       expect(notes.map((n) => n.id)).toEqual([note3.id, note2.id, note1.id]);
     });
 
+    it('uses newest rowid as the tiebreaker for identical timestamps', async () => {
+      const apiWithTiedTimes = createKeeperDB({
+        db: createTestDb(),
+        generateId: () => `tied-id-${String(++idCounter)}`,
+        now: () => '2025-01-15 12:00:00.000',
+      });
+      const note1 = await apiWithTiedTimes.createNote({ body: 'first' });
+      const note2 = await apiWithTiedTimes.createNote({ body: 'second' });
+      const note3 = await apiWithTiedTimes.createNote({ body: 'third' });
+
+      const notes = await apiWithTiedTimes.getAllNotes();
+      expect(notes.map((note) => note.id)).toEqual([note3.id, note2.id, note1.id]);
+    });
+
+    it('orders millisecond timestamps alongside legacy second-precision timestamps', async () => {
+      const timestamps = [
+        '2025-01-15 12:00:00',
+        '2025-01-15 12:00:00.125',
+        '2025-01-15 12:00:00.875',
+      ];
+      const apiWithMixedPrecision = createKeeperDB({
+        db: createTestDb(),
+        generateId: () => `mixed-id-${String(++idCounter)}`,
+        now: () => timestamps.shift() ?? '2025-01-15 12:00:01.000',
+      });
+      const legacy = await apiWithMixedPrecision.createNote({ body: 'legacy' });
+      const early = await apiWithMixedPrecision.createNote({ body: 'early' });
+      const late = await apiWithMixedPrecision.createNote({ body: 'late' });
+
+      const notes = await apiWithMixedPrecision.getAllNotes();
+      expect(notes.map((note) => note.id)).toEqual([late.id, early.id, legacy.id]);
+    });
+
     it('includes tags on each note', async () => {
       const note = await api.createNote({ body: 'test' });
       await api.addTag(note.id, 'tag1');

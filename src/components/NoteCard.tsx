@@ -179,7 +179,7 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
       )}
       <div className={styles.footer}>
         <time className={styles.time}>
-          {new Date(note.updated_at + 'Z').toLocaleDateString()}
+          {new Date(note.updated_at.replace(' ', 'T') + 'Z').toLocaleDateString()}
         </time>
         {!isMobile && (
           <div className={styles.bottomActions}>

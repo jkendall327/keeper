@@ -102,7 +102,7 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
         regex: new RegExp(rule.pattern, "i"),
       }));
       const noteRows = db.query(
-        "SELECT * FROM notes WHERE archived = 0 AND trashed = 0 ORDER BY updated_at DESC",
+        "SELECT * FROM notes WHERE archived = 0 AND trashed = 0 ORDER BY updated_at DESC, rowid DESC",
       );
 
       return db.transaction(() => {

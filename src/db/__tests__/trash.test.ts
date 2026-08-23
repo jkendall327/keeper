@@ -140,6 +140,20 @@ describe('Note trashing', () => {
     expect(trashed.every((n) => n.trashed)).toBe(true);
   });
 
+  it('uses newest rowid as the tiebreaker for identical trash timestamps', async () => {
+    const apiWithTiedTimes = createKeeperDB({
+      db: createTestDb(),
+      generateId: () => `tied-id-${String(++idCounter)}`,
+      now: () => '2025-01-15 12:00:00.000',
+    });
+    const note1 = await apiWithTiedTimes.createNote({ body: 'Note 1' });
+    const note2 = await apiWithTiedTimes.createNote({ body: 'Note 2' });
+    await apiWithTiedTimes.trashNotes([note1.id, note2.id]);
+
+    const trashed = await apiWithTiedTimes.getTrashedNotes();
+    expect(trashed.map((note) => note.id)).toEqual([note2.id, note1.id]);
+  });
+
   describe('trashNotes (batch)', () => {
     it('trashes multiple notes at once', async () => {
       const note1 = await api.createNote({ body: 'Note 1' });

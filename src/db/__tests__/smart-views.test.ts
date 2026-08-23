@@ -55,6 +55,19 @@ describe('Smart Views', () => {
       expect(untagged.map((n) => n.id)).toEqual([note3.id, note2.id, note1.id]);
     });
 
+    it('uses newest rowid as the tiebreaker for identical timestamps', async () => {
+      const apiWithTiedTimes = createKeeperDB({
+        db: createTestDb(),
+        generateId: () => `tied-id-${String(++idCounter)}`,
+        now: () => '2025-01-15 12:00:00.000',
+      });
+      const note1 = await apiWithTiedTimes.createNote({ body: 'first' });
+      const note2 = await apiWithTiedTimes.createNote({ body: 'second' });
+
+      const untagged = await apiWithTiedTimes.getUntaggedNotes();
+      expect(untagged.map((note) => note.id)).toEqual([note2.id, note1.id]);
+    });
+
     it('note moves out of untagged view after addTag', async () => {
       const note = await api.createNote({ body: 'test' });
 

@@ -7,6 +7,7 @@ import { createSqliteAdapter } from "./sqlite-adapter.ts";
 import { bufferToArrayBuffer, createMediaHandler } from "./media-handler.ts";
 import { registerRoutes } from "./routes.ts";
 import { createKeeperDB } from "../src/db/db-impl.ts";
+import { formatSqliteTimestamp } from "../src/db/timestamps.ts";
 import { randomUUID } from "node:crypto";
 import { createBackupService } from "./backup-service.ts";
 import { createSystemStatusService } from "./system-status.ts";
@@ -28,7 +29,7 @@ const adapter = createSqliteAdapter(databasePath);
 const keeperDb = createKeeperDB({
   db: adapter,
   generateId: () => randomUUID(),
-  now: () => new Date().toISOString().replace("T", " ").slice(0, 19),
+  now: () => formatSqliteTimestamp(),
 });
 
 // Set up filesystem-backed media, overriding the base DB stubs

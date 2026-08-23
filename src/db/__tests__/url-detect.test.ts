@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { containsUrl } from '../url-detect.ts';
+import { containsUrl, extractUrls } from '../url-detect.ts';
 import * as fc from 'fast-check';
 
 describe('containsUrl', () => {
@@ -127,5 +127,17 @@ describe('containsUrl', () => {
         { numRuns: 100 },
       );
     });
+  });
+});
+
+describe('extractUrls', () => {
+  it('preserves balanced parentheses at the end of a URL', () => {
+    expect(extractUrls('Read https://en.wikipedia.org/wiki/Function_(mathematics)')).toEqual([
+      'https://en.wikipedia.org/wiki/Function_(mathematics)',
+    ]);
+  });
+
+  it('still removes an unmatched closing parenthesis around a URL', () => {
+    expect(extractUrls('(https://example.com/docs)')).toEqual(['https://example.com/docs']);
   });
 });

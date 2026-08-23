@@ -24,6 +24,10 @@ export interface RequestOptions {
   signal?: AbortSignal;
 }
 
+interface SearchRequestOptions extends RequestOptions {
+  trashed?: boolean;
+}
+
 export interface KeeperClient {
   notes: {
     create(input: CreateNoteInput): Promise<NoteWithTags>;
@@ -54,7 +58,7 @@ export interface KeeperClient {
     delete(tagId: number): Promise<void>;
   };
   search: {
-    notes(query: string, options?: RequestOptions): Promise<SearchResult[]>;
+    notes(query: string, options?: SearchRequestOptions): Promise<SearchResult[]>;
   };
   views: {
     untagged(options?: RequestOptions): Promise<NoteWithTags[]>;
@@ -172,8 +176,14 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
       delete: (tagId) => fetchVoid(fetchFn, `/api/tags/${String(tagId)}`, { method: 'DELETE' }),
     },
     search: {
-      notes: (query, options) =>
-        fetchJson<SearchResult[]>(fetchFn, `/api/search?q=${encodeURIComponent(query)}`, withSignal(options)),
+      notes: (query, options) => {
+        const trashed = options?.trashed === true ? '&trashed=true' : '';
+        return fetchJson<SearchResult[]>(
+          fetchFn,
+          `/api/search?q=${encodeURIComponent(query)}${trashed}`,
+          withSignal(options),
+        );
+      },
     },
     views: {
       untagged: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/untagged', withSignal(options)),

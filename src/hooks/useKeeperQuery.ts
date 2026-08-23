@@ -21,7 +21,7 @@ export const keeperKeys = {
   inbox: ['notes', 'inbox'] as const,
   note: (id: NoteId) => ['notes', 'detail', id] as const,
   view: (name: string) => ['notes', 'view', name] as const,
-  search: (query: string) => ['notes', 'search', query] as const,
+  search: (query: string, trashed = false) => ['notes', 'search', trashed ? 'trash' : 'active', query] as const,
   tags: ['tags'] as const,
   popularTagSuggestions: (noteId: NoteId, limit: number) => ['tags', 'popularSuggestions', noteId, limit] as const,
   settings: ['settings'] as const,
@@ -67,7 +67,12 @@ export function useDisplayedNotes(activeFilter: FilterType, searchQuery: string)
   const viewQuery = useQuery({
     queryKey: viewKey ?? ['notes', 'idle'],
     queryFn: ({ signal }) => {
-      if (trimmedSearchQuery !== '') return client.search.notes(trimmedSearchQuery, { signal });
+      if (trimmedSearchQuery !== '') {
+        return client.search.notes(trimmedSearchQuery, {
+          signal,
+          trashed: activeFilter.type === 'trash',
+        });
+      }
 
       switch (activeFilter.type) {
         case 'untagged':
@@ -302,7 +307,7 @@ export function useRefreshKeeperData() {
 
 function getViewKey(activeFilter: FilterType, searchQuery: string) {
   if (activeFilter.type === 'tag' && activeFilter.tagId === null) return null;
-  if (searchQuery !== '') return keeperKeys.search(searchQuery);
+  if (searchQuery !== '') return keeperKeys.search(searchQuery, activeFilter.type === 'trash');
 
   switch (activeFilter.type) {
     case 'all':

@@ -328,12 +328,14 @@ describe("Fastify API routes", () => {
     expect(run.statusCode).toBe(200);
     expect(parseJson(run) as { matchedNoteCount: number; archivedNoteCount: number; appliedTagCount: number }).toEqual({
       matchedNoteCount: 1,
-      archivedNoteCount: 1,
+      archivedNoteCount: 0,
       appliedTagCount: 2,
     });
 
+    const note = parseJson(await app.inject({ method: "GET", url: "/api/notes/test-id-1" })) as NoteDto;
+    expect(note.tags.map((tag) => tag.name)).toEqual(["read later", "web"]);
     const archived = parseJson(await app.inject({ method: "GET", url: "/api/views/archived" })) as NoteDto[];
-    expect(archived[0]?.tags.map((tag) => tag.name)).toEqual(["read later", "web"]);
+    expect(archived).toEqual([]);
   });
 
   it("uploads, serves, lists, and deletes media", async () => {

@@ -10,6 +10,60 @@ interface MarkdownPreviewProps {
   className?: string;
 }
 
+interface TaskCheckboxMarker {
+  index: number;
+  checked: boolean;
+}
+
+const markdownOptions = {
+  breaks: true,
+  linkTarget: '_blank',
+  gfm: true,
+} as const;
+
+function taskCheckboxMarkers(content: string): TaskCheckboxMarker[] {
+  const candidates: TaskCheckboxMarker[] = [];
+  const checkboxPattern = /\[( |x|X)\](?=[ \t]+\S)/g;
+  let match: RegExpExecArray | null;
+  while ((match = checkboxPattern.exec(content)) !== null) {
+    candidates.push({ index: match.index, checked: match[1] !== ' ' });
+  }
+
+  if (candidates.length === 0) return [];
+
+  let markerPrefix = 'KEEPERTASKMARKER';
+  while (content.includes(markerPrefix)) markerPrefix += 'X';
+
+  let markedContent = content;
+  for (const [candidateIndex, candidate] of [...candidates.entries()].reverse()) {
+    const insertionIndex = candidate.index + 4;
+    markedContent =
+      markedContent.slice(0, insertionIndex) +
+      `${markerPrefix}${String(candidateIndex)}END` +
+      markedContent.slice(insertionIndex);
+  }
+
+  let markedHtml: string;
+  try {
+    markedHtml = markdown(markedContent, markdownOptions);
+  } catch {
+    return [];
+  }
+
+  const template = document.createElement('template');
+  template.innerHTML = markedHtml;
+  const markerPattern = new RegExp(`${markerPrefix}(\\d+)END`);
+
+  return Array.from(template.content.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')).flatMap(
+    (checkbox) => {
+      const markerMatch = checkbox.closest('li')?.textContent.match(markerPattern);
+      if (markerMatch?.[1] === undefined) return [];
+      const candidate = candidates[Number(markerMatch[1])];
+      return candidate === undefined ? [] : [candidate];
+    },
+  );
+}
+
 export function MarkdownPreview({
   content,
   onCheckboxToggle,
@@ -19,11 +73,7 @@ export function MarkdownPreview({
 
   let rawHtml: string;
   try {
-    rawHtml = markdown(content, {
-      breaks: true,
-      linkTarget: '_blank',
-      gfm: true,
-    });
+    rawHtml = markdown(content, markdownOptions);
   } catch (err: unknown) {
     console.warn('Markdown rendering failed, showing raw content:', err);
     rawHtml = escapeHtml(content);
@@ -46,24 +96,10 @@ export function MarkdownPreview({
     const checkboxes = container.querySelectorAll<HTMLInputElement>(
       'input[type="checkbox"]',
     );
+    const markers = taskCheckboxMarkers(content);
 
     const handleCheckboxClick = (index: number) => {
-      // Find all checkbox patterns in the original markdown
-      const checkboxPattern = /\[( |x|X)\]/g;
-      let match;
-      let currentIndex = 0;
-      let targetMatch: { index: number; checked: boolean } | null = null;
-
-      while ((match = checkboxPattern.exec(content)) !== null) {
-        if (currentIndex === index) {
-          targetMatch = {
-            index: match.index,
-            checked: match[1] !== ' ',
-          };
-          break;
-        }
-        currentIndex++;
-      }
+      const targetMatch = markers[index] ?? null;
 
       if (targetMatch !== null) {
         // Toggle the checkbox in the markdown

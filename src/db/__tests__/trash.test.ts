@@ -121,6 +121,10 @@ describe('Note trashing', () => {
     const results = await api.search('gamma');
     expect(results.length).toBe(1);
     expect(results[0]?.trashed).toBe(false);
+
+    const trashResults = await api.search('gamma', { trashed: true });
+    expect(trashResults.map((note) => note.id)).toEqual([note2.id]);
+    expect(trashResults[0]?.trashed).toBe(true);
   });
 
   it('should return only trashed notes from getTrashedNotes', async () => {

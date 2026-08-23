@@ -4,6 +4,21 @@ import { userEvent } from '@testing-library/user-event';
 import { getSidebar, getSidebarTagButton, getTestDB, renderApp } from './app-test-utils';
 
 describe('App sidebar filters and tag management', () => {
+it('searches only trashed notes while the Trash view is active', async () => {
+  const user = userEvent.setup();
+  const db = getTestDB();
+  await db.createNote({ body: 'Shared search term in inbox' });
+  const trashed = await db.createNote({ body: 'Shared search term in trash' });
+  await db.trashNote(trashed.id);
+  await renderApp('/trash');
+
+  const searchInput = await screen.findByPlaceholderText(/Search notes/);
+  await user.type(searchInput, 'Shared search term');
+
+  expect(await screen.findByText('Shared search term in trash')).toBeInTheDocument();
+  expect(screen.queryByText('Shared search term in inbox')).not.toBeInTheDocument();
+});
+
 it('Links sidebar filter shows only notes containing URLs', async () => {
   const user = userEvent.setup();
   await renderApp();

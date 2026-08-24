@@ -149,22 +149,30 @@ export function useNoteEditorSession({
     }
   };
 
-  const commit = async () => {
+  const commit = async (): Promise<boolean> => {
     clearTagBlurTimeout();
     const trimmedBody = stateRef.current.body.trimEnd();
     if (trimmedBody.trim() === '') {
-      await noteCommands.delete(note.id);
-      return;
+      const result = await noteCommands.delete(note.id);
+      return result !== false;
     }
     await commitNonEmpty({ includeTags: true });
+    return true;
   };
 
   const close = async () => {
-    await commit();
+    if (!await commit()) return;
     onClose();
   };
 
   const archiveAndClose = async () => {
+    clearTagBlurTimeout();
+    if (!note.trashed && stateRef.current.body.trim() === '') {
+      const result = await noteCommands.delete(note.id);
+      if (result === false) return;
+      onClose();
+      return;
+    }
     await commitNonEmpty({ includeTags: true });
     await noteCommands.archiveOrRestore(note.id);
     onClose();

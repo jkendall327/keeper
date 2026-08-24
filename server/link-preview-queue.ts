@@ -3,6 +3,7 @@ import type { KeeperDB } from "../src/db/types.ts";
 import { extractUrls } from "../src/db/url-detect.ts";
 import { fetchLinkMetadata } from "./link-preview.ts";
 import type { BroadcastFn } from "./events.ts";
+import { formatSqliteTimestamp } from "../src/db/timestamps.ts";
 
 const POLL_INTERVAL_MS = 1000;
 
@@ -13,7 +14,7 @@ export function createLinkMetadataQueue(params: {
   now?: () => string;
 }) {
   const { db, log, broadcast } = params;
-  const now = params.now ?? (() => new Date().toISOString().replace("T", " ").slice(0, 19));
+  const now = params.now ?? (() => formatSqliteTimestamp());
   let running = false;
   let stopped = true;
   let timer: ReturnType<typeof setTimeout> | null = null;

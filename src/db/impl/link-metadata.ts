@@ -1,5 +1,6 @@
 import type { KeeperDB, LinkMetadata, LinkMetadataJob } from "../types.ts";
 import type { KeeperDBContext } from "./context.ts";
+import { formatSqliteTimestamp } from "../timestamps.ts";
 
 const RETRY_DELAYS_SECONDS = [60, 5 * 60, 30 * 60, 2 * 60 * 60, 24 * 60 * 60];
 
@@ -161,10 +162,10 @@ export function createLinkMetadataMethods(ctx: KeeperDBContext): Pick<
       )[0];
       const attempts = row === undefined ? 1 : rowNumber(row, "attempts") + 1;
       const delay = RETRY_DELAYS_SECONDS[Math.min(attempts - 1, RETRY_DELAYS_SECONDS.length - 1)] ?? RETRY_DELAYS_SECONDS.at(-1) ?? 60;
-      const nextRun = new Date(Date.parse(`${now()}Z`) + delay * 1000)
-        .toISOString()
-        .replace("T", " ")
-        .slice(0, 19);
+      const currentTime = now().replace(" ", "T");
+      const nextRun = formatSqliteTimestamp(
+        new Date(Date.parse(`${currentTime}Z`) + delay * 1000),
+      );
       db.run(
         `INSERT INTO link_metadata_jobs (url, attempts, next_run_at, last_error, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)

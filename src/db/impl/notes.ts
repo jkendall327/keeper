@@ -96,7 +96,7 @@ export function createNoteMethods(ctx: KeeperDBContext): Pick<
 
     getAllNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
-        "SELECT * FROM notes WHERE archived = 0 AND trashed = 0 ORDER BY pinned DESC, updated_at DESC",
+        "SELECT * FROM notes WHERE archived = 0 AND trashed = 0 ORDER BY pinned DESC, updated_at DESC, rowid DESC",
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },

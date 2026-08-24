@@ -40,7 +40,7 @@ export function createTrashMethods(ctx: KeeperDBContext): Pick<
 
     getTrashedNotes(): Promise<NoteWithTags[]> {
       const rows = db.query(
-        "SELECT * FROM notes WHERE trashed = 1 ORDER BY updated_at DESC",
+        "SELECT * FROM notes WHERE trashed = 1 ORDER BY updated_at DESC, rowid DESC",
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
     },

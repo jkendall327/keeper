@@ -123,6 +123,21 @@ it('settings button renders the settings icon glyph', async () => {
     window.confirm = originalConfirm;
   });
 
+  it('includes the current tag draft when saving an autotag rule', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+
+    await user.click(screen.getByLabelText('Open settings'));
+    await user.click(screen.getByRole('tab', { name: 'Autotag Rules' }));
+    await user.type(screen.getByLabelText('URL regex'), 'draft\\.example');
+    await user.type(screen.getByLabelText('Tags'), 'draft-tag');
+    await user.click(screen.getByText('Create Rule'));
+
+    await screen.findByText('/draft\\.example/i');
+    expect(screen.getByText('draft-tag')).toBeInTheDocument();
+    expect((await getTestDB().getAutoTagRules())[0]?.tagNames).toEqual(['draft-tag']);
+  });
+
   it('loads existing autotag rules when the settings tab is opened', async () => {
     const user = userEvent.setup();
     await getTestDB().createAutoTagRule({ pattern: 'existing\\.example', tagNames: ['web'] });

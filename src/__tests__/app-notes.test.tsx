@@ -179,6 +179,40 @@ it('archives from the modal without switching to the archive view', async () => 
   expect(screen.getByText('Keep visible')).toBeInTheDocument();
 });
 
+it('moves an emptied note to trash instead of archiving its previous body', async () => {
+  const user = userEvent.setup();
+  const note = await getTestDB().createNote({ body: 'Empty before archive' });
+  await renderApp();
+
+  await user.click(await screen.findByText('Empty before archive'));
+  const modal = screen.getByRole('dialog', { name: 'Edit note' });
+  await user.clear(within(modal).getByPlaceholderText('Note'));
+  await user.click(within(modal).getByLabelText('Archive note'));
+
+  await waitFor(async () => {
+    expect((await getTestDB().getNote(note.id))?.trashed).toBe(true);
+  });
+  expect((await getTestDB().getNote(note.id))?.archived).toBe(false);
+  expect(screen.queryByRole('dialog', { name: 'Edit note' })).not.toBeInTheDocument();
+});
+
+it('keeps an empty trashed note open when permanent deletion is cancelled', async () => {
+  const user = userEvent.setup();
+  const note = await getTestDB().createNote({ body: 'Keep after cancel' });
+  await getTestDB().trashNote(note.id);
+  vi.stubGlobal('confirm', vi.fn(() => false));
+  await renderApp('/trash');
+
+  await user.click(await screen.findByText('Keep after cancel'));
+  const modal = screen.getByRole('dialog', { name: 'Edit note' });
+  await user.clear(within(modal).getByPlaceholderText('Note'));
+  await user.keyboard('{Escape}');
+
+  expect(window.confirm).toHaveBeenCalledWith('Permanently delete this note? This cannot be undone.');
+  expect(screen.getByRole('dialog', { name: 'Edit note' })).toBeInTheDocument();
+  expect((await getTestDB().getNote(note.id))?.trashed).toBe(true);
+});
+
 it('shows multiple notes', async () => {
   const user = userEvent.setup();
   await renderApp();

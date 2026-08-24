@@ -144,7 +144,7 @@ export function ChatView({ client, keeper, apiKey, advancedModeEnabled, onMutati
 
   const handleSubmit = () => {
     const trimmed = input.trim();
-    if (trimmed === '' || loading) return;
+    if (trimmed === '' || loading || pendingConfirmation !== null) return;
     setInput('');
     void send(trimmed);
   };
@@ -266,7 +266,7 @@ export function ChatView({ client, keeper, apiKey, advancedModeEnabled, onMutati
 
       <ChatComposer
         input={input}
-        loading={loading}
+        loading={loading || pendingConfirmation !== null}
         inputRef={inputRef}
         onInputChange={setInput}
         onSubmit={handleSubmit}

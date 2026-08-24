@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '../Icon.tsx';
 import { useAutoTagRuleMutations, useAutoTagRules } from '../../hooks/useKeeperQuery.ts';
 import type { AutoTagRule, Tag } from '../../db/types.ts';
@@ -14,6 +14,7 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
   const [pattern, setPattern] = useState('');
   const [tagDraft, setTagDraft] = useState('');
   const tagDraftRef = useRef(tagDraft);
+  const tagBlurTimeoutRef = useRef<number | null>(null);
   const [showTagSuggestions, setShowTagSuggestions] = useState(false);
   const [tagNames, setTagNames] = useState<string[]>([]);
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -29,7 +30,7 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
       patternValid = false;
     }
   }
-  const canSaveRule = patternValid && tagNames.length > 0;
+  const canSaveRule = patternValid && (tagNames.length > 0 || tagDraft.trim() !== '');
   const tagSuggestions =
     tagDraft.trim() === ''
       ? []
@@ -40,6 +41,19 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
             !tagNames.includes(tag.name),
         )
         .slice(0, 8);
+
+  const clearTagBlurTimeout = () => {
+    if (tagBlurTimeoutRef.current !== null) {
+      window.clearTimeout(tagBlurTimeoutRef.current);
+      tagBlurTimeoutRef.current = null;
+    }
+  };
+
+  const prospectiveTagNames = () => {
+    const draft = tagDraftRef.current.trim();
+    if (draft === '' || tagNames.includes(draft)) return tagNames;
+    return [...tagNames, draft];
+  };
 
   const addTagName = (name: string) => {
     const trimmed = name.trim();
@@ -55,6 +69,7 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
   };
 
   const resetRuleForm = () => {
+    clearTagBlurTimeout();
     setPattern('');
     setTagDraft('');
     tagDraftRef.current = '';
@@ -64,13 +79,15 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
   };
 
   const saveRule = async () => {
-    if (!canSaveRule) return;
+    const nextTagNames = prospectiveTagNames();
+    if (!patternValid || nextTagNames.length === 0) return;
+    clearTagBlurTimeout();
     setRuleError('');
     try {
       if (editingId === null) {
-        await createRule({ pattern: normalizedPattern, tagNames });
+        await createRule({ pattern: normalizedPattern, tagNames: nextTagNames });
       } else {
-        await updateRule({ id: editingId, pattern: normalizedPattern, tagNames });
+        await updateRule({ id: editingId, pattern: normalizedPattern, tagNames: nextTagNames });
       }
       resetRuleForm();
     } catch (error) {
@@ -79,6 +96,7 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
   };
 
   const editRule = (rule: AutoTagRule) => {
+    clearTagBlurTimeout();
     setEditingId(rule.id);
     setPattern(rule.pattern);
     setTagNames(rule.tagNames);
@@ -92,6 +110,8 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
     await deleteRuleMutation(rule.id);
     if (editingId === rule.id) resetRuleForm();
   };
+
+  useEffect(() => clearTagBlurTimeout, []);
 
   return (
     <div className={styles.section}>
@@ -127,7 +147,9 @@ export function AutotagSettings({ allTags }: AutotagSettingsProps) {
             value={tagDraft}
             onBlur={() => {
               const draftAtBlur = tagDraftRef.current;
-              setTimeout(() => {
+              clearTagBlurTimeout();
+              tagBlurTimeoutRef.current = window.setTimeout(() => {
+                tagBlurTimeoutRef.current = null;
                 addTagName(draftAtBlur);
               }, 150);
             }}

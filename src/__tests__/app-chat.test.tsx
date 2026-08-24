@@ -349,6 +349,28 @@ describe('App chat view', () => {
     ]);
   });
 
+  it('disables the composer while a delete confirmation is pending', async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [] }))));
+    const streamMock = vi.fn<(_messages: Message[], _options?: ChatOptions) => AsyncIterable<string>>();
+    streamMock.mockReturnValueOnce(streamText([
+      '```tool_call',
+      '{"name":"delete_note","args":{"id":"note-1"}}',
+      '```',
+    ].join('\n')));
+    const client = { ...createChatViewClient(), stream: streamMock };
+
+    renderChatView(client, createChatViewKeeper());
+    const input = screen.getByPlaceholderText('Ask about your notes...');
+    await user.type(input, 'Delete note 1');
+    await user.click(screen.getByLabelText('Send message'));
+
+    expect(await screen.findByRole('button', { name: 'Yes, delete' })).toBeInTheDocument();
+    expect(input).toBeDisabled();
+    expect(screen.getByLabelText('Send message')).toBeDisabled();
+    expect(streamMock).toHaveBeenCalledOnce();
+  });
+
   it('renders display_notes tool calls as note badges and opens the note modal', async () => {
     const user = userEvent.setup();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: [] }))));

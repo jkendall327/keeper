@@ -52,6 +52,16 @@ ${NOTES_FTS_UPDATE_TRIGGER_SQL}
 `);
     },
   },
+  {
+    version: 4,
+    name: "index tag note lookups",
+    up: (db) => {
+      if (!hasTable(db, "note_tags")) return;
+      db.execRaw(
+        "CREATE INDEX IF NOT EXISTS idx_note_tags_tag_id_note_id ON note_tags(tag_id, note_id)",
+      );
+    },
+  },
 ];
 
 export const CURRENT_SCHEMA_VERSION =

@@ -45,6 +45,11 @@ describe("database migrations", () => {
     expect(ftsUpdateTrigger).toContain(
       "WHEN OLD.title IS NOT NEW.title OR OLD.body IS NOT NEW.body",
     );
+
+    const tagLookupIndex = db.query(
+      "SELECT 1 AS found FROM sqlite_master WHERE type = 'index' AND name = 'idx_note_tags_tag_id_note_id'",
+    );
+    expect(tagLookupIndex).toEqual([{ found: 1 }]);
   });
 
   it("marks an already-migrated database without rerunning the baseline", () => {
@@ -169,5 +174,26 @@ PRAGMA user_version = 2;
       db.query("PRAGMA user_version")[0]?.["user_version"],
     );
     expect(userVersion).toBe(CURRENT_SCHEMA_VERSION);
+  });
+
+  it("adds the tag lookup index to an existing current-schema database", () => {
+    const db = createTestDb();
+    migrate(db);
+    db.execRaw(`
+DROP INDEX idx_note_tags_tag_id_note_id;
+PRAGMA user_version = 3;
+`);
+
+    migrate(db);
+
+    const indexRows = db.query(
+      "SELECT sql FROM sqlite_master WHERE type = 'index' AND name = 'idx_note_tags_tag_id_note_id'",
+    );
+    expect(indexRows).toEqual([
+      { sql: "CREATE INDEX idx_note_tags_tag_id_note_id ON note_tags(tag_id, note_id)" },
+    ]);
+    expect(
+      scalarNumber(db.query("PRAGMA user_version")[0]?.["user_version"]),
+    ).toBe(CURRENT_SCHEMA_VERSION);
   });
 });

@@ -1,4 +1,4 @@
-import { useDeferredValue, useRef, useEffect } from 'react';
+import { useRef, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { markdown } from '@motioneffector/markdown';
 import { escapeHtml } from '../utils/html.ts';
@@ -6,7 +6,6 @@ import styles from './MarkdownPreview.module.css';
 
 interface MarkdownPreviewProps {
   content: string;
-  deferRichContent?: boolean;
   onCheckboxToggle?: (newContent: string) => void;
   className?: string;
 }
@@ -67,37 +66,30 @@ function taskCheckboxMarkers(content: string): TaskCheckboxMarker[] {
 
 export function MarkdownPreview({
   content,
-  deferRichContent = false,
   onCheckboxToggle,
   className = '',
 }: MarkdownPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const deferredContent = useDeferredValue(content, deferRichContent ? '' : content);
-  const isRichContentDeferred = deferredContent !== content;
-
-  let html: string | null = null;
-  if (!isRichContentDeferred) {
-    let rawHtml: string;
-    try {
-      rawHtml = markdown(content, markdownOptions);
-    } catch (err: unknown) {
-      console.warn('Markdown rendering failed, showing raw content:', err);
-      rawHtml = escapeHtml(content);
-    }
-
-    html = rawHtml.replaceAll(
-      /media:\/\/([a-f0-9-]+)/gi,
-      '/api/media/$1',
-    );
-    // Ensure all links open in a new tab with safe rel.
-    // First strip any target the library already added, then add uniformly.
-    html = html.replaceAll(' target="_blank"', '');
-    html = html.replaceAll('<a href=', '<a target="_blank" rel="noopener noreferrer" href=');
+  let rawHtml: string;
+  try {
+    rawHtml = markdown(content, markdownOptions);
+  } catch (err: unknown) {
+    console.warn('Markdown rendering failed, showing raw content:', err);
+    rawHtml = escapeHtml(content);
   }
+
+  let html = rawHtml.replaceAll(
+    /media:\/\/([a-f0-9-]+)/gi,
+    '/api/media/$1',
+  );
+  // Ensure all links open in a new tab with safe rel.
+  // First strip any target the library already added, then add uniformly.
+  html = html.replaceAll(' target="_blank"', '');
+  html = html.replaceAll('<a href=', '<a target="_blank" rel="noopener noreferrer" href=');
 
   // Add checkbox interactivity
   useEffect(() => {
-    if (isRichContentDeferred || containerRef.current === null || onCheckboxToggle === undefined) return;
+    if (containerRef.current === null || onCheckboxToggle === undefined) return;
 
     const container = containerRef.current;
     const checkboxes = container.querySelectorAll<HTMLInputElement>(
@@ -134,11 +126,7 @@ export function MarkdownPreview({
     return () => {
       handlers.forEach((cleanup) => { cleanup(); });
     };
-  }, [content, isRichContentDeferred, onCheckboxToggle]);
-
-  if (html === null) {
-    return <div className={clsx(styles.root, styles.deferred, className)}>{content}</div>;
-  }
+  }, [content, onCheckboxToggle]);
 
   return (
     <div

@@ -1,6 +1,5 @@
 import { useEffect, type RefObject } from 'react';
 import type { FilterType } from '../components/Sidebar.tsx';
-import type { NoteWithTags } from '../db/types.ts';
 
 function isTextEntryTarget(target: EventTarget | null) {
   if (!(target instanceof HTMLElement)) return false;
@@ -27,7 +26,7 @@ interface UseQuickCaptureShortcutOptions {
   clearSelection: () => void;
   quickAddRef: RefObject<HTMLTextAreaElement | null>;
   searchInputRef: RefObject<HTMLInputElement | null>;
-  selectedNote: NoteWithTags | null;
+  isNoteModalOpen: () => boolean;
   navigateToFilter: (filter: FilterType) => void;
   setSearchQuery: (query: string) => void;
   showSettings: boolean;
@@ -37,7 +36,7 @@ export function useQuickCaptureShortcut({
   clearSelection,
   quickAddRef,
   searchInputRef,
-  selectedNote,
+  isNoteModalOpen,
   navigateToFilter,
   setSearchQuery,
   showSettings,
@@ -45,7 +44,7 @@ export function useQuickCaptureShortcut({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'n') return;
-      if (selectedNote !== null || showSettings) return;
+      if (isNoteModalOpen() || showSettings) return;
       if (
         isTextEntryTarget(e.target) &&
         e.target !== searchInputRef.current &&
@@ -71,7 +70,7 @@ export function useQuickCaptureShortcut({
     navigateToFilter,
     quickAddRef,
     searchInputRef,
-    selectedNote,
+    isNoteModalOpen,
     setSearchQuery,
     showSettings,
   ]);

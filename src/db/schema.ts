@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS note_tags (
   PRIMARY KEY (note_id, tag_id)
 );
 
+CREATE INDEX IF NOT EXISTS idx_note_tags_tag_id_note_id ON note_tags(tag_id, note_id);
+
 -- Media
 CREATE TABLE IF NOT EXISTS media (
   id         TEXT PRIMARY KEY,

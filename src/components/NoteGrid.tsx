@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, type ReactNode } from 'react';
+import { memo, useRef, useState, useEffect, type ReactNode } from 'react';
 import { toNoteId, type NoteId, type NoteWithTags, type Tag } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 import type { NoteCommands } from './note-commands.ts';
@@ -29,8 +29,9 @@ interface DragState {
 }
 
 const DRAG_THRESHOLD = 5;
+const DEFER_RICH_PREVIEWS_THRESHOLD = 200;
 
-export function NoteGrid({
+export const NoteGrid = memo(function NoteGrid({
   notes, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
   showLinkPreviews, isMobile, isTrashView, preserveOrder = false, topContent,
 }: NoteGridProps) {
@@ -154,6 +155,7 @@ export function NoteGrid({
   const regularNotes = preserveOrder ? notes : notes.filter((note) => !note.pinned && !note.archived);
   const archivedNotes = preserveOrder ? [] : notes.filter((note) => note.archived);
   const flatNotes = preserveOrder ? notes : [...pinnedNotes, ...regularNotes, ...archivedNotes];
+  const deferRichPreviews = notes.length > DEFER_RICH_PREVIEWS_THRESHOLD;
 
   const handleNoteClick = (note: NoteWithTags, e?: React.MouseEvent) => {
     // If we just finished a drag, don't do anything
@@ -240,6 +242,7 @@ export function NoteGrid({
           noteCommands={noteCommands}
           isSelected={selectedNoteIds.has(note.id)}
           showLinkPreviews={showLinkPreviews}
+          deferRichPreview={deferRichPreviews}
           isMobile={isMobile}
           {...(isTrashView !== undefined ? { isTrashView } : {})}
         />
@@ -278,4 +281,27 @@ export function NoteGrid({
       )}
     </div>
   );
+}, noteGridPropsEqual);
+
+function noteGridPropsEqual(previous: NoteGridProps, next: NoteGridProps) {
+  return previous.notes === next.notes &&
+    previous.allTags === next.allTags &&
+    previous.onSelect === next.onSelect &&
+    previous.onBulkSelect === next.onBulkSelect &&
+    previous.onClearSelection === next.onClearSelection &&
+    previous.showLinkPreviews === next.showLinkPreviews &&
+    previous.isMobile === next.isMobile &&
+    previous.isTrashView === next.isTrashView &&
+    previous.preserveOrder === next.preserveOrder &&
+    previous.topContent === next.topContent &&
+    setsEqual(previous.selectedNoteIds, next.selectedNoteIds);
+}
+
+function setsEqual<T>(previous: Set<T>, next: Set<T>) {
+  if (previous === next) return true;
+  if (previous.size !== next.size) return false;
+  for (const value of previous) {
+    if (!next.has(value)) return false;
+  }
+  return true;
 }

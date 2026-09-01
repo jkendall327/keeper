@@ -2,10 +2,6 @@
   word-break: break-word;
 }
 
-.deferred {
-  white-space: pre-wrap;
-}
-
 .root h1,
 .root h2,
 .root h3,

@@ -29,7 +29,6 @@ interface DragState {
 }
 
 const DRAG_THRESHOLD = 5;
-const DEFER_RICH_PREVIEWS_THRESHOLD = 200;
 
 export const NoteGrid = memo(function NoteGrid({
   notes, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
@@ -155,7 +154,6 @@ export const NoteGrid = memo(function NoteGrid({
   const regularNotes = preserveOrder ? notes : notes.filter((note) => !note.pinned && !note.archived);
   const archivedNotes = preserveOrder ? [] : notes.filter((note) => note.archived);
   const flatNotes = preserveOrder ? notes : [...pinnedNotes, ...regularNotes, ...archivedNotes];
-  const deferRichPreviews = notes.length > DEFER_RICH_PREVIEWS_THRESHOLD;
 
   const handleNoteClick = (note: NoteWithTags, e?: React.MouseEvent) => {
     // If we just finished a drag, don't do anything
@@ -242,7 +240,6 @@ export const NoteGrid = memo(function NoteGrid({
           noteCommands={noteCommands}
           isSelected={selectedNoteIds.has(note.id)}
           showLinkPreviews={showLinkPreviews}
-          deferRichPreview={deferRichPreviews}
           isMobile={isMobile}
           {...(isTrashView !== undefined ? { isTrashView } : {})}
         />

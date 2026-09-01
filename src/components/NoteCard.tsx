@@ -22,12 +22,11 @@ interface NoteCardProps {
   noteCommands: NoteCommands;
   isSelected?: boolean;
   showLinkPreviews: boolean;
-  deferRichPreview: boolean;
   isMobile: boolean;
   isTrashView?: boolean;
 }
 
-export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, deferRichPreview, isMobile, isTrashView }: NoteCardProps) {
+export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isMobile, isTrashView }: NoteCardProps) {
   const [showTagApplier, setShowTagApplier] = useState(false);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const closeTagApplier = () => { setShowTagApplier(false); };
@@ -163,7 +162,6 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
             )}
             <MarkdownPreview
               content={note.body}
-              deferRichContent={deferRichPreview}
               onCheckboxToggle={handleCheckboxToggle}
             />
           </div>

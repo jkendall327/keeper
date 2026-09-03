@@ -1,10 +1,11 @@
 import { clsx } from 'clsx';
 import type { ChangeEvent, KeyboardEvent, RefObject } from 'react';
-import { tagDisplayIcon, type NoteWithTags, type Tag } from '../../db/types.ts';
+import { tagDisplayIcon, type NoteWithTags, type Reminder, type Tag } from '../../db/types.ts';
 import { Icon } from '../Icon.tsx';
 import { NoteActions } from '../NoteActions.tsx';
 import type { NoteCommands } from '../note-commands.ts';
 import styles from './NoteModalTags.module.css';
+import { ReminderEditor } from './ReminderEditor.tsx';
 
 interface NoteModalTagEditor {
   input: string;
@@ -28,6 +29,7 @@ interface NoteModalActions {
 
 interface NoteModalTagsProps {
   note: NoteWithTags;
+  reminder: Reminder | null;
   allTags: Tag[];
   body: string;
   noteCommands: NoteCommands;
@@ -39,6 +41,7 @@ interface NoteModalTagsProps {
 
 export function NoteModalTags({
   note,
+  reminder,
   allTags,
   body,
   noteCommands,
@@ -115,6 +118,9 @@ export function NoteModalTags({
           </ul>
         )}
       </div>
+      {isTrashView !== true && (
+        <ReminderEditor noteId={note.id} reminder={reminder} />
+      )}
       <NoteActions
         note={note}
         className={styles.noteActions}

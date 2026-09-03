@@ -285,6 +285,14 @@ function localKeeperClient(db: KeeperDB): KeeperClient {
       trashed: () => db.getTrashedNotes(),
       tag: (tagId) => db.getNotesForTag(tagId),
     },
+    reminders: {
+      list: () => db.getReminders(),
+      summary: () => db.getReminderSummary(),
+      getForNote: (noteId) => db.getReminder(noteId),
+      set: (input) => db.setReminder(input),
+      delete: (noteId) => db.deleteReminder(noteId),
+      acknowledgeDue: async () => ({ acknowledgedCount: await db.acknowledgeDueReminders(Date.now()) }),
+    },
     autoTagRules: {
       list: () => db.getAutoTagRules(),
       create: (input) => db.createAutoTagRule(input),

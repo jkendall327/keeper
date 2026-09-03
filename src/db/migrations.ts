@@ -62,6 +62,13 @@ ${NOTES_FTS_UPDATE_TRIGGER_SQL}
       );
     },
   },
+  {
+    version: 5,
+    name: "fixed-instant reminders",
+    up: (db) => {
+      db.execRaw(SCHEMA_SQL);
+    },
+  },
 ];
 
 export const CURRENT_SCHEMA_VERSION =

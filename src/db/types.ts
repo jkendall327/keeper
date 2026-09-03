@@ -68,6 +68,26 @@ export interface LinkMetadataJob {
   last_error: string | null;
 }
 
+export interface Reminder {
+  id: string;
+  note_id: NoteId;
+  due_at_utc_ms: number;
+  scheduled_time_zone: string;
+  scheduled_local: string;
+  surfaced_at_utc_ms: number | null;
+  acknowledged_at_utc_ms: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ReminderWithNote extends Reminder {
+  note: NoteWithTags;
+}
+
+export interface ReminderSummary {
+  unreadCount: number;
+}
+
 export interface NoteWithTags extends Note {
   tags: Tag[];
   link_metadata: LinkMetadata[];
@@ -182,6 +202,13 @@ export interface StoreMediaInput {
   data: ArrayBuffer;
 }
 
+export interface SetReminderInput {
+  noteId: NoteId;
+  dueAtUtcMs: number;
+  scheduledTimeZone: string;
+  scheduledLocal: string;
+}
+
 // ── DB API contract ─────────────────────────────────────────
 
 export interface KeeperDB {
@@ -224,6 +251,16 @@ export interface KeeperDB {
   getDuplicateNotes(): Promise<NoteWithTags[]>;
   getNotesForTag(tagId: number): Promise<NoteWithTags[]>;
   getArchivedNotes(): Promise<NoteWithTags[]>;
+
+  // Reminders
+  getReminder(noteId: NoteId): Promise<Reminder | null>;
+  getReminders(): Promise<ReminderWithNote[]>;
+  getReminderSummary(): Promise<ReminderSummary>;
+  setReminder(input: SetReminderInput): Promise<Reminder>;
+  deleteReminder(noteId: NoteId): Promise<void>;
+  surfaceDueReminders(currentTimeUtcMs: number): Promise<number>;
+  acknowledgeDueReminders(currentTimeUtcMs: number): Promise<number>;
+  getNextReminderDueAt(): Promise<number | null>;
 
   // Autotag rules
   getAutoTagRules(): Promise<AutoTagRule[]>;

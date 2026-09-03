@@ -7,6 +7,9 @@ import type {
   CreateNoteInput,
   NoteId,
   NoteWithTags,
+  Reminder,
+  ReminderWithNote,
+  SetReminderInput,
   UpdateAppSettingsInput,
   UpdateAutoTagRuleInput,
   UpdateNoteInput,
@@ -28,6 +31,10 @@ export const keeperKeys = {
   systemStatus: ['systemStatus'] as const,
   autoTagRules: ['autoTagRules'] as const,
   mediaForNote: (noteId: NoteId) => ['media', 'note', noteId] as const,
+  reminders: ['reminders'] as const,
+  reminderList: ['reminders', 'list'] as const,
+  reminderSummary: ['reminders', 'summary'] as const,
+  reminder: (noteId: NoteId) => ['reminders', 'note', noteId] as const,
 };
 
 export function useInboxNotes() {
@@ -58,7 +65,11 @@ export function useTags() {
   });
 }
 
-export function useDisplayedNotes(activeFilter: FilterType, searchQuery: string) {
+export function useDisplayedNotes(
+  activeFilter: FilterType,
+  searchQuery: string,
+  reminderEntries: ReminderWithNote[],
+) {
   const { client } = useKeeperServices();
   const trimmedSearchQuery = searchQuery.trim();
   const inboxQuery = useInboxNotes();
@@ -90,6 +101,7 @@ export function useDisplayedNotes(activeFilter: FilterType, searchQuery: string)
           return client.views.tag(activeFilter.tagId, { signal });
         case 'all':
         case 'chat':
+        case 'reminders':
           return Promise.resolve(EMPTY_NOTES);
       }
     },
@@ -99,8 +111,72 @@ export function useDisplayedNotes(activeFilter: FilterType, searchQuery: string)
   if (trimmedSearchQuery === '') {
     if (activeFilter.type === 'all') return inboxQuery.data;
     if (activeFilter.type === 'chat') return EMPTY_NOTES;
+    if (activeFilter.type === 'reminders') return reminderEntries.map((entry) => entry.note);
+  }
+  if (activeFilter.type === 'reminders') {
+    const normalizedSearch = trimmedSearchQuery.toLocaleLowerCase();
+    return reminderEntries
+      .map((entry) => entry.note)
+      .filter((note) => `${note.title}\n${note.body}`.toLocaleLowerCase().includes(normalizedSearch));
   }
   return viewQuery.data ?? EMPTY_NOTES;
+}
+
+export function useReminders() {
+  const { client } = useKeeperServices();
+  return useQuery({
+    queryKey: keeperKeys.reminderList,
+    queryFn: ({ signal }) => client.reminders.list({ signal }),
+    placeholderData: [],
+  });
+}
+
+export function useReminderSummary() {
+  const { client } = useKeeperServices();
+  return useQuery({
+    queryKey: keeperKeys.reminderSummary,
+    queryFn: ({ signal }) => client.reminders.summary({ signal }),
+    placeholderData: { unreadCount: 0 },
+  });
+}
+
+export function useReminder(noteId: NoteId, placeholder: Reminder | null = null) {
+  const { client } = useKeeperServices();
+  return useQuery({
+    queryKey: keeperKeys.reminder(noteId),
+    queryFn: ({ signal }) => client.reminders.getForNote(noteId, { signal }),
+    placeholderData: placeholder,
+  });
+}
+
+export function useReminderMutations() {
+  const { client } = useKeeperServices();
+  const queryClient = useQueryClient();
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: keeperKeys.reminders });
+  const setReminder = useMutation({
+    mutationFn: (input: SetReminderInput) => client.reminders.set(input),
+    onSuccess: (reminder) => {
+      queryClient.setQueryData(keeperKeys.reminder(reminder.note_id), reminder);
+      return invalidate();
+    },
+  });
+  const deleteReminder = useMutation({
+    mutationFn: (noteId: NoteId) => client.reminders.delete(noteId),
+    onSuccess: (_result, noteId) => {
+      queryClient.setQueryData(keeperKeys.reminder(noteId), null);
+      return invalidate();
+    },
+  });
+  const acknowledgeDue = useMutation({
+    mutationFn: () => client.reminders.acknowledgeDue(),
+    onSuccess: invalidate,
+  });
+
+  return {
+    setReminder: setReminder.mutateAsync,
+    deleteReminder: deleteReminder.mutateAsync,
+    acknowledgeDue: acknowledgeDue.mutateAsync,
+  };
 }
 
 export function useAppSettings() {
@@ -137,10 +213,18 @@ export function useExtensionEvents() {
       void queryClient.invalidateQueries({ queryKey: keeperKeys.tags });
       void queryClient.invalidateQueries({ queryKey: keeperKeys.autoTagRules });
       void queryClient.invalidateQueries({ queryKey: keeperKeys.settings });
+      void queryClient.invalidateQueries({ queryKey: keeperKeys.reminders });
+    };
+
+    const invalidateReminders = () => {
+      void queryClient.invalidateQueries({ queryKey: keeperKeys.reminders });
     };
 
     const events = new EventSource('/api/events');
+    events.addEventListener('open', invalidateReminders);
     events.addEventListener('refresh', invalidateExternalData);
+    events.addEventListener('reminders-due', invalidateReminders);
+    events.addEventListener('reminders-changed', invalidateReminders);
     events.addEventListener('extension-note-created', () => {
       setExtensionNoteCreatedCount((count) => count + 1);
       invalidateExternalData();
@@ -154,11 +238,17 @@ export function useExtensionEvents() {
 export function useNoteMutations() {
   const { client } = useKeeperServices();
   const queryClient = useQueryClient();
-  const invalidateNotes = () => queryClient.invalidateQueries({ queryKey: keeperKeys.notes });
+  const invalidateNotes = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: keeperKeys.notes }),
+      queryClient.invalidateQueries({ queryKey: keeperKeys.reminders }),
+    ]);
+  };
   const invalidateNotesAndTags = async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: keeperKeys.notes }),
       queryClient.invalidateQueries({ queryKey: keeperKeys.tags }),
+      queryClient.invalidateQueries({ queryKey: keeperKeys.reminders }),
     ]);
   };
 
@@ -235,6 +325,7 @@ export function useTagMutations() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: keeperKeys.notes }),
       queryClient.invalidateQueries({ queryKey: keeperKeys.tags }),
+      queryClient.invalidateQueries({ queryKey: keeperKeys.reminders }),
     ]);
   };
 
@@ -301,12 +392,14 @@ export function useRefreshKeeperData() {
       queryClient.invalidateQueries({ queryKey: keeperKeys.notes }),
       queryClient.invalidateQueries({ queryKey: keeperKeys.tags }),
       queryClient.invalidateQueries({ queryKey: keeperKeys.autoTagRules }),
+      queryClient.invalidateQueries({ queryKey: keeperKeys.reminders }),
     ]);
   };
 }
 
 function getViewKey(activeFilter: FilterType, searchQuery: string) {
   if (activeFilter.type === 'tag' && activeFilter.tagId === null) return null;
+  if (activeFilter.type === 'reminders') return null;
   if (searchQuery !== '') return keeperKeys.search(searchQuery, activeFilter.type === 'trash');
 
   switch (activeFilter.type) {

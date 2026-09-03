@@ -108,6 +108,34 @@ describe("KeeperDB HTTP client contract", () => {
     expect(fetchMock).toHaveBeenNthCalledWith(16, "/api/views/tag/3", undefined);
   });
 
+  it("uses the expected reminder routes and preserves fixed-instant metadata", async () => {
+    const fetchMock = mockFetch([]);
+    const client = createHttpClient(asFetch(fetchMock));
+    const noteId = toNoteId("n1");
+
+    await client.reminders.list();
+    await client.reminders.summary();
+    await client.reminders.getForNote(noteId);
+    await client.reminders.set({
+      noteId,
+      dueAtUtcMs: 1_893_499_200_000,
+      scheduledTimeZone: "America/Los_Angeles",
+      scheduledLocal: "2030-01-01T00:00",
+    });
+    await client.reminders.acknowledgeDue();
+    await client.reminders.delete(noteId);
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/reminders", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/reminders/summary", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(3, "/api/notes/n1/reminder", undefined);
+    expect(fetchMock).toHaveBeenNthCalledWith(4, "/api/notes/n1/reminder", expect.objectContaining({ method: "PUT" }));
+    expect((fetchMock.mock.calls[3]?.[1] as RequestInit).body).toBe(
+      '{"dueAtUtcMs":1893499200000,"scheduledTimeZone":"America/Los_Angeles","scheduledLocal":"2030-01-01T00:00"}',
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(5, "/api/reminders/acknowledge", { method: "POST" });
+    expect(fetchMock).toHaveBeenNthCalledWith(6, "/api/notes/n1/reminder", { method: "DELETE" });
+  });
+
   it("maps 404 nullable reads to null and non-ok responses to errors", async () => {
     const notFound = vi.fn((..._args: Parameters<typeof fetch>) =>
       Promise.resolve(jsonResponse({ error: "missing" }, 404)));

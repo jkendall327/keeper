@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import type { NoteWithTags, Tag } from '../db/types.ts';
+import type { NoteWithTags, Reminder, Tag } from '../db/types.ts';
 import { Icon } from './Icon.tsx';
 import { ImageLightbox } from './ImageLightbox.tsx';
 import { NoteModalEditor } from './note-modal/NoteModalEditor.tsx';
@@ -7,11 +7,13 @@ import { NoteModalTags } from './note-modal/NoteModalTags.tsx';
 import { useNoteEditorSession } from './note-modal/useNoteEditorSession.ts';
 import { useNoteModalHistoryClose } from './note-modal/useNoteModalHistoryClose.ts';
 import { useNoteModalInitialFocus } from './note-modal/useNoteModalInitialFocus.ts';
+import { useReminder } from '../hooks/useKeeperQuery.ts';
 import type { NoteCommands } from './note-commands.ts';
 import styles from './NoteModal.module.css';
 
 interface NoteModalProps {
   note: NoteWithTags;
+  reminder?: Reminder | null;
   allTags: Tag[];
   noteCommands: NoteCommands;
   showDebugDetails: boolean;
@@ -22,6 +24,7 @@ interface NoteModalProps {
 
 export function NoteModal({
   note,
+  reminder,
   allTags,
   noteCommands,
   showDebugDetails,
@@ -30,6 +33,7 @@ export function NoteModal({
   onClose,
 }: NoteModalProps) {
   const [lightboxImageUrl, setLightboxImageUrl] = useState<string | null>(null);
+  const { data: currentReminder = null } = useReminder(note.id, reminder ?? null);
   const panelRef = useRef<HTMLDivElement>(null);
   const bodyTextareaRef = useRef<HTMLTextAreaElement>(null);
   const editor = useNoteEditorSession({
@@ -106,6 +110,7 @@ export function NoteModal({
         </div>
         <NoteModalTags
           note={note}
+          reminder={currentReminder}
           allTags={allTags}
           body={editor.body}
           noteCommands={noteCommands}

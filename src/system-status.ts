@@ -48,6 +48,7 @@ export interface SystemStatus {
     notes: number;
     tags: number;
     media: number;
+    reminders: number;
     linkMetadataJobs: number;
   };
   backups: BackupSummary;

@@ -58,6 +58,9 @@ A temporary holding area for:
   - SQL: `SELECT * FROM notes WHERE id NOT IN (SELECT note_id FROM note_tags);`
 - **"Links" view**: Shows notes containing URLs
   - Uses `has_links` boolean flag for fast filtering
+- **"Reminders" view**: Shows notes with a scheduled reminder
+  - Due unread reminders appear first and add a badge to the sidebar tab
+  - Opening the view acknowledges currently due reminders
 
 **Full-Text Search:**
 - Global search bar (⌘/Ctrl+/ keyboard shortcut)
@@ -106,6 +109,15 @@ A temporary holding area for:
 - Optional toggle during export
 - Deletes selected notes ONLY after successful export
 - Maintains "inbox zero" workflow
+
+### 2.6 Reminders
+
+- A note can have one fixed-instant reminder
+- The user selects a date and time in the browser's local time zone
+- Keeper stores the resolved instant as UTC epoch milliseconds, plus the original IANA time zone and local wall time for display and editing context
+- Changing time zones does not move the reminder's instant
+- The server durably marks reminders as surfaced, broadcasts changes over SSE, and catches up overdue reminders after restart or system sleep
+- Trashed notes do not surface reminders; restoring one makes an overdue reminder eligible again
 
 ---
 
@@ -159,12 +171,27 @@ CREATE TABLE media (
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
 );
+
+-- One fixed-instant reminder per note
+CREATE TABLE reminders (
+    id TEXT PRIMARY KEY,
+    note_id TEXT NOT NULL UNIQUE,
+    due_at_utc_ms INTEGER NOT NULL,
+    scheduled_time_zone TEXT NOT NULL,
+    scheduled_local TEXT NOT NULL,
+    surfaced_at_utc_ms INTEGER,
+    acknowledged_at_utc_ms INTEGER,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY(note_id) REFERENCES notes(id) ON DELETE CASCADE
+);
 ```
 
 ### Key Indexes
 - `notes.has_links`, `notes.pinned`, `notes.archived`, and `notes.trashed` for fast view filtering
 - FTS5 virtual table on title/body for full-text search
 - `media.note_id` for listing note attachments
+- `reminders.due_at_utc_ms` plus a partial unsurfaced index for scheduler wakeups
 - Foreign keys with CASCADE for clean deletion
 
 ### Related Tables

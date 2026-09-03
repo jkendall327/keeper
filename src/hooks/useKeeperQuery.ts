@@ -221,6 +221,7 @@ export function useExtensionEvents() {
     };
 
     const events = new EventSource('/api/events');
+    events.addEventListener('open', invalidateReminders);
     events.addEventListener('refresh', invalidateExternalData);
     events.addEventListener('reminders-due', invalidateReminders);
     events.addEventListener('reminders-changed', invalidateReminders);

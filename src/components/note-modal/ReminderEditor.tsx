@@ -5,8 +5,8 @@ import {
   currentTimeZone,
   defaultReminderDateTimeInput,
   formatReminderDateTime,
-  parseLocalDateTimeInput,
-  toLocalDateTimeInput,
+  formatZonedLocalDateTimeInput,
+  parseZonedLocalDateTimeInput,
 } from '../../utils/reminders.ts';
 import { Icon } from '../Icon.tsx';
 import styles from './ReminderEditor.module.css';
@@ -23,14 +23,22 @@ export function ReminderEditor({ noteId, reminder }: ReminderEditorProps) {
   const [localDateTime, setLocalDateTime] = useState(() => (
     reminder === null
       ? defaultReminderDateTimeInput()
-      : toLocalDateTimeInput(reminder.due_at_utc_ms)
+      : reminder.scheduled_local
   ));
-  const [minimumDateTime] = useState(() => toLocalDateTimeInput(Date.now()));
+  const [editingTimeZone, setEditingTimeZone] = useState(() => (
+    reminder?.scheduled_time_zone ?? currentTimeZone()
+  ));
+  const [minimumInstant] = useState(Date.now);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const minimumDateTime = formatZonedLocalDateTimeInput(minimumInstant, editingTimeZone);
 
   const handleSave = async () => {
-    const dueAtUtcMs = parseLocalDateTimeInput(localDateTime);
+    const dueAtUtcMs = parseZonedLocalDateTimeInput(
+      localDateTime,
+      editingTimeZone,
+      reminder?.due_at_utc_ms,
+    );
     if (dueAtUtcMs === null) {
       setError('Choose a valid local date and time.');
       return;
@@ -46,7 +54,7 @@ export function ReminderEditor({ noteId, reminder }: ReminderEditorProps) {
       await setReminder({
         noteId,
         dueAtUtcMs,
-        scheduledTimeZone: currentTimeZone(),
+        scheduledTimeZone: editingTimeZone,
         scheduledLocal: localDateTime,
       });
       setEditing(false);
@@ -64,6 +72,7 @@ export function ReminderEditor({ noteId, reminder }: ReminderEditorProps) {
     try {
       await deleteReminder(noteId);
       setLocalDateTime(defaultReminderDateTimeInput());
+      setEditingTimeZone(currentTimeZone());
       setEditing(false);
     } catch {
       setError('Unable to remove this reminder.');
@@ -93,7 +102,8 @@ export function ReminderEditor({ noteId, reminder }: ReminderEditorProps) {
             aria-label="Edit reminder"
             title="Edit reminder"
             onClick={() => {
-              setLocalDateTime(toLocalDateTimeInput(reminder.due_at_utc_ms));
+              setLocalDateTime(reminder.scheduled_local);
+              setEditingTimeZone(reminder.scheduled_time_zone);
               setEditing(true);
             }}
           >
@@ -124,7 +134,9 @@ export function ReminderEditor({ noteId, reminder }: ReminderEditorProps) {
               setError('');
             }}
           />
-          <p className={styles.hint}>This stays tied to the same instant if you change time zones.</p>
+          <p className={styles.hint}>
+            Time zone: {editingTimeZone}. This stays tied to the same instant if you travel.
+          </p>
           {error !== '' && <p className={styles.error} role="alert">{error}</p>}
           <div className={styles.actions}>
             <button
@@ -149,7 +161,10 @@ export function ReminderEditor({ noteId, reminder }: ReminderEditorProps) {
         <button
           type="button"
           className={styles.addButton}
-          onClick={() => { setEditing(true); }}
+          onClick={() => {
+            setEditingTimeZone(currentTimeZone());
+            setEditing(true);
+          }}
         >
           <Icon name="add_alarm" size={18} /> Add reminder
         </button>

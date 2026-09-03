@@ -1,11 +1,12 @@
 import { memo, useRef, useState, useEffect, type ReactNode } from 'react';
-import { toNoteId, type NoteId, type NoteWithTags, type Tag } from '../db/types.ts';
+import { toNoteId, type NoteId, type NoteWithTags, type Reminder, type Tag } from '../db/types.ts';
 import { NoteCard } from './NoteCard.tsx';
 import type { NoteCommands } from './note-commands.ts';
 import styles from './NoteGrid.module.css';
 
 interface NoteGridProps {
   notes: NoteWithTags[];
+  remindersByNoteId: ReadonlyMap<NoteId, Reminder>;
   allTags: Tag[];
   onSelect: (note: NoteWithTags) => void;
   noteCommands: NoteCommands;
@@ -31,7 +32,7 @@ interface DragState {
 const DRAG_THRESHOLD = 5;
 
 export const NoteGrid = memo(function NoteGrid({
-  notes, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
+  notes, remindersByNoteId, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
   showLinkPreviews, isMobile, isTrashView, preserveOrder = false, topContent,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -233,6 +234,7 @@ export const NoteGrid = memo(function NoteGrid({
         <NoteCard
           key={note.id}
           note={note}
+          reminder={remindersByNoteId.get(note.id) ?? null}
           allTags={allTags}
           onSelect={handleNoteClick}
           onSelectionToggle={handleLongPress}
@@ -282,6 +284,7 @@ export const NoteGrid = memo(function NoteGrid({
 
 function noteGridPropsEqual(previous: NoteGridProps, next: NoteGridProps) {
   return previous.notes === next.notes &&
+    previous.remindersByNoteId === next.remindersByNoteId &&
     previous.allTags === next.allTags &&
     previous.onSelect === next.onSelect &&
     previous.onBulkSelect === next.onBulkSelect &&

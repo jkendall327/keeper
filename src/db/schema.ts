@@ -78,6 +78,26 @@ CREATE TABLE IF NOT EXISTS media (
 
 CREATE INDEX IF NOT EXISTS idx_media_note_id ON media(note_id);
 
+-- Fixed-instant reminders
+CREATE TABLE IF NOT EXISTS reminders (
+  id                         TEXT PRIMARY KEY,
+  note_id                    TEXT NOT NULL UNIQUE REFERENCES notes(id) ON DELETE CASCADE,
+  due_at_utc_ms              INTEGER NOT NULL,
+  scheduled_time_zone        TEXT NOT NULL,
+  scheduled_local            TEXT NOT NULL,
+  surfaced_at_utc_ms         INTEGER,
+  acknowledged_at_utc_ms     INTEGER,
+  created_at                 TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at                 TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_reminders_due_at_utc_ms
+ON reminders(due_at_utc_ms);
+
+CREATE INDEX IF NOT EXISTS idx_reminders_unsurfaced_due_at_utc_ms
+ON reminders(due_at_utc_ms)
+WHERE surfaced_at_utc_ms IS NULL;
+
 -- Link metadata
 CREATE TABLE IF NOT EXISTS note_links (
   note_id   TEXT NOT NULL REFERENCES notes(id) ON DELETE CASCADE,

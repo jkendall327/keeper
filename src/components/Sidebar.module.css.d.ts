@@ -2,6 +2,7 @@ declare const styles: {
   readonly "appMetadata": string;
   readonly "footer": string;
   readonly "nav": string;
+  readonly "notificationBadge": string;
   readonly "open": string;
   readonly "settingsButton": string;
   readonly "sidebar": string;
@@ -13,6 +14,7 @@ declare const styles: {
   readonly "tagInput": string;
   readonly "tagItem": string;
   readonly "tagName": string;
+  readonly "viewLabel": string;
   readonly "viewTab": string;
 };
 export = styles;

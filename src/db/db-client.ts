@@ -10,8 +10,12 @@ import type {
   NoteId,
   NoteResolveResult,
   NoteWithTags,
+  Reminder,
+  ReminderSummary,
+  ReminderWithNote,
   SearchResult,
   StoreMediaInput,
+  SetReminderInput,
   Tag,
   UpdateAppSettingsInput,
   UpdateAutoTagRuleInput,
@@ -67,6 +71,14 @@ export interface KeeperClient {
     archived(options?: RequestOptions): Promise<NoteWithTags[]>;
     trashed(options?: RequestOptions): Promise<NoteWithTags[]>;
     tag(tagId: number, options?: RequestOptions): Promise<NoteWithTags[]>;
+  };
+  reminders: {
+    list(options?: RequestOptions): Promise<ReminderWithNote[]>;
+    summary(options?: RequestOptions): Promise<ReminderSummary>;
+    getForNote(noteId: NoteId, options?: RequestOptions): Promise<Reminder | null>;
+    set(input: SetReminderInput): Promise<Reminder>;
+    delete(noteId: NoteId): Promise<void>;
+    acknowledgeDue(): Promise<{ acknowledgedCount: number }>;
   };
   autoTagRules: {
     list(options?: RequestOptions): Promise<AutoTagRule[]>;
@@ -192,6 +204,27 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
       archived: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/archived', withSignal(options)),
       trashed: (options) => fetchJson<NoteWithTags[]>(fetchFn, '/api/views/trash', withSignal(options)),
       tag: (tagId, options) => fetchJson<NoteWithTags[]>(fetchFn, `/api/views/tag/${String(tagId)}`, withSignal(options)),
+    },
+    reminders: {
+      list: (options) => fetchJson<ReminderWithNote[]>(fetchFn, '/api/reminders', withSignal(options)),
+      summary: (options) => fetchJson<ReminderSummary>(fetchFn, '/api/reminders/summary', withSignal(options)),
+      getForNote: (noteId, options) =>
+        fetchNullable<Reminder>(fetchFn, `/api/notes/${noteId}/reminder`, withSignal(options)),
+      set: (input) => fetchJson<Reminder>(
+        fetchFn,
+        `/api/notes/${input.noteId}/reminder`,
+        jsonOpts('PUT', {
+          dueAtUtcMs: input.dueAtUtcMs,
+          scheduledTimeZone: input.scheduledTimeZone,
+          scheduledLocal: input.scheduledLocal,
+        }),
+      ),
+      delete: (noteId) => fetchVoid(fetchFn, `/api/notes/${noteId}/reminder`, { method: 'DELETE' }),
+      acknowledgeDue: () => fetchJson<{ acknowledgedCount: number }>(
+        fetchFn,
+        '/api/reminders/acknowledge',
+        { method: 'POST' },
+      ),
     },
     autoTagRules: {
       list: (options) => fetchJson<AutoTagRule[]>(fetchFn, '/api/auto-tag-rules', withSignal(options)),

@@ -2,12 +2,14 @@ declare const styles: {
   readonly "body": string;
   readonly "bottomActions": string;
   readonly "card": string;
+  readonly "dueLabel": string;
   readonly "filledIcon": string;
   readonly "footer": string;
   readonly "iconButton": string;
   readonly "inlineActions": string;
   readonly "pinned": string;
   readonly "previewImageFrame": string;
+  readonly "reminder": string;
   readonly "selected": string;
   readonly "selectionCheck": string;
   readonly "tag": string;
@@ -16,6 +18,7 @@ declare const styles: {
   readonly "time": string;
   readonly "title": string;
   readonly "topActions": string;
+  readonly "unreadReminder": string;
 };
 export = styles;
 

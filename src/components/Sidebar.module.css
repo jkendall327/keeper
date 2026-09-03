@@ -54,6 +54,22 @@
   line-height: 1;
 }
 
+.viewLabel {
+  flex: 1;
+}
+
+.notificationBadge {
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--color-danger);
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
 .tagItem {
   position: relative;
   display: flex;

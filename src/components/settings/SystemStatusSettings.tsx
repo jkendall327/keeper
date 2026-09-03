@@ -111,6 +111,7 @@ export function SystemStatusSettings({ advancedModeEnabled }: SystemStatusSettin
           <StatusItem label="Notes" value={String(data.counts.notes)} />
           <StatusItem label="Tags" value={String(data.counts.tags)} />
           <StatusItem label="Media records" value={String(data.counts.media)} />
+          <StatusItem label="Reminders" value={String(data.counts.reminders)} />
           <StatusItem label="Link jobs" value={String(data.counts.linkMetadataJobs)} />
         </dl>
       </div>

@@ -183,6 +183,7 @@ function getCounts(db: ServerSqliteAdapter): SystemStatus["counts"] {
     notes: count(db, "notes"),
     tags: count(db, "tags"),
     media: count(db, "media"),
+    reminders: count(db, "reminders"),
     linkMetadataJobs: count(db, "link_metadata_jobs"),
   };
 }

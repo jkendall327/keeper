@@ -7,12 +7,13 @@ import { Icon } from './Icon.tsx';
 import { NoteGrid } from './NoteGrid.tsx';
 import { NoteModalHost, type NoteModalHostHandle } from './NoteModalHost.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
-import type { CreateNoteInput, NoteId, NoteWithTags } from '../db/types.ts';
+import type { CreateNoteInput, NoteId, NoteWithTags, Reminder } from '../db/types.ts';
 import styles from './NotesPanel.module.css';
 
 interface NotesPanelProps {
   searchInputRef: RefObject<HTMLInputElement | null>;
   displayedNotes: NoteWithTags[];
+  remindersByNoteId: ReadonlyMap<NoteId, Reminder>;
   selectedNoteIds: Set<NoteId>;
   setSelectedNoteIds: React.Dispatch<React.SetStateAction<Set<NoteId>>>;
   autoApplyActiveTag: boolean;
@@ -26,6 +27,7 @@ interface NotesPanelProps {
 export function NotesPanel({
   searchInputRef,
   displayedNotes,
+  remindersByNoteId,
   selectedNoteIds,
   setSelectedNoteIds,
   autoApplyActiveTag,
@@ -69,6 +71,7 @@ export function NotesPanel({
     ? allTags.find((tag) => tag.id === activeFilter.tagId)
     : undefined;
   const isTrashView = activeFilter.type === 'trash';
+  const isRemindersView = activeFilter.type === 'reminders';
   const noteCommands = useNoteCommands({ isTrashView });
 
   const handleCreateNote = useCallback(async (input: CreateNoteInput) => {
@@ -92,18 +95,26 @@ export function NotesPanel({
             : `${String(displayedNotes.length)} result${displayedNotes.length === 1 ? '' : 's'}`}
         </p>
       )}
-      <QuickAdd
-        ref={quickAddRef}
-        autoFocus={quickAddAutofocusEnabled}
-        onCreate={handleCreateNote}
-      />
+      {isRemindersView ? (
+        <div className={styles.remindersHeader}>
+          <h2>Reminders</h2>
+          <p>Due reminders appear first. Opening this view marks them as read.</p>
+        </div>
+      ) : (
+        <QuickAdd
+          ref={quickAddRef}
+          autoFocus={quickAddAutofocusEnabled}
+          onCreate={handleCreateNote}
+        />
+      )}
     </>
-  ), [displayedNotes.length, handleCreateNote, quickAddAutofocusEnabled, searchQuery]);
+  ), [displayedNotes.length, handleCreateNote, isRemindersView, quickAddAutofocusEnabled, searchQuery]);
 
   return (
     <>
       <NoteGrid
         notes={displayedNotes}
+        remindersByNoteId={remindersByNoteId}
         allTags={allTags}
         onSelect={handleNoteSelect}
         noteCommands={noteCommands}
@@ -113,7 +124,7 @@ export function NotesPanel({
         showLinkPreviews={linkPreviewDisplayEnabled}
         isMobile={isMobile}
         isTrashView={isTrashView}
-        preserveOrder={activeFilter.type === 'duplicates'}
+        preserveOrder={activeFilter.type === 'duplicates' || isRemindersView}
         topContent={topContent}
       />
       {displayedNotes.length === 0 && searchQuery.trim() === '' && activeFilter.type === 'all' && (
@@ -123,9 +134,17 @@ export function NotesPanel({
           <p className={styles.emptyStateHint}>Start typing above to capture a note</p>
         </div>
       )}
+      {displayedNotes.length === 0 && searchQuery.trim() === '' && isRemindersView && (
+        <div className={styles.emptyState} data-testid="reminders-empty-state">
+          <Icon name="notifications_none" size={48} />
+          <p className={styles.emptyStateText}>No reminders</p>
+          <p className={styles.emptyStateHint}>Open a note to add one</p>
+        </div>
+      )}
       <NoteModalHost
         ref={noteModalRef}
         displayedNotes={displayedNotes}
+        remindersByNoteId={remindersByNoteId}
         allTags={allTags}
         noteCommands={noteCommands}
         showDebugDetails={advancedModeEnabled}

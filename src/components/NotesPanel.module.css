@@ -4,6 +4,21 @@
   font-size: 0.85rem;
 }
 
+.remindersHeader {
+  margin: 6px 0 18px;
+}
+
+.remindersHeader h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.remindersHeader p {
+  margin: 4px 0 0;
+  font-size: 0.85rem;
+  opacity: 0.58;
+}
+
 .emptyState {
   display: flex;
   flex-direction: column;

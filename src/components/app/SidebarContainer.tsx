@@ -1,6 +1,6 @@
 import { Sidebar } from '../Sidebar.tsx';
 import { useKeeperRouteState } from '../../hooks/useKeeperRouteState.ts';
-import { useTagMutations, useTags } from '../../hooks/useKeeperQuery.ts';
+import { useReminderSummary, useTagMutations, useTags } from '../../hooks/useKeeperQuery.ts';
 
 interface SidebarContainerProps {
   advancedModeEnabled: boolean;
@@ -21,6 +21,7 @@ export function SidebarContainer({
 }: SidebarContainerProps) {
   const { data: allTags } = useTags();
   const { deleteTag, renameTag, updateTagIcon } = useTagMutations();
+  const { data: reminderSummary = { unreadCount: 0 } } = useReminderSummary();
   const { activeFilter, navigateToFilter } = useKeeperRouteState();
 
   return (
@@ -28,6 +29,7 @@ export function SidebarContainer({
       tags={allTags}
       activeFilter={activeFilter}
       advancedModeEnabled={advancedModeEnabled}
+      unreadReminderCount={reminderSummary.unreadCount}
       onFilterChange={(filter) => {
         navigateToFilter(filter);
         clearSelectedNotes();

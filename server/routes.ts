@@ -3,6 +3,7 @@ import type {
   KeeperDB,
   AutoTagRuleInput,
   CreateNoteInput,
+  SetReminderInput,
   UpdateAppSettingsInput,
   UpdateNoteInput,
 } from "../src/db/types.ts";
@@ -13,6 +14,7 @@ import { createEventBroadcaster } from "./events.ts";
 import { createLinkMetadataQueue } from "./link-preview-queue.ts";
 import type { BackupService } from "./backup-service.ts";
 import type { SystemStatusService } from "./system-status.ts";
+import { createReminderScheduler } from "./reminder-scheduler.ts";
 
 export function registerRoutes(
   app: FastifyInstance,
@@ -27,10 +29,17 @@ export function registerRoutes(
     log: app.log,
     broadcast,
   });
+  const reminderScheduler = createReminderScheduler({
+    db,
+    log: app.log,
+    broadcast,
+  });
   app.addHook("onClose", () => {
     linkMetadataQueue.stop();
+    reminderScheduler.stop();
   });
   void linkMetadataQueue.start();
+  reminderScheduler.start();
 
   registerEventRoutes(app);
 
@@ -100,6 +109,7 @@ export function registerRoutes(
     "/api/notes/:id",
     async (req) => {
       await db.deleteNote(toNoteId(req.params.id));
+      reminderScheduler.scheduleChanged();
       return {};
     },
   );
@@ -108,6 +118,7 @@ export function registerRoutes(
     "/api/notes/delete",
     async (req) => {
       await db.deleteNotes(toNoteIds(req.body.ids));
+      reminderScheduler.scheduleChanged();
       return {};
     },
   );
@@ -128,6 +139,7 @@ export function registerRoutes(
     "/api/notes/:id/trash",
     async (req) => {
       await db.trashNote(toNoteId(req.params.id));
+      reminderScheduler.scheduleChanged();
       return {};
     },
   );
@@ -136,6 +148,7 @@ export function registerRoutes(
     "/api/notes/trash",
     async (req) => {
       await db.trashNotes(toNoteIds(req.body.ids));
+      reminderScheduler.scheduleChanged();
       return {};
     },
   );
@@ -144,6 +157,7 @@ export function registerRoutes(
     "/api/notes/:id/restore",
     async (req) => {
       await db.restoreNote(toNoteId(req.params.id));
+      reminderScheduler.scheduleChanged();
       return {};
     },
   );
@@ -152,6 +166,7 @@ export function registerRoutes(
     "/api/notes/restore",
     async (req) => {
       await db.restoreNotes(toNoteIds(req.body.ids));
+      reminderScheduler.scheduleChanged();
       return {};
     },
   );
@@ -169,6 +184,62 @@ export function registerRoutes(
       return db.toggleArchiveNote(toNoteId(req.params.id));
     },
   );
+
+  // ── Reminders ──────────────────────────────
+
+  app.get("/api/reminders", async () => {
+    return db.getReminders();
+  });
+
+  app.get("/api/reminders/summary", async () => {
+    return db.getReminderSummary();
+  });
+
+  app.get<{ Params: { noteId: string } }>(
+    "/api/notes/:noteId/reminder",
+    async (req, reply) => {
+      const reminder = await db.getReminder(toNoteId(req.params.noteId));
+      if (reminder === null) return reply.code(404).send({ error: "Not found" });
+      return reminder;
+    },
+  );
+
+  app.put<{
+    Params: { noteId: string };
+    Body: Omit<SetReminderInput, "noteId">;
+  }>(
+    "/api/notes/:noteId/reminder",
+    async (req, reply) => {
+      try {
+        const reminder = await db.setReminder({
+          ...req.body,
+          noteId: toNoteId(req.params.noteId),
+        });
+        reminderScheduler.scheduleChanged();
+        broadcast("reminders-changed");
+        return reminder;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Invalid reminder";
+        return reply.code(400).send({ error: message });
+      }
+    },
+  );
+
+  app.delete<{ Params: { noteId: string } }>(
+    "/api/notes/:noteId/reminder",
+    async (req) => {
+      await db.deleteReminder(toNoteId(req.params.noteId));
+      reminderScheduler.scheduleChanged();
+      broadcast("reminders-changed");
+      return {};
+    },
+  );
+
+  app.post("/api/reminders/acknowledge", async () => {
+    const acknowledgedCount = await db.acknowledgeDueReminders(Date.now());
+    if (acknowledgedCount > 0) broadcast("reminders-changed");
+    return { acknowledgedCount };
+  });
 
   // ── Tags ───────────────────────────────────
 
@@ -380,6 +451,7 @@ export function registerRoutes(
 
       try {
         const result = await backup.restoreBackup({ archive });
+        reminderScheduler.scheduleChanged();
         broadcast("refresh");
         return result;
       } catch (error) {

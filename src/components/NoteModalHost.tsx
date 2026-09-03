@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useState } from 'react';
-import type { NoteId, NoteWithTags, Tag } from '../db/types.ts';
+import type { NoteId, NoteWithTags, Reminder, Tag } from '../db/types.ts';
 import type { NoteCommands } from './note-commands.ts';
 import { NoteModal } from './NoteModal.tsx';
 
@@ -10,6 +10,7 @@ export interface NoteModalHostHandle {
 
 interface NoteModalHostProps {
   displayedNotes: NoteWithTags[];
+  remindersByNoteId: ReadonlyMap<NoteId, Reminder>;
   allTags: Tag[];
   noteCommands: NoteCommands;
   showDebugDetails: boolean;
@@ -20,6 +21,7 @@ interface NoteModalHostProps {
 export const NoteModalHost = forwardRef<NoteModalHostHandle, NoteModalHostProps>(
   function NoteModalHost({
     displayedNotes,
+    remindersByNoteId,
     allTags,
     noteCommands,
     showDebugDetails,
@@ -41,6 +43,7 @@ export const NoteModalHost = forwardRef<NoteModalHostHandle, NoteModalHostProps>
     return (
       <NoteModal
         note={selectedNote}
+        reminder={remindersByNoteId.get(selectedNote.id) ?? null}
         allTags={allTags}
         noteCommands={noteCommands}
         showDebugDetails={showDebugDetails}

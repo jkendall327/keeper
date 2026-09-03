@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { clsx } from 'clsx';
-import { tagDisplayIcon, type NoteWithTags, type Tag } from '../db/types.ts';
+import { tagDisplayIcon, type NoteWithTags, type Reminder, type Tag } from '../db/types.ts';
+import { formatReminderDateTime } from '../utils/reminders.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
 import { NoteActions } from './NoteActions.tsx';
@@ -15,6 +16,7 @@ const DEFAULT_PREVIEW_ASPECT_RATIO = '16 / 9';
 
 interface NoteCardProps {
   note: NoteWithTags;
+  reminder: Reminder | null;
   allTags: Tag[];
   onSelect: (note: NoteWithTags, e?: React.MouseEvent) => void;
   onSelectionToggle: (note: NoteWithTags) => void;
@@ -26,7 +28,7 @@ interface NoteCardProps {
   isTrashView?: boolean;
 }
 
-export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isMobile, isTrashView }: NoteCardProps) {
+export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isMobile, isTrashView }: NoteCardProps) {
   const [showTagApplier, setShowTagApplier] = useState(false);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const closeTagApplier = () => { setShowTagApplier(false); };
@@ -175,6 +177,24 @@ export function NoteCard({ note, allTags, onSelect, onSelectionToggle, onLongPre
               {tag.name}
             </span>
           ))}
+        </div>
+      )}
+      {reminder !== null && (
+        <div
+          className={clsx(
+            styles.reminder,
+            reminder.surfaced_at_utc_ms !== null &&
+              reminder.acknowledged_at_utc_ms === null &&
+              styles.unreadReminder,
+          )}
+        >
+          <Icon name="notifications" size={15} />
+          <time dateTime={new Date(reminder.due_at_utc_ms).toISOString()}>
+            {formatReminderDateTime(reminder.due_at_utc_ms)}
+          </time>
+          {reminder.surfaced_at_utc_ms !== null && reminder.acknowledged_at_utc_ms === null && (
+            <span className={styles.dueLabel}>Due</span>
+          )}
         </div>
       )}
       <div className={styles.footer}>

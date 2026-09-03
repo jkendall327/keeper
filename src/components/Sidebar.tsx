@@ -12,6 +12,7 @@ export type FilterType =
   | { type: 'trash' }
   | { type: 'links' }
   | { type: 'duplicates' }
+  | { type: 'reminders' }
   | { type: 'chat' }
   | { type: 'tag'; tagId: number | null; tagName: string };
 
@@ -25,9 +26,10 @@ interface SidebarProps {
   onUpdateTagIcon: (tagId: number, icon: string | null) => void;
   onOpenSettings: () => void;
   isOpen?: boolean;
+  unreadReminderCount: number;
 }
 
-export function Sidebar({ tags, activeFilter, advancedModeEnabled, onFilterChange, onRenameTag, onDeleteTag, onUpdateTagIcon, onOpenSettings, isOpen }: SidebarProps) {
+export function Sidebar({ tags, activeFilter, advancedModeEnabled, onFilterChange, onRenameTag, onDeleteTag, onUpdateTagIcon, onOpenSettings, isOpen, unreadReminderCount }: SidebarProps) {
   const [editingTagId, setEditingTagId] = useState<number | null>(null);
   const [editValue, setEditValue] = useState('');
   const [iconPickerTagId, setIconPickerTagId] = useState<number | null>(null);
@@ -144,6 +146,19 @@ export function Sidebar({ tags, activeFilter, advancedModeEnabled, onFilterChang
             )}
           </div>
         ))}
+
+        <button
+          className={clsx(styles.tab, styles.viewTab, isActive({ type: 'reminders' }) && styles.tabActive)}
+          onClick={() => { onFilterChange({ type: 'reminders' }); }}
+        >
+          <Icon name="notifications" size={18} />
+          <span className={styles.viewLabel}>Reminders</span>
+          {unreadReminderCount > 0 && (
+            <span className={styles.notificationBadge} aria-label={`${String(unreadReminderCount)} unread reminders`}>
+              {unreadReminderCount > 99 ? '99+' : unreadReminderCount}
+            </span>
+          )}
+        </button>
 
         <button
           className={clsx(styles.tab, styles.viewTab, isActive({ type: 'untagged' }) && styles.tabActive)}

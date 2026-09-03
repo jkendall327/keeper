@@ -1,4 +1,4 @@
-import { lazy, Suspense, useRef, useState, type PointerEvent } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
 import {
   Navigate,
   Outlet,
@@ -13,6 +13,8 @@ import {
   useDisplayedNotes,
   useExtensionEvents,
   useNoteMutations,
+  useReminderMutations,
+  useReminders,
 } from './hooks/useKeeperQuery.ts';
 import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
 import { useExtensionBadge } from './hooks/useExtensionBadge.ts';
@@ -27,6 +29,7 @@ import { SidebarContainer } from './components/app/SidebarContainer.tsx';
 import { SettingsModal } from './components/SettingsModal.tsx';
 import type { FilterType } from './components/Sidebar.tsx';
 import { useAutoApplyActiveTag } from './settings.ts';
+import type { NoteId, Reminder } from './db/types.ts';
 
 const ChatPanel = lazy(async () => {
   const module = await import('./components/ChatPanel.tsx');
@@ -40,15 +43,19 @@ function filterKey(filter: FilterType) {
 const SIDEBAR_SWIPE_EDGE_WIDTH = 48;
 const SIDEBAR_SWIPE_OPEN_DISTANCE = 48;
 const SIDEBAR_SWIPE_VERTICAL_TOLERANCE = 1.5;
+const EMPTY_REMINDER_MAP = new Map<NoteId, Reminder>();
 
 function KeeperApp() {
   const noteMutations = useNoteMutations();
+  const { acknowledgeDue } = useReminderMutations();
+  const { data: reminderEntries = [] } = useReminders();
   const extensionNoteCreatedCount = useExtensionEvents();
   const { activeFilter, searchQuery } = useKeeperRouteState();
   const [showExportModal, setShowExportModal] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [autoApplyActiveTag] = useAutoApplyActiveTag();
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const acknowledgedReminderSetRef = useRef('');
   const appSettings = useAppSettings();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -60,7 +67,32 @@ function KeeperApp() {
 
   const isChatView = activeFilter.type === 'chat';
   const isTrashView = activeFilter.type === 'trash';
-  const displayedNotes = useDisplayedNotes(activeFilter, searchQuery);
+  const displayedNotes = useDisplayedNotes(activeFilter, searchQuery, reminderEntries);
+  const remindersByNoteId = useMemo(
+    () => reminderEntries.length === 0
+      ? EMPTY_REMINDER_MAP
+      : new Map(reminderEntries.map((entry) => [entry.note_id, entry])),
+    [reminderEntries],
+  );
+  const unreadReminderSet = reminderEntries
+    .filter((entry) => entry.surfaced_at_utc_ms !== null && entry.acknowledged_at_utc_ms === null)
+    .map((entry) => entry.id)
+    .sort()
+    .join(',');
+  useEffect(() => {
+    if (unreadReminderSet === '') {
+      acknowledgedReminderSetRef.current = '';
+      return;
+    }
+    if (
+      activeFilter.type !== 'reminders' ||
+      acknowledgedReminderSetRef.current === unreadReminderSet
+    ) return;
+    acknowledgedReminderSetRef.current = unreadReminderSet;
+    void acknowledgeDue().catch(() => {
+      acknowledgedReminderSetRef.current = '';
+    });
+  }, [acknowledgeDue, activeFilter.type, unreadReminderSet]);
   const bulkActions = useBulkNoteActions({
     archiveNotes: noteMutations.archiveNotes,
     archiveTaggedNotes: noteMutations.archiveTaggedNotes,
@@ -159,6 +191,7 @@ function KeeperApp() {
                 key={filterKey(activeFilter)}
                 searchInputRef={searchInputRef}
                 displayedNotes={displayedNotes}
+                remindersByNoteId={remindersByNoteId}
                 selectedNoteIds={selectedNoteIds}
                 setSelectedNoteIds={setSelectedNoteIds}
                 autoApplyActiveTag={autoApplyActiveTag}
@@ -218,6 +251,7 @@ const inboxRoute = createRoute({ getParentRoute: () => rootRoute, path: 'inbox',
 const untaggedRoute = createRoute({ getParentRoute: () => rootRoute, path: 'untagged', component: KeeperApp });
 const archiveRoute = createRoute({ getParentRoute: () => rootRoute, path: 'archive', component: KeeperApp });
 const linksRoute = createRoute({ getParentRoute: () => rootRoute, path: 'links', component: KeeperApp });
+const remindersRoute = createRoute({ getParentRoute: () => rootRoute, path: 'reminders', component: KeeperApp });
 const duplicatesRoute = createRoute({ getParentRoute: () => rootRoute, path: 'duplicates', component: KeeperApp });
 const trashRoute = createRoute({ getParentRoute: () => rootRoute, path: 'trash', component: KeeperApp });
 const shareRoute = createRoute({ getParentRoute: () => rootRoute, path: 'share', component: KeeperApp });
@@ -240,6 +274,7 @@ const routeTree = rootRoute.addChildren([
   untaggedRoute,
   archiveRoute,
   linksRoute,
+  remindersRoute,
   duplicatesRoute,
   trashRoute,
   shareRoute,

@@ -13,19 +13,19 @@ export function useKeeperRouteState() {
     select: (state) => typeof state.location.search.q === 'string' ? state.location.search.q : '',
   });
 
-  const navigateToFilter = (filter: FilterType) => {
+  const navigateToFilter = (filter: FilterType, clearSearch = false) => {
     if (filter.type === 'tag') {
       void navigate({
         to: '/tag/$tagName',
         params: { tagName: filter.tagName },
-        search: (previousSearch) => previousSearch,
+        search: (previousSearch) => clearSearch ? {} : previousSearch,
       });
       return;
     }
 
     void navigate({
       to: filterToPath(filter),
-      search: (previousSearch) => previousSearch,
+      search: (previousSearch) => clearSearch ? {} : previousSearch,
     });
   };
 

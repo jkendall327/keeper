@@ -37,6 +37,7 @@ interface NoteModalTagsProps {
   tagInputRef: RefObject<HTMLInputElement | null>;
   actions: NoteModalActions;
   isTrashView?: boolean;
+  disabled?: boolean;
 }
 
 export function NoteModalTags({
@@ -49,9 +50,10 @@ export function NoteModalTags({
   tagInputRef,
   actions,
   isTrashView,
+  disabled = false,
 }: NoteModalTagsProps) {
   return (
-    <div className={styles.tags}>
+    <div className={styles.tags} inert={disabled}>
       <h4 className={styles.title}>Tags</h4>
       <div className={styles.list}>
         {note.tags.map((tag) => (

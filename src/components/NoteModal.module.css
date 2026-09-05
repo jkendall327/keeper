@@ -178,3 +178,32 @@
     display: flex;
   }
 }
+
+.navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: inherit;
+  font-size: 0.8rem;
+}
+
+.navigation button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 36px;
+  padding: 4px 6px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.navigation button:hover:not(:disabled) { background: var(--color-accent-muted); }
+.navigation button:disabled { opacity: 0.35; cursor: default; }
+.navigation button:focus-visible { outline: 2px solid var(--color-accent); }
+.navigationError { color: var(--color-danger); font-size: 0.85rem; }

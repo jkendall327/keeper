@@ -12,14 +12,14 @@ it('clears bulk selection when the search query changes', async () => {
   await renderApp();
 
   await user.keyboard('{Control>}');
-  await user.click(await screen.findByText('Alpha selected note'));
+  await user.click(await screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === 'Alpha selected note'));
   await user.click(screen.getByText('Beta selected note'));
   await user.keyboard('{/Control}');
   expect(screen.getByText('2 selected')).toBeInTheDocument();
 
   await user.type(screen.getByPlaceholderText(/Search notes/), 'Alpha');
 
-  expect(await screen.findByText('Alpha selected note')).toBeInTheDocument();
+  expect(await screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === 'Alpha selected note')).toBeInTheDocument();
   expect(screen.queryByText('2 selected')).not.toBeInTheDocument();
   expect(screen.queryByText('Export')).not.toBeInTheDocument();
 });

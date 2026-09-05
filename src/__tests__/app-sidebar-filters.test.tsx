@@ -15,7 +15,7 @@ it('searches only trashed notes while the Trash view is active', async () => {
   const searchInput = await screen.findByPlaceholderText(/Search notes/);
   await user.type(searchInput, 'Shared search term');
 
-  expect(await screen.findByText('Shared search term in trash')).toBeInTheDocument();
+  expect(await screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === 'Shared search term in trash')).toBeInTheDocument();
   expect(screen.queryByText('Shared search term in inbox')).not.toBeInTheDocument();
 });
 
@@ -109,7 +109,7 @@ it('opens filter and search state from the URL', async () => {
   await renderApp('/tag/deep?q=work');
 
   expect(await screen.findByDisplayValue('work')).toBeInTheDocument();
-  expect(await screen.findByText('Deep linked work note')).toBeInTheDocument();
+  expect(await screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === 'Deep linked work note')).toBeInTheDocument();
   expect(screen.queryByText('Plain unlinked note')).not.toBeInTheDocument();
 });
 
@@ -210,7 +210,7 @@ it('archives tagged notes from the cleanup button', async () => {
   await user.keyboard('{Enter}');
   await user.type(input, 'Plain inbox note');
   await user.keyboard('{Enter}');
-  await screen.findByText('Plain inbox note');
+  await screen.findByText((_, element) => element?.tagName === 'P' && element.textContent === 'Plain inbox note');
 
   await user.click(await screen.findByText('Tagged inbox note'));
   const tagInput = await screen.findByPlaceholderText('Add tag...');
@@ -227,7 +227,7 @@ it('archives tagged notes from the cleanup button', async () => {
   await user.click(screen.getByText('Inbox'));
   const searchInput = screen.getByPlaceholderText(/Search notes/);
   await user.type(searchInput, 'Plain');
-  expect(screen.getByText('Plain inbox note')).toBeInTheDocument();
+  expect(screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === 'Plain inbox note')).toBeInTheDocument();
   expect(screen.queryByText('Tagged inbox note')).not.toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: 'Clean up notes' }));
@@ -236,7 +236,7 @@ it('archives tagged notes from the cleanup button', async () => {
   await waitFor(() => {
     expect(screen.queryByText('Tagged inbox note')).not.toBeInTheDocument();
   });
-  expect(screen.getByText('Plain inbox note')).toBeInTheDocument();
+  expect(screen.getByText((_, element) => element?.tagName === 'P' && element.textContent === 'Plain inbox note')).toBeInTheDocument();
   expect(screen.getByText('0 matched, 1 archived')).toBeInTheDocument();
 
   await user.click(screen.getByRole('button', { name: /^Archive$/ }));

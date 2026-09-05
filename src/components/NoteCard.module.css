@@ -181,6 +181,9 @@
 }
 
 .tag {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 3px;
@@ -225,3 +228,7 @@
     background: #f8f8ff;
   }
 }
+
+.tag:hover { filter: brightness(1.2); }
+.tag:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.card mark { background: #ffe08a; color: #302300; border-radius: 2px; }

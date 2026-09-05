@@ -7,7 +7,7 @@ import { Icon } from './Icon.tsx';
 import { NoteGrid } from './NoteGrid.tsx';
 import { NoteModalHost, type NoteModalHostHandle } from './NoteModalHost.tsx';
 import { QuickAdd } from './QuickAdd.tsx';
-import type { CreateNoteInput, NoteId, NoteWithTags, Reminder } from '../db/types.ts';
+import type { CreateNoteInput, NoteId, NoteWithTags, Reminder, Tag } from '../db/types.ts';
 import styles from './NotesPanel.module.css';
 
 interface NotesPanelProps {
@@ -86,6 +86,17 @@ export function NotesPanel({
     noteModalRef.current?.open(note.id);
   }, []);
 
+  const handleTagSelect = (tag: Tag) => {
+    clearSelection();
+    navigateToFilter({ type: 'tag', tagId: tag.id, tagName: tag.name }, true);
+  };
+  const preserveOrder = activeFilter.type === 'duplicates' || isRemindersView;
+  const orderedNotes = preserveOrder ? displayedNotes : [
+    ...displayedNotes.filter((note) => note.pinned && !note.archived),
+    ...displayedNotes.filter((note) => !note.pinned && !note.archived),
+    ...displayedNotes.filter((note) => note.archived),
+  ];
+
   const topContent = useMemo(() => (
     <>
       {searchQuery.trim() !== '' && (
@@ -114,6 +125,8 @@ export function NotesPanel({
     <>
       <NoteGrid
         notes={displayedNotes}
+        searchQuery={searchQuery}
+        onTagSelect={handleTagSelect}
         remindersByNoteId={remindersByNoteId}
         allTags={allTags}
         onSelect={handleNoteSelect}
@@ -143,7 +156,7 @@ export function NotesPanel({
       )}
       <NoteModalHost
         ref={noteModalRef}
-        displayedNotes={displayedNotes}
+        displayedNotes={orderedNotes}
         remindersByNoteId={remindersByNoteId}
         allTags={allTags}
         noteCommands={noteCommands}

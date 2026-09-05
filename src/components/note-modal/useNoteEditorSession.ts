@@ -128,10 +128,10 @@ export function useNoteEditorSession({
   const commitProspectiveTags = async () => {
     clearTagBlurTimeout();
     const tagNames = prospectiveTagNames();
-    dispatch({ type: 'clearProspectiveTags' });
     for (const tagName of tagNames) {
       await noteCommands.addTag(note.id, tagName);
     }
+    dispatch({ type: 'clearProspectiveTags' });
   };
 
   const commitNonEmptyTextChanges = async () => {
@@ -244,6 +244,7 @@ export function useNoteEditorSession({
     patchTitle: (title: string) => { dispatch({ type: 'patchTitle', title }); },
     patchBody: (body: string) => { dispatch({ type: 'patchBody', body }); },
     close,
+    commit,
     archiveAndClose,
     deleteAndClose,
     pin,

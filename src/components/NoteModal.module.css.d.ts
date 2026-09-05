@@ -7,6 +7,8 @@ declare const styles: {
   readonly "header": string;
   readonly "imagePreviewButton": string;
   readonly "livePreview": string;
+  readonly "navigation": string;
+  readonly "navigationError": string;
   readonly "noteId": string;
   readonly "panel": string;
   readonly "titleGroup": string;

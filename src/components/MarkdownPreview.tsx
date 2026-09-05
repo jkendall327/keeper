@@ -1,11 +1,13 @@
 import { useRef, useEffect } from 'react';
 import { clsx } from 'clsx';
 import { markdown } from '@motioneffector/markdown';
+import { highlightHtml } from '../utils/search-highlights.ts';
 import { escapeHtml } from '../utils/html.ts';
 import styles from './MarkdownPreview.module.css';
 
 interface MarkdownPreviewProps {
   content: string;
+  searchQuery?: string;
   onCheckboxToggle?: (newContent: string) => void;
   className?: string;
 }
@@ -109,9 +111,10 @@ export function MarkdownPreview({
   content,
   onCheckboxToggle,
   className = '',
+  searchQuery = '',
 }: MarkdownPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const html = renderPreview(content);
+  const html = highlightHtml(renderPreview(content), searchQuery);
 
   // Add checkbox interactivity
   useEffect(() => {
@@ -144,7 +147,8 @@ export function MarkdownPreview({
     const handlers: (() => void)[] = [];
     checkboxes.forEach((checkbox, index) => {
       checkbox.removeAttribute('disabled');
-      const handler = () => {
+      const handler = (event: Event) => {
+        event.stopPropagation();
         handleCheckboxClick(index);
       };
       checkbox.addEventListener('click', handler);
@@ -156,7 +160,7 @@ export function MarkdownPreview({
     return () => {
       handlers.forEach((cleanup) => { cleanup(); });
     };
-  }, [content, onCheckboxToggle]);
+  }, [content, onCheckboxToggle, html]);
 
   return (
     <div

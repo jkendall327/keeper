@@ -4,6 +4,7 @@ import { tagDisplayIcon, type NoteWithTags, type Reminder, type Tag } from '../d
 import { formatReminderDateTime } from '../utils/reminders.ts';
 import { Icon } from './Icon.tsx';
 import { MarkdownPreview } from './MarkdownPreview.tsx';
+import { highlightText } from '../utils/search-highlights.ts';
 import { NoteActions } from './NoteActions.tsx';
 import { TagApplier } from './TagApplier.tsx';
 import { selectNotePreviewImage, type SelectedPreviewImage } from './link-preview-selection.ts';
@@ -18,6 +19,8 @@ interface NoteCardProps {
   note: NoteWithTags;
   reminder: Reminder | null;
   allTags: Tag[];
+  searchQuery?: string;
+  onTagSelect?: (tag: Tag) => void;
   onSelect: (note: NoteWithTags, e?: React.MouseEvent) => void;
   onSelectionToggle: (note: NoteWithTags) => void;
   onLongPress: (note: NoteWithTags) => void;
@@ -28,7 +31,7 @@ interface NoteCardProps {
   isTrashView?: boolean;
 }
 
-export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isMobile, isTrashView }: NoteCardProps) {
+export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isMobile, isTrashView, searchQuery = '', onTagSelect }: NoteCardProps) {
   const [showTagApplier, setShowTagApplier] = useState(false);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const closeTagApplier = () => { setShowTagApplier(false); };
@@ -44,6 +47,7 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('button, a, input') !== null) return;
     const touch = e.touches[0];
     if (touch === undefined) return;
     touchStart.current = { x: touch.clientX, y: touch.clientY };
@@ -145,7 +149,7 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
           </button>
         </div>
       )}
-      {note.title !== '' && <h3 className={styles.title}>{note.title}</h3>}
+      {note.title !== '' && <h3 className={styles.title}>{highlightText(note.title, searchQuery)}</h3>}
       {(() => {
         const previewImage = selectNotePreviewImage(note, note.body, showLinkPreviews, note.title);
 
@@ -164,6 +168,7 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
             )}
             <MarkdownPreview
               content={note.body}
+              searchQuery={searchQuery}
               onCheckboxToggle={handleCheckboxToggle}
             />
           </div>
@@ -172,10 +177,20 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
       {note.tags.length > 0 && (
         <div className={styles.tags}>
           {note.tags.map((tag) => (
-            <span key={tag.id} className={styles.tag} data-testid={`note-card-tag-${tag.name}`}>
+            <button
+              key={tag.id}
+              type="button"
+              className={styles.tag}
+              data-testid={`note-card-tag-${tag.name}`}
+              aria-label={`Show notes tagged ${tag.name}`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onTagSelect?.(tag);
+              }}
+            >
               <Icon name={tagDisplayIcon(tag)} size={14} />
               {tag.name}
-            </span>
+            </button>
           ))}
         </div>
       )}

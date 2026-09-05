@@ -127,36 +127,96 @@ it('encodes tag names in the URL path', async () => {
   });
 });
 
-it('opens the mobile sidebar from a left-edge swipe', async () => {
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: query === '(max-width: 768px)',
-    media: query,
-    onchange: null,
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
-    addListener: vi.fn(),
-    removeListener: vi.fn(),
-    dispatchEvent: vi.fn(),
-  }));
+describe('mobile sidebar gestures', () => {
+  async function setupSwipe() {
+    vi.stubGlobal('innerWidth', 390);
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query === '(max-width: 768px)', media: query,
+      addEventListener: vi.fn(), removeEventListener: vi.fn(),
+    }));
+    await renderApp();
+    const target = await screen.findByLabelText('Toggle sidebar');
+    vi.spyOn(getSidebar(), 'getBoundingClientRect').mockReturnValue({ width: 240 } as DOMRect);
+    // happy-dom does not implement native pointer capture or layout.
+    const app = target.closest('header')?.parentElement;
+    if (app === null || app === undefined) throw new Error('Missing app');
+    app.setPointerCapture = vi.fn();
+    app.hasPointerCapture = () => false;
+    const point = (x: number, y = 200, pointerId = 1) => ({
+      clientX: x, clientY: y, pointerId, pointerType: 'touch', isPrimary: true,
+    });
+    return { target, point, app };
+  }
 
-  await renderApp();
-  const toggleButton = await screen.findByLabelText('Toggle sidebar');
-  expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
-
-  fireEvent.pointerDown(toggleButton, {
-    clientX: 36,
-    clientY: 24,
-    pointerId: 1,
-    pointerType: 'touch',
+  it('tracks a swipe from the left quarter and opens on release, then swipes shut from a sidebar button', async () => {
+    const { target, point, app } = await setupSwipe();
+    fireEvent.pointerDown(target, point(90));
+    fireEvent.pointerMove(target, point(160));
+    expect(app.style.getPropertyValue('--sidebar-drag-offset')).toBe('-170px');
+    fireEvent.lostPointerCapture(target, point(160));
+    expect(app.style.getPropertyValue('--sidebar-drag-offset')).toBe('-170px');
+    fireEvent.pointerUp(target, point(160));
+    expect(screen.getByLabelText('Close sidebar')).toBeInTheDocument();
+    const inbox = within(getSidebar()).getByRole('button', { name: /Inbox/ });
+    fireEvent.pointerDown(inbox, point(180));
+    fireEvent.pointerMove(inbox, point(100));
+    expect(app.style.getPropertyValue('--sidebar-drag-offset')).toBe('-80px');
+    fireEvent.pointerUp(inbox, point(100));
+    expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
+    fireEvent.click(target, { detail: 1 });
+    expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
   });
-  fireEvent.pointerMove(toggleButton, {
-    clientX: 86,
-    clientY: 28,
-    pointerId: 1,
-    pointerType: 'touch',
+
+  it('accepts a fresh tap immediately after a swipe while suppressing the swipe click', async () => {
+    const { target, point } = await setupSwipe();
+    fireEvent.pointerDown(target, point(60));
+    fireEvent.pointerMove(target, point(140));
+    fireEvent.pointerUp(target, point(140));
+    fireEvent.click(target, { detail: 1 });
+    expect(screen.getByLabelText('Close sidebar')).toBeInTheDocument();
+
+    const settings = screen.getByLabelText('Open settings');
+    fireEvent.pointerDown(settings, point(100));
+    fireEvent.pointerUp(settings, point(100));
+    fireEvent.click(settings, { detail: 1 });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
-  expect(screen.getByLabelText('Close sidebar')).toBeInTheDocument();
+  it('leaves vertical scrolling alone even when it later moves sideways', async () => {
+    const { target, point } = await setupSwipe();
+    fireEvent.pointerDown(target, point(60));
+    fireEvent.pointerMove(target, point(64, 225));
+    fireEvent.pointerMove(target, point(180, 230));
+    fireEvent.pointerUp(target, point(180, 230));
+    expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
+  });
+
+  it('ignores swipes outside the starting area and inside text fields', async () => {
+    const { target, point } = await setupSwipe();
+    for (const [element, x] of [[target, 150], [screen.getByPlaceholderText(/Search notes/), 30]] as const) {
+      fireEvent.pointerDown(element, point(x));
+      fireEvent.pointerMove(element, point(x + 100));
+      fireEvent.pointerUp(element, point(x + 100));
+      expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
+    }
+  });
+
+  it('reverts cancelled drags and short pulls without toggling', async () => {
+    const { target, point } = await setupSwipe();
+    fireEvent.pointerDown(target, point(60));
+    fireEvent.pointerMove(target, point(140));
+    fireEvent.pointerCancel(target, point(140));
+    expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
+    fireEvent.pointerDown(target, point(60));
+    fireEvent.pointerMove(target, point(75));
+    fireEvent.pointerUp(target, point(75));
+    expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
+    fireEvent.pointerDown(target, point(60));
+    fireEvent.pointerMove(target, point(140));
+    fireEvent.pointerDown(target, { ...point(160, 200, 2), isPrimary: false });
+    fireEvent.pointerUp(target, point(140));
+    expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
+  });
 });
 
 it('updates browser history when switching filters', async () => {

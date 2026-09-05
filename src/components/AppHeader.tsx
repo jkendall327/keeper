@@ -5,7 +5,7 @@ import { SearchBar } from './SearchBar.tsx';
 import { TagApplier } from './TagApplier.tsx';
 import type { useBulkNoteActions } from '../hooks/useBulkNoteActions.ts';
 import { useKeeperRouteState } from '../hooks/useKeeperRouteState.ts';
-import { useTags } from '../hooks/useKeeperQuery.ts';
+import { useNoteMutations, useTags } from '../hooks/useKeeperQuery.ts';
 import type { NoteId } from '../db/types.ts';
 import styles from './AppHeader.module.css';
 
@@ -29,6 +29,8 @@ export function AppHeader({
   searchInputRef,
 }: AppHeaderProps) {
   const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
+  const { deduplicateNotes, deduplicating } = useNoteMutations();
+  const [deduplicateStatus, setDeduplicateStatus] = useState('');
   const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
   const { data: allTags } = useTags();
   const { activeFilter, searchQuery, searchNavigationKey, setSearchQuery } = useKeeperRouteState();
@@ -59,6 +61,19 @@ export function AppHeader({
     clearSelection();
   };
 
+  const handleDeduplicate = async () => {
+    setDeduplicateStatus('');
+    try {
+      const { removedNoteCount } = await deduplicateNotes();
+      clearSelection();
+      setDeduplicateStatus(removedNoteCount === 0
+        ? 'No duplicates found.'
+        : `Moved ${String(removedNoteCount)} duplicate${removedNoteCount === 1 ? '' : 's'} to Trash.`);
+    } catch {
+      setDeduplicateStatus('Could not deduplicate notes. Please try again.');
+    }
+  };
+
   return (
     <header className={styles.header}>
       {isMobile && (
@@ -85,6 +100,22 @@ export function AppHeader({
       <div className={styles.actions}>
         {selectedNoteIds.size > 0 && (
           <span className={styles.bulkCount}>{selectedNoteIds.size} selected</span>
+        )}
+        {activeFilter.type === 'duplicates' && (
+          <>
+            {deduplicateStatus !== '' && (
+              <span className={styles.status} role="status">{deduplicateStatus}</span>
+            )}
+            <button
+              className={styles.actionButton}
+              onClick={() => { void handleDeduplicate(); }}
+              title="Deduplicate all notes"
+              aria-label="Deduplicate all notes"
+              disabled={deduplicating}
+            >
+              {isMobile ? <Icon name="merge" size={20} /> : deduplicating ? 'Deduplicating…' : 'Deduplicate'}
+            </button>
+          </>
         )}
         {cleanupStatus !== '' && (
           <span className={styles.status} role="status">{cleanupStatus}</span>

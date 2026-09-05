@@ -3,7 +3,7 @@ import type { KeeperDBContext } from "./context.ts";
 
 export function createSmartViewMethods(ctx: KeeperDBContext): Pick<
   KeeperDB,
-  "getUntaggedNotes" | "getLinkedNotes" | "getDuplicateNotes" | "getNotesForTag" | "getArchivedNotes"
+  "getUntaggedNotes" | "getLinkedNotes" | "getDuplicateNotes" | "deduplicateNotes" | "getNotesForTag" | "getArchivedNotes"
 > {
   const { db, rowToNote, withTagsBatch } = ctx;
 
@@ -24,6 +24,33 @@ export function createSmartViewMethods(ctx: KeeperDBContext): Pick<
          ORDER BY archived ASC, pinned DESC, updated_at DESC, rowid DESC`,
       );
       return Promise.resolve(withTagsBatch(rows.map(rowToNote)));
+    },
+
+    deduplicateNotes(): Promise<{ removedNoteCount: number }> {
+      const removedNoteCount = db.transaction(() => {
+        // Rank entire groups once, so groups of three or more keep one survivor.
+        const rows = db.query(
+          `SELECT id, FIRST_VALUE(id) OVER (
+             PARTITION BY body ORDER BY created_at ASC, RANDOM()
+           ) AS canonical_id
+           FROM notes WHERE trashed = 0`,
+        );
+        let removed = 0;
+        for (const row of rows) {
+          const id = ctx.rowString(row, "id");
+          const canonicalId = ctx.rowString(row, "canonical_id");
+          if (id === canonicalId) continue;
+          db.run(
+            `INSERT OR IGNORE INTO note_tags (note_id, tag_id)
+             SELECT ?, tag_id FROM note_tags WHERE note_id = ?`,
+            [canonicalId, id],
+          );
+          db.run("UPDATE notes SET trashed = 1 WHERE id = ?", [id]);
+          removed++;
+        }
+        return removed;
+      });
+      return Promise.resolve({ removedNoteCount });
     },
 
     getDuplicateNotes(): Promise<NoteWithTags[]> {

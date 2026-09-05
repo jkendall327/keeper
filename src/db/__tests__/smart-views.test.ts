@@ -18,6 +18,67 @@ describe('Smart Views', () => {
     });
   });
 
+  describe('deduplicateNotes', () => {
+    it('keeps the oldest creation, merges tags across whole groups, and ignores Trash', async () => {
+      const oldest = await api.createNote({ title: 'Keep this title', body: 'shared', initialTagNames: ['one'] });
+      const second = await api.createNote({ body: 'shared', initialTagNames: ['two', 'one'] });
+      const third = await api.createNote({ body: 'shared', initialTagNames: ['three'] });
+      await api.toggleArchiveNote(oldest.id);
+      await api.updateNote({ id: oldest.id, title: 'Updated oldest' });
+      const trashed = await api.createNote({ body: 'shared', initialTagNames: ['excluded'] });
+      await api.trashNote(trashed.id);
+      const unique = await api.createNote({ body: 'Shared' });
+      const other = await api.createNote({ body: 'another group' });
+      await api.createNote({ body: 'another group' });
+
+      expect(await api.deduplicateNotes()).toEqual({ removedNoteCount: 3 });
+      const survivor = await api.getNote(oldest.id);
+      expect(survivor).toMatchObject({ title: 'Updated oldest', archived: true, trashed: false });
+      expect(survivor?.tags.map((tag) => tag.name).sort()).toEqual(['one', 'three', 'two']);
+      expect(await api.getNote(second.id)).toMatchObject({ trashed: true });
+      expect(await api.getNote(third.id)).toMatchObject({ trashed: true });
+      expect(await api.getNote(unique.id)).toMatchObject({ trashed: false });
+      expect(await api.getNote(other.id)).toMatchObject({ trashed: false });
+      expect(await api.getDuplicateNotes()).toEqual([]);
+      expect(await api.deduplicateNotes()).toEqual({ removedNoteCount: 0 });
+    });
+
+    it('keeps exactly one note when creation times tie', async () => {
+      const sql = createTestDb();
+      const tiedApi = createKeeperDB({ db: sql, generateId: () => String(++idCounter), now: () => '2025-01-01 00:00:00' });
+      try {
+        for (let i = 0; i < 4; i++) {
+          await tiedApi.createNote({ body: '', initialTagNames: [String(i)] });
+        }
+        expect(await tiedApi.deduplicateNotes()).toEqual({ removedNoteCount: 3 });
+        const survivors = await tiedApi.getAllNotes();
+        expect(survivors).toHaveLength(1);
+        expect(survivors[0]?.tags).toHaveLength(4);
+      } finally {
+        sql.close?.();
+      }
+    });
+
+    it('rolls back tags and all prior removals when any removal fails', async () => {
+      const sql = createTestDb();
+      const failingApi = createKeeperDB({ db: sql, generateId: () => String(++idCounter), now: () => String(timeCounter++) });
+      try {
+        const first = await failingApi.createNote({ body: 'same' });
+        await failingApi.createNote({ body: 'same', initialTagNames: ['two'] });
+        const third = await failingApi.createNote({ body: 'same', initialTagNames: ['three'] });
+        sql.run(`CREATE TRIGGER fail_trash BEFORE UPDATE OF trashed ON notes
+          WHEN NEW.id = '${third.id}' AND NEW.trashed = 1
+          BEGIN SELECT RAISE(ABORT, 'test failure'); END`);
+        await expect(async () => failingApi.deduplicateNotes()).rejects.toThrow('test failure');
+        expect(await failingApi.getTrashedNotes()).toEqual([]);
+        expect((await failingApi.getNote(first.id))?.tags).toEqual([]);
+        expect(await failingApi.getDuplicateNotes()).toHaveLength(3);
+      } finally {
+        sql.close?.();
+      }
+    });
+  });
+
   describe('getUntaggedNotes', () => {
     it('returns notes with no tags', async () => {
       const note1 = await api.createNote({ body: 'untagged' });

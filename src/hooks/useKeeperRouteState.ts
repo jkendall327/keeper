@@ -13,6 +13,10 @@ export function useKeeperRouteState() {
     select: (state) => typeof state.location.search.q === 'string' ? state.location.search.q : '',
   });
 
+  const searchNavigationKey = useRouterState({
+    select: (state) => state.location.state.__TSR_key,
+  });
+
   const navigateToFilter = (filter: FilterType, clearSearch = false) => {
     if (filter.type === 'tag') {
       void navigate({
@@ -40,6 +44,7 @@ export function useKeeperRouteState() {
   return {
     activeFilter,
     searchQuery,
+    searchNavigationKey,
     navigateToFilter,
     setSearchQuery,
   };

@@ -31,7 +31,7 @@ export function AppHeader({
   const [showBulkTagApplier, setShowBulkTagApplier] = useState(false);
   const bulkTagBtnRef = useRef<HTMLButtonElement>(null);
   const { data: allTags } = useTags();
-  const { activeFilter, searchQuery, setSearchQuery } = useKeeperRouteState();
+  const { activeFilter, searchQuery, searchNavigationKey, setSearchQuery } = useKeeperRouteState();
   const isArchiveView = activeFilter.type === 'archive';
   const isTrashView = activeFilter.type === 'trash';
   const {
@@ -75,6 +75,7 @@ export function AppHeader({
           ref={searchInputRef}
           isMobile={isMobile}
           value={searchQuery}
+          navigationKey={searchNavigationKey}
           onChange={(query) => {
             clearSelection();
             return setSearchQuery(query);

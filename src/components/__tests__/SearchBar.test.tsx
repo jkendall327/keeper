@@ -12,18 +12,21 @@ function setupSearch() {
   function Results({ query }: { query: string }) {
     // Suspense deliberately uses a promise to pause a render.
     // eslint-disable-next-line @typescript-eslint/only-throw-error
-    if (query !== '' && !ready) throw pending;
+    if (query.startsWith('h') && !ready) throw pending;
     return <p>Results: {query === '' ? 'all' : query}</p>;
   }
   function Harness() {
     const [query, setQuery] = useState('');
+    const [navigationKey, setNavigationKey] = useState('initial');
     return (
       <>
-        <SearchBar value={query} onChange={(next) => {
+        <SearchBar value={query} navigationKey={navigationKey} onChange={(next) => {
           setQuery(next);
           return Promise.resolve();
         }} />
         <button onClick={() => { startTransition(() => { setQuery('external'); }); }}>Navigate</button>
+        <button onClick={() => { setQuery(''); setNavigationKey('cleared'); }}>External clear</button>
+        <button onClick={() => { setQuery('external'); setNavigationKey('external'); }}>External change</button>
         <Suspense fallback="Loading"><Results query={query} /></Suspense>
       </>
     );
@@ -50,6 +53,19 @@ describe('SearchBar responsiveness', () => {
     expect(screen.getByText('Results: horses')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Navigate'));
     expect(input).toHaveValue('external');
+  });
+
+  it.each(['External clear', 'External change'])('lets %s replace typing while results are still pending', async (action) => {
+    const { input, finish } = setupSearch();
+    fireEvent.change(input, { target: { value: 'horse' } });
+    expect(input).toHaveValue('horse');
+    fireEvent.click(screen.getByText(action));
+    const expected = action === 'External clear' ? '' : 'external';
+    expect(input).toHaveValue(expected);
+    if (expected === '') expect(screen.queryByRole('button', { name: 'Clear search' })).not.toBeInTheDocument();
+    await finish();
+    expect(input).toHaveValue(expected);
+    expect(screen.getByText(`Results: ${expected === '' ? 'all' : expected}`)).toBeInTheDocument();
   });
 
   it.each(['Escape', 'button'])('clears pending typing with %s without restoring an old query', async (method) => {

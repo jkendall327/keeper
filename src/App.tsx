@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState, type PointerEvent } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import {
   Navigate,
   Outlet,
@@ -18,6 +18,7 @@ import {
 } from './hooks/useKeeperQuery.ts';
 import { useBulkNoteActions } from './hooks/useBulkNoteActions.ts';
 import { useExtensionBadge } from './hooks/useExtensionBadge.ts';
+import { useSidebarSwipe } from './hooks/useSidebarSwipe.ts';
 import { useIsMobile } from './hooks/useIsMobile.ts';
 import { useKeeperRouteState } from './hooks/useKeeperRouteState.ts';
 import { useWebShareTarget } from './hooks/useWebShareTarget.ts';
@@ -40,9 +41,6 @@ function filterKey(filter: FilterType) {
   return filter.type === 'tag' ? `tag:${filter.tagName}` : filter.type;
 }
 
-const SIDEBAR_SWIPE_EDGE_WIDTH = 48;
-const SIDEBAR_SWIPE_OPEN_DISTANCE = 48;
-const SIDEBAR_SWIPE_VERTICAL_TOLERANCE = 1.5;
 const EMPTY_REMINDER_MAP = new Map<NoteId, Reminder>();
 
 function KeeperApp() {
@@ -59,7 +57,7 @@ function KeeperApp() {
   const appSettings = useAppSettings();
   const isMobile = useIsMobile();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const sidebarSwipeStart = useRef<{ x: number; y: number; pointerId: number } | null>(null);
+  const sidebarSwipe = useSidebarSwipe(isMobile, sidebarOpen, setSidebarOpen);
   useExtensionBadge({
     enabled: appSettings.extensionBadgeEnabled,
     extensionNoteCreatedCount,
@@ -110,35 +108,6 @@ function KeeperApp() {
 
   const handleSidebarClose = () => { setSidebarOpen(false); };
   const clearSelectedNotes = () => { setSelectedNoteIds(new Set()); };
-  const resetSidebarSwipe = () => {
-    sidebarSwipeStart.current = null;
-  };
-  const handlePointerDown = (event: PointerEvent<HTMLDivElement>) => {
-    if (!isMobile || sidebarOpen || event.pointerType !== 'touch') return;
-    if (event.clientX > SIDEBAR_SWIPE_EDGE_WIDTH) return;
-    sidebarSwipeStart.current = {
-      x: event.clientX,
-      y: event.clientY,
-      pointerId: event.pointerId,
-    };
-  };
-  const handlePointerMove = (event: PointerEvent<HTMLDivElement>) => {
-    const swipeStart = sidebarSwipeStart.current;
-    if (swipeStart?.pointerId !== event.pointerId) return;
-
-    const dx = event.clientX - swipeStart.x;
-    const dy = event.clientY - swipeStart.y;
-    const isHorizontalSwipe = dx > SIDEBAR_SWIPE_OPEN_DISTANCE &&
-      Math.abs(dx) > Math.abs(dy) * SIDEBAR_SWIPE_VERTICAL_TOLERANCE;
-
-    if (isHorizontalSwipe) {
-      setSidebarOpen(true);
-      resetSidebarSwipe();
-    } else if (Math.abs(dy) > SIDEBAR_SWIPE_OPEN_DISTANCE) {
-      resetSidebarSwipe();
-    }
-  };
-
   if (activeFilter.type === 'tag' && activeFilter.tagId === null) {
     return <Navigate to="/inbox" replace search={{}} />;
   }
@@ -146,10 +115,12 @@ function KeeperApp() {
   return (
     <div
       className={styles.app}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={resetSidebarSwipe}
-      onPointerCancel={resetSidebarSwipe}
+      {...sidebarSwipe.handlers}
+      style={sidebarSwipe.drag === null ? undefined : {
+        '--sidebar-drag-offset': `${String(sidebarSwipe.drag.offset)}px`,
+        '--sidebar-drag-transition': 'none',
+        '--sidebar-backdrop-opacity': sidebarSwipe.drag.progress,
+      } as CSSProperties}
     >
       {!isChatView && (
         <AppHeader
@@ -165,7 +136,7 @@ function KeeperApp() {
       <main className={isChatView ? `${styles.main} ${styles.chatMain}` : styles.main}>
         <Suspense fallback={<p className={styles.loading}>Loading...</p>}>
           <AppLayout
-            sidebarOpen={sidebarOpen}
+            sidebarOpen={sidebarOpen || sidebarSwipe.drag !== null}
             onSidebarClose={handleSidebarClose}
             isMobile={isMobile}
             sidebar={(

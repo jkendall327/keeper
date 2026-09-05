@@ -12,9 +12,10 @@ function matchRanges(text: string, query: string, substring: boolean) {
     const offsets: { start: number; end: number }[] = [];
     let originalIndex = 0;
     for (const character of text) {
-      for (let unit = 0; unit < character.toLocaleLowerCase().length; unit++) {
-        offsets.push({ start: originalIndex, end: originalIndex + character.length });
-      }
+      offsets.push(...Array.from(
+        { length: character.toLocaleLowerCase().length },
+        () => ({ start: originalIndex, end: originalIndex + character.length }),
+      ));
       originalIndex += character.length;
     }
     const ranges: { start: number; end: number }[] = [];

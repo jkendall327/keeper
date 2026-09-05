@@ -9,6 +9,7 @@ interface NoteGridProps {
   remindersByNoteId: ReadonlyMap<NoteId, Reminder>;
   allTags: Tag[];
   searchQuery?: string;
+  substringSearch?: boolean;
   onTagSelect?: (tag: Tag) => void;
   onSelect: (note: NoteWithTags) => void;
   noteCommands: NoteCommands;
@@ -35,7 +36,7 @@ const DRAG_THRESHOLD = 5;
 
 export const NoteGrid = memo(function NoteGrid({
   notes, remindersByNoteId, allTags, onSelect, noteCommands, selectedNoteIds, onBulkSelect, onClearSelection,
-  showLinkPreviews, isMobile, isTrashView, preserveOrder = false, topContent, searchQuery = '', onTagSelect,
+  showLinkPreviews, isMobile, isTrashView, preserveOrder = false, topContent, searchQuery = '', substringSearch = false, onTagSelect,
 }: NoteGridProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
@@ -237,6 +238,7 @@ export const NoteGrid = memo(function NoteGrid({
           key={note.id}
           note={note}
           searchQuery={searchQuery}
+          substringSearch={substringSearch}
           {...(onTagSelect === undefined ? {} : { onTagSelect })}
           reminder={remindersByNoteId.get(note.id) ?? null}
           allTags={allTags}
@@ -287,7 +289,8 @@ export const NoteGrid = memo(function NoteGrid({
 }, noteGridPropsEqual);
 
 function noteGridPropsEqual(previous: NoteGridProps, next: NoteGridProps) {
-  return previous.searchQuery === next.searchQuery &&
+  return previous.substringSearch === next.substringSearch &&
+    previous.searchQuery === next.searchQuery &&
     previous.onTagSelect === next.onTagSelect &&
     previous.notes === next.notes &&
     previous.remindersByNoteId === next.remindersByNoteId &&

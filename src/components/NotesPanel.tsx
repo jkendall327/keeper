@@ -126,6 +126,7 @@ export function NotesPanel({
       <NoteGrid
         notes={displayedNotes}
         searchQuery={searchQuery}
+        substringSearch={isRemindersView}
         onTagSelect={handleTagSelect}
         remindersByNoteId={remindersByNoteId}
         allTags={allTags}

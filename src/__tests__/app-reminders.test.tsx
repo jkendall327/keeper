@@ -71,6 +71,32 @@ describe('App reminders', () => {
     expect((await getTestDB().getReminder(note.id))?.acknowledged_at_utc_ms).not.toBeNull();
   });
 
+  it('highlights substring and phrase matches in reminder search', async () => {
+    const note = await getTestDB().createNote({
+      title: 'Seafood dinner',
+      body: 'İ: Buy SEAFOOD and lemons; food for tomorrow.',
+    });
+    const dueAtUtcMs = Date.now() + 60_000;
+    await getTestDB().setReminder({
+      noteId: note.id,
+      dueAtUtcMs,
+      scheduledTimeZone: currentTimeZone(),
+      scheduledLocal: toLocalDateTimeInput(dueAtUtcMs),
+    });
+    await renderApp('/reminders?q=food');
+    await waitFor(() => {
+      expect(Array.from(document.querySelectorAll('[data-note-id] mark'), (mark) => mark.textContent))
+        .toEqual(['food', 'FOOD', 'food']);
+    });
+    const user = userEvent.setup();
+    await user.clear(screen.getByRole('textbox', { name: 'Search notes' }));
+    await user.type(screen.getByRole('textbox', { name: 'Search notes' }), 'food and');
+    await waitFor(() => {
+      expect(Array.from(document.querySelectorAll('[data-note-id] mark'), (mark) => mark.textContent))
+        .toEqual(['FOOD and']);
+    });
+  });
+
   it('refreshes reminder state when the event stream reconnects', async () => {
     const note = await getTestDB().createNote({ body: 'Reconnect reminder' });
     await renderApp();

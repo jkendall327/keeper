@@ -8,6 +8,7 @@ import styles from './MarkdownPreview.module.css';
 interface MarkdownPreviewProps {
   content: string;
   searchQuery?: string;
+  substringSearch?: boolean;
   onCheckboxToggle?: (newContent: string) => void;
   className?: string;
 }
@@ -112,9 +113,10 @@ export function MarkdownPreview({
   onCheckboxToggle,
   className = '',
   searchQuery = '',
+  substringSearch = false,
 }: MarkdownPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const html = highlightHtml(renderPreview(content), searchQuery);
+  const html = highlightHtml(renderPreview(content), searchQuery, substringSearch);
 
   // Add checkbox interactivity
   useEffect(() => {

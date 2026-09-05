@@ -20,6 +20,7 @@ interface NoteCardProps {
   reminder: Reminder | null;
   allTags: Tag[];
   searchQuery?: string;
+  substringSearch?: boolean;
   onTagSelect?: (tag: Tag) => void;
   onSelect: (note: NoteWithTags, e?: React.MouseEvent) => void;
   onSelectionToggle: (note: NoteWithTags) => void;
@@ -31,7 +32,7 @@ interface NoteCardProps {
   isTrashView?: boolean;
 }
 
-export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isMobile, isTrashView, searchQuery = '', onTagSelect }: NoteCardProps) {
+export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isMobile, isTrashView, searchQuery = '', substringSearch = false, onTagSelect }: NoteCardProps) {
   const [showTagApplier, setShowTagApplier] = useState(false);
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const closeTagApplier = () => { setShowTagApplier(false); };
@@ -149,7 +150,7 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
           </button>
         </div>
       )}
-      {note.title !== '' && <h3 className={styles.title}>{highlightText(note.title, searchQuery)}</h3>}
+      {note.title !== '' && <h3 className={styles.title}>{highlightText(note.title, searchQuery, substringSearch)}</h3>}
       {(() => {
         const previewImage = selectNotePreviewImage(note, note.body, showLinkPreviews, note.title);
 
@@ -169,6 +170,7 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
             <MarkdownPreview
               content={note.body}
               searchQuery={searchQuery}
+              substringSearch={substringSearch}
               onCheckboxToggle={handleCheckboxToggle}
             />
           </div>

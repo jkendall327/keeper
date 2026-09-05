@@ -59,7 +59,7 @@ export function NotesPanel({
     searchInputRef,
     isNoteModalOpen,
     navigateToFilter,
-    setSearchQuery,
+    setSearchQuery: (query) => { void setSearchQuery(query); },
     showSettings,
   });
 

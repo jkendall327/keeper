@@ -77,7 +77,7 @@ export function AppHeader({
           value={searchQuery}
           onChange={(query) => {
             clearSelection();
-            setSearchQuery(query);
+            return setSearchQuery(query);
           }}
         />
       </div>

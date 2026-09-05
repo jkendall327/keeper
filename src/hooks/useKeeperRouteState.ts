@@ -30,7 +30,7 @@ export function useKeeperRouteState() {
   };
 
   const setSearchQuery = (query: string) => {
-    void navigate({
+    return navigate({
       to: '.',
       search: (previousSearch) => query === '' ? {} : { ...previousSearch, q: query },
       replace: true,

@@ -22,6 +22,8 @@ export function useSidebarSwipe(isMobile: boolean, isOpen: boolean, setOpen: (op
   };
 
   const onPointerDown = (event: PointerEvent<HTMLDivElement>) => {
+    // A fresh press belongs to a new interaction, not the completed swipe.
+    suppressClickUntil.current = 0;
     // A second finger cancels the drawer gesture so pinch zoom can take over.
     if (swipe.current !== null) {
       reset();

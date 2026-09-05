@@ -167,6 +167,21 @@ describe('mobile sidebar gestures', () => {
     expect(screen.queryByLabelText('Close sidebar')).not.toBeInTheDocument();
   });
 
+  it('accepts a fresh tap immediately after a swipe while suppressing the swipe click', async () => {
+    const { target, point } = await setupSwipe();
+    fireEvent.pointerDown(target, point(60));
+    fireEvent.pointerMove(target, point(140));
+    fireEvent.pointerUp(target, point(140));
+    fireEvent.click(target, { detail: 1 });
+    expect(screen.getByLabelText('Close sidebar')).toBeInTheDocument();
+
+    const settings = screen.getByLabelText('Open settings');
+    fireEvent.pointerDown(settings, point(100));
+    fireEvent.pointerUp(settings, point(100));
+    fireEvent.click(settings, { detail: 1 });
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  });
+
   it('leaves vertical scrolling alone even when it later moves sideways', async () => {
     const { target, point } = await setupSwipe();
     fireEvent.pointerDown(target, point(60));

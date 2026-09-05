@@ -2,11 +2,26 @@ import { createElement } from 'react';
 
 const normalize = (text: string) => text.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
 
-function matchRanges(text: string, query: string, substring: boolean) {
+function createMatcher(query: string, substring: boolean) {
+  const needle = query.trim().toLocaleLowerCase();
+  const terms = Array.from(query.matchAll(/[\p{L}\p{N}\p{Co}]+/gu), (match) => normalize(match[0]));
+  return (text: string) => matchRanges(text, needle, terms, substring);
+}
+
+function matchRanges(text: string, needle: string, terms: string[], substring: boolean) {
   if (substring) {
-    const needle = query.trim().toLocaleLowerCase();
     if (needle === '') return [];
     const haystack = text.toLocaleLowerCase();
+    if (!haystack.includes(needle)) return [];
+    // Most text lowercases without changing its UTF-16 length. In that case
+    // matches already use source offsets, so avoid a per-character offset map.
+    if (haystack.length === text.length) {
+      const ranges: { start: number; end: number }[] = [];
+      for (let start = haystack.indexOf(needle); start !== -1; start = haystack.indexOf(needle, start + needle.length)) {
+        ranges.push({ start, end: start + needle.length });
+      }
+      return ranges;
+    }
     // Lowercasing can expand a character (for example İ). Keep offsets in
     // the original text so highlighted spans cannot shift or drop characters.
     const offsets: { start: number; end: number }[] = [];
@@ -26,7 +41,6 @@ function matchRanges(text: string, query: string, substring: boolean) {
     }
     return ranges;
   }
-  const terms = Array.from(query.matchAll(/[\p{L}\p{N}\p{Co}]+/gu), (match) => normalize(match[0]));
   if (terms.length === 0) return [];
   return Array.from(text.matchAll(/[\p{L}\p{N}\p{M}\p{Co}]+/gu)).flatMap((match) => {
     const token = normalize(match[0]);
@@ -37,10 +51,10 @@ function matchRanges(text: string, query: string, substring: boolean) {
   });
 }
 
-function textParts(text: string, query: string, substring: boolean) {
+function textParts(text: string, match: ReturnType<typeof createMatcher>) {
   const parts: { text: string; highlighted: boolean }[] = [];
   let end = 0;
-  for (const range of matchRanges(text, query, substring)) {
+  for (const range of match(text)) {
     parts.push({ text: text.slice(end, range.start), highlighted: false });
     parts.push({ text: text.slice(range.start, range.end), highlighted: true });
     end = range.end;
@@ -51,7 +65,7 @@ function textParts(text: string, query: string, substring: boolean) {
 
 export function highlightText(text: string, query: string, substring = false) {
   if (query.trim() === '') return text;
-  return textParts(text, query, substring).map((part, index) => part.highlighted
+  return textParts(text, createMatcher(query, substring)).map((part, index) => part.highlighted
     ? createElement('mark', { key: index }, part.text)
     : part.text);
 }
@@ -60,6 +74,7 @@ export function highlightText(text: string, query: string, substring = false) {
 // attributes, or Markdown source.
 export function highlightHtml(html: string, query: string, substring = false): string {
   if (query.trim() === '') return html;
+  const match = createMatcher(query, substring);
   const template = document.createElement('template');
   template.innerHTML = html;
   const walker = document.createTreeWalker(template.content, NodeFilter.SHOW_TEXT);
@@ -67,7 +82,7 @@ export function highlightHtml(html: string, query: string, substring = false): s
   while (walker.nextNode() !== null) nodes.push(walker.currentNode as Text);
   for (const node of nodes) {
     if (node.parentElement?.closest('script, style, mark') != null) continue;
-    const parts = textParts(node.data, query, substring);
+    const parts = textParts(node.data, match);
     if (!parts.some((part) => part.highlighted)) continue;
     node.replaceWith(...parts.map((part) => {
       if (!part.highlighted) return document.createTextNode(part.text);

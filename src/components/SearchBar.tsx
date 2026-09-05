@@ -1,15 +1,32 @@
-import { forwardRef } from 'react';
+import { forwardRef, startTransition, useState } from 'react';
 import { Icon } from './Icon.tsx';
 import styles from './SearchBar.module.css';
 
 interface SearchBarProps {
   isMobile?: boolean;
   value: string;
-  onChange: (query: string) => void;
+  navigationKey: string | undefined;
+  onChange: (query: string) => Promise<void>;
 }
 
 export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
-  function SearchBar({ isMobile = false, value, onChange }, ref) {
+  function SearchBar({ isMobile = false, value, navigationKey, onChange }, ref) {
+    const [draft, setDraft] = useState({ value, navigationKey, text: value });
+    // Reconcile during render so a committed navigation supersedes local typing
+    // before paint. The key also catches a shortcut clearing an already-empty URL.
+    if (draft.value !== value || draft.navigationKey !== navigationKey) {
+      setDraft({ value, navigationKey, text: value });
+    }
+    const inputValue = draft.value === value && draft.navigationKey === navigationKey
+      ? draft.text
+      : value;
+    const changeQuery = (query: string) => {
+      setDraft({ value, navigationKey, text: query });
+      startTransition(async () => {
+        await onChange(query);
+      });
+    };
+
     return (
       <div className={styles.bar}>
         <input
@@ -18,19 +35,19 @@ export const SearchBar = forwardRef<HTMLInputElement, SearchBarProps>(
           className={styles.barInput}
           placeholder={isMobile ? 'Search notes...' : 'Search notes... (Ctrl+/)'}
           aria-label="Search notes"
-          value={value}
-          onChange={(e) => { onChange(e.target.value); }}
+          value={inputValue}
+          onChange={(e) => { changeQuery(e.target.value); }}
           onKeyDown={(e) => {
-            if (e.key === 'Escape' && value !== '') {
+            if (e.key === 'Escape' && inputValue !== '') {
               e.preventDefault();
-              onChange('');
+              changeQuery('');
             }
           }}
         />
-        {value !== '' && (
+        {inputValue !== '' && (
           <button
             className={styles.clear}
-            onClick={() => { onChange(''); }}
+            onClick={() => { changeQuery(''); }}
             aria-label="Clear search"
           >
             <Icon name="close" size={18} />

@@ -21,6 +21,47 @@ const markdownOptions = {
   gfm: true,
 } as const;
 
+// Keep previews across tag switches, where cards unmount and React's component
+// memoization is lost. Bound both entry count and retained source/HTML size.
+const previewCache = new Map<string, string>();
+const MAX_CACHED_PREVIEWS = 2048;
+const MAX_CACHE_CHARACTERS = 2_000_000;
+let cachedCharacters = 0;
+
+function renderPreview(content: string): string {
+  const cached = previewCache.get(content);
+  if (cached !== undefined) {
+    previewCache.delete(content);
+    previewCache.set(content, cached);
+    return cached;
+  }
+
+  let rawHtml: string;
+  try {
+    rawHtml = markdown(content, markdownOptions);
+  } catch (err: unknown) {
+    console.warn('Markdown rendering failed, showing raw content:', err);
+    return escapeHtml(content);
+  }
+
+  let html = rawHtml.replaceAll(/media:\/\/([a-f0-9-]+)/gi, '/api/media/$1');
+  html = html.replaceAll(' target="_blank"', '');
+  html = html.replaceAll('<a href=', '<a target="_blank" rel="noopener noreferrer" href=');
+
+  const size = content.length + html.length;
+  if (size <= MAX_CACHE_CHARACTERS) {
+    while (previewCache.size >= MAX_CACHED_PREVIEWS || cachedCharacters + size > MAX_CACHE_CHARACTERS) {
+      const oldest = previewCache.entries().next().value;
+      if (oldest === undefined) break;
+      previewCache.delete(oldest[0]);
+      cachedCharacters -= oldest[0].length + oldest[1].length;
+    }
+    previewCache.set(content, html);
+    cachedCharacters += size;
+  }
+  return html;
+}
+
 function taskCheckboxMarkers(content: string): TaskCheckboxMarker[] {
   const candidates: TaskCheckboxMarker[] = [];
   const checkboxPattern = /\[( |x|X)\](?=[ \t]+\S)/g;
@@ -70,22 +111,7 @@ export function MarkdownPreview({
   className = '',
 }: MarkdownPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  let rawHtml: string;
-  try {
-    rawHtml = markdown(content, markdownOptions);
-  } catch (err: unknown) {
-    console.warn('Markdown rendering failed, showing raw content:', err);
-    rawHtml = escapeHtml(content);
-  }
-
-  let html = rawHtml.replaceAll(
-    /media:\/\/([a-f0-9-]+)/gi,
-    '/api/media/$1',
-  );
-  // Ensure all links open in a new tab with safe rel.
-  // First strip any target the library already added, then add uniformly.
-  html = html.replaceAll(' target="_blank"', '');
-  html = html.replaceAll('<a href=', '<a target="_blank" rel="noopener noreferrer" href=');
+  const html = renderPreview(content);
 
   // Add checkbox interactivity
   useEffect(() => {
@@ -95,9 +121,13 @@ export function MarkdownPreview({
     const checkboxes = container.querySelectorAll<HTMLInputElement>(
       'input[type="checkbox"]',
     );
-    const markers = taskCheckboxMarkers(content);
+    // Mapping rendered tasks back to source requires another Markdown parse.
+    // Defer that work until a task is actually toggled, rather than doing it
+    // for every checklist in a large note grid when the view opens.
+    let markers: TaskCheckboxMarker[] | undefined;
 
     const handleCheckboxClick = (index: number) => {
+      markers ??= taskCheckboxMarkers(content);
       const targetMatch = markers[index] ?? null;
 
       if (targetMatch !== null) {

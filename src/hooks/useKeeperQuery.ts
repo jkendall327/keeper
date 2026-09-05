@@ -269,6 +269,7 @@ export function useNoteMutations() {
   const deleteNote = useMutation({ mutationFn: (id: NoteId) => client.notes.delete(id), onSuccess: invalidateNotes });
   const deleteNotes = useMutation({ mutationFn: (ids: NoteId[]) => client.notes.deleteMany(ids), onSuccess: invalidateNotes });
   const archiveNotes = useMutation({ mutationFn: (ids: NoteId[]) => client.notes.archiveMany(ids), onSuccess: invalidateNotes });
+  const deduplicateNotes = useMutation({ mutationFn: () => client.notes.deduplicate(), onSuccess: invalidateNotesAndTags });
   const archiveTaggedNotes = useMutation({ mutationFn: () => client.notes.archiveTagged(), onSuccess: invalidateNotes });
   const trashNote = useMutation({ mutationFn: (id: NoteId) => client.notes.trash(id), onSuccess: invalidateNotes });
   const trashNotes = useMutation({ mutationFn: (ids: NoteId[]) => client.notes.trashMany(ids), onSuccess: invalidateNotes });
@@ -303,6 +304,8 @@ export function useNoteMutations() {
     deleteNote: deleteNote.mutateAsync,
     deleteNotes: deleteNotes.mutateAsync,
     archiveNotes: archiveNotes.mutateAsync,
+    deduplicateNotes: deduplicateNotes.mutateAsync,
+    deduplicating: deduplicateNotes.isPending,
     archiveTaggedNotes: archiveTaggedNotes.mutateAsync,
     trashNote: trashNote.mutateAsync,
     trashNotes: trashNotes.mutateAsync,

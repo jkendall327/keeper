@@ -71,6 +71,35 @@ it('Duplicates sidebar filter shows notes with matching bodies', async () => {
   });
 });
 
+it('deduplicates all groups from the header and refreshes the view', async () => {
+  const user = userEvent.setup();
+  const db = getTestDB();
+  await db.createNote({ body: 'same body', initialTagNames: ['one'] });
+  await db.createNote({ body: 'same body', initialTagNames: ['two'] });
+  await renderApp('/duplicates');
+  await user.click(await screen.findByRole('button', { name: 'Deduplicate all notes' }));
+  expect(await screen.findByText('Moved 1 duplicate to Trash.')).toBeInTheDocument();
+  expect(screen.queryByText('same body')).not.toBeInTheDocument();
+  expect(await db.getTrashedNotes()).toHaveLength(1);
+  const survivors = await db.getAllNotes();
+  expect(survivors).toHaveLength(1);
+  expect(survivors[0]?.tags.map((tag) => tag.name).sort()).toEqual(['one', 'two']);
+  await user.click(screen.getByRole('button', { name: 'Deduplicate all notes' }));
+  expect(await screen.findByText('No duplicates found.')).toBeInTheDocument();
+});
+
+it('reports deduplication failure without removing notes', async () => {
+  const user = userEvent.setup();
+  const db = getTestDB();
+  await db.createNote({ body: 'same body' });
+  await db.createNote({ body: 'same body' });
+  vi.spyOn(db, 'deduplicateNotes').mockRejectedValue(new Error('test failure'));
+  await renderApp('/duplicates');
+  await user.click(await screen.findByRole('button', { name: 'Deduplicate all notes' }));
+  expect(await screen.findByText('Could not deduplicate notes. Please try again.')).toBeInTheDocument();
+  expect(screen.getAllByText('same body')).toHaveLength(2);
+});
+
 it('tag sidebar filter shows notes with the selected tag', async () => {
   const user = userEvent.setup();
   await renderApp();

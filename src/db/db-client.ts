@@ -42,6 +42,7 @@ export interface KeeperClient {
     delete(id: NoteId): Promise<void>;
     deleteMany(ids: NoteId[]): Promise<void>;
     archiveMany(ids: NoteId[]): Promise<void>;
+    deduplicate(): Promise<{ removedNoteCount: number }>;
     archiveTagged(): Promise<ArchiveTaggedNotesResult>;
     trash(id: NoteId): Promise<void>;
     trashMany(ids: NoteId[]): Promise<void>;
@@ -153,6 +154,7 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
       delete: (id) => fetchVoid(fetchFn, `/api/notes/${id}`, { method: 'DELETE' }),
       deleteMany: (ids) => fetchVoid(fetchFn, '/api/notes/delete', jsonOpts('POST', { ids })),
       archiveMany: (ids) => fetchVoid(fetchFn, '/api/notes/archive', jsonOpts('POST', { ids })),
+      deduplicate: () => fetchJson<{ removedNoteCount: number }>(fetchFn, '/api/notes/deduplicate', { method: 'POST' }),
       archiveTagged: () => fetchJson<ArchiveTaggedNotesResult>(fetchFn, '/api/notes/archive-tagged', { method: 'POST' }),
       trash: (id) => fetchVoid(fetchFn, `/api/notes/${id}/trash`, { method: 'POST' }),
       trashMany: (ids) => fetchVoid(fetchFn, '/api/notes/trash', jsonOpts('POST', { ids })),

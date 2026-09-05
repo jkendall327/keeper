@@ -249,6 +249,7 @@ export interface KeeperDB {
   getUntaggedNotes(): Promise<NoteWithTags[]>;
   getLinkedNotes(): Promise<NoteWithTags[]>;
   getDuplicateNotes(): Promise<NoteWithTags[]>;
+  deduplicateNotes(): Promise<{ removedNoteCount: number }>;
   getNotesForTag(tagId: number): Promise<NoteWithTags[]>;
   getArchivedNotes(): Promise<NoteWithTags[]>;
 

@@ -131,6 +131,12 @@ export function registerRoutes(
     },
   );
 
+  app.post("/api/notes/deduplicate", async () => {
+    const result = await db.deduplicateNotes();
+    reminderScheduler.scheduleChanged();
+    return result;
+  });
+
   app.post("/api/notes/archive-tagged", async () => {
     return db.archiveTaggedNotes();
   });

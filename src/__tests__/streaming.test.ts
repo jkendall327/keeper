@@ -467,6 +467,7 @@ function localKeeperClient(db: KeeperDB): KeeperClient {
       delete: (id) => db.deleteNote(id),
       deleteMany: (ids) => db.deleteNotes(ids),
       archiveMany: (ids) => db.archiveNotes(ids),
+      deduplicate: () => db.deduplicateNotes(),
       archiveTagged: () => db.archiveTaggedNotes(),
       trash: (id) => db.trashNote(id),
       trashMany: (ids) => db.trashNotes(ids),

@@ -428,3 +428,22 @@ function setElementRect(element: Element, rect: { left: number; top: number; rig
     toJSON: () => ({}),
   });
 }
+
+it.each([6, 13, 26])('refreshes the inbox once when cleanup archives %i notes, then skips a no-op refresh', async (size) => {
+  const db = getTestDB();
+  await db.createAutoTagRule({ pattern: 'cleanup\\.example', tagNames: ['web'] });
+  for (let i = 0; i < size; i++) {
+    await db.createNote({ body: `https://cleanup.example/${String(i)}` });
+    await db.createNote({ body: `Keep ${String(i)}` });
+  }
+  await renderApp();
+  const reads = vi.spyOn(db, 'getAllNotes');
+  const button = await screen.findByLabelText('Clean up notes');
+  fireEvent.click(button);
+  await screen.findByText(`${String(size)} matched, ${String(size)} archived`);
+  expect(reads).toHaveBeenCalledTimes(1);
+  reads.mockClear();
+  fireEvent.click(button);
+  await screen.findByText('0 matched, 0 archived');
+  expect(reads).not.toHaveBeenCalled();
+});

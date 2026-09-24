@@ -23,7 +23,7 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
     normalizeRuleInput,
     now,
     rowNumber,
-    rowToNote,
+    rowString,
     rowsToAutoTagRules,
   } = ctx;
 
@@ -102,16 +102,17 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
         regex: new RegExp(rule.pattern, "i"),
       }));
       const noteRows = db.query(
-        "SELECT * FROM notes WHERE archived = 0 AND trashed = 0 ORDER BY updated_at DESC, rowid DESC",
+        "SELECT id, body FROM notes WHERE archived = 0 AND trashed = 0 AND has_links = 1 ORDER BY updated_at DESC, rowid DESC",
       );
 
       return db.transaction(() => {
         let matchedNoteCount = 0;
         let appliedTagCount = 0;
+        const tagIds = new Map<string, number>();
 
         for (const row of noteRows) {
-          const note = rowToNote(row);
-          const urls = extractUrls(note.body);
+          const noteId = rowString(row, "id");
+          const urls = extractUrls(rowString(row, "body"));
           if (urls.length === 0) continue;
 
           const matchedTagNames = new Set<string>();
@@ -127,19 +128,25 @@ export function createAutoTagRuleMethods(ctx: KeeperDBContext): Pick<
           matchedNoteCount++;
 
           for (const tagName of matchedTagNames) {
-            const tagId = ensureTag(tagName);
+            let tagId = tagIds.get(tagName);
+            if (tagId === undefined) {
+              tagId = ensureTag(tagName);
+              tagIds.set(tagName, tagId);
+            }
 
             const before = db.query(
               "SELECT 1 FROM note_tags WHERE note_id = ? AND tag_id = ?",
-              [note.id, tagId],
+              [noteId, tagId],
             );
+
+            if (before.length > 0) continue;
 
             db.run(
               "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
-              [note.id, tagId],
+              [noteId, tagId],
             );
 
-            if (before.length === 0) appliedTagCount++;
+            appliedTagCount++;
           }
         }
 

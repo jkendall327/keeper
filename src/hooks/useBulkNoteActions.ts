@@ -1,16 +1,16 @@
 import { useEffect, useState } from 'react';
-import type { ArchiveTaggedNotesResult, AutoTagRunResult, NoteId, NoteWithTags, Tag } from '../db/types.ts';
+import type { NoteId, NoteWithTags, Tag } from '../db/types.ts';
 
 interface UseBulkNoteActionsOptions {
   archiveNotes: (ids: NoteId[]) => Promise<void>;
-  archiveTaggedNotes: () => Promise<ArchiveTaggedNotesResult>;
+  runCleanup: (options: { autoTag: boolean; archiveTagged: boolean }) => Promise<{ matchedNoteCount: number; archivedNoteCount: number }>;
+  cleaningUp: boolean;
   cleanupArchiveTaggedEnabled: boolean;
   cleanupAutoTagRulesEnabled: boolean;
   deleteNotes: (ids: NoteId[]) => Promise<void>;
   displayedNotes: NoteWithTags[];
   isTrashView: boolean;
   restoreNotes: (ids: NoteId[]) => Promise<void>;
-  runAutoTagRules: () => Promise<AutoTagRunResult>;
   trashNotes: (ids: NoteId[]) => Promise<void>;
 }
 
@@ -32,14 +32,14 @@ async function deleteOrTrashSelectedNotes(
 
 export function useBulkNoteActions({
   archiveNotes,
-  archiveTaggedNotes,
+  runCleanup,
+  cleaningUp,
   cleanupArchiveTaggedEnabled,
   cleanupAutoTagRulesEnabled,
   deleteNotes,
   displayedNotes,
   isTrashView,
   restoreNotes,
-  runAutoTagRules,
   trashNotes,
 }: UseBulkNoteActionsOptions) {
   const [selectedNoteIds, setSelectedNoteIds] = useState<Set<NoteId>>(new Set());
@@ -100,19 +100,15 @@ export function useBulkNoteActions({
 
   const handleRunCleanupActions = async () => {
     if (!cleanupAutoTagRulesEnabled && !cleanupArchiveTaggedEnabled) return;
-    let autoTagResult: AutoTagRunResult | null = null;
-    let archiveTaggedResult: ArchiveTaggedNotesResult | null = null;
-    if (cleanupAutoTagRulesEnabled) {
-      autoTagResult = await runAutoTagRules();
-    }
-    if (cleanupArchiveTaggedEnabled) {
-      archiveTaggedResult = await archiveTaggedNotes();
-    }
+    if (cleaningUp) return;
+    const { matchedNoteCount, archivedNoteCount } = await runCleanup({
+      autoTag: cleanupAutoTagRulesEnabled,
+      archiveTagged: cleanupArchiveTaggedEnabled,
+    });
     clearSelection();
-    const archivedNoteCount = (autoTagResult?.archivedNoteCount ?? 0) + (archiveTaggedResult?.archivedNoteCount ?? 0);
     const statusParts: string[] = [];
-    if (autoTagResult !== null) {
-      statusParts.push(`${String(autoTagResult.matchedNoteCount)} matched`);
+    if (cleanupAutoTagRulesEnabled) {
+      statusParts.push(`${String(matchedNoteCount)} matched`);
     }
     statusParts.push(`${String(archivedNoteCount)} archived`);
     setCleanupStatus(statusParts.join(', '));
@@ -153,7 +149,7 @@ export function useBulkNoteActions({
     bulkAppliedTags,
     bulkIndeterminateTags,
     clearSelection,
-    cleanupEnabled: cleanupAutoTagRulesEnabled || cleanupArchiveTaggedEnabled,
+    cleanupEnabled: !cleaningUp && (cleanupAutoTagRulesEnabled || cleanupArchiveTaggedEnabled),
     cleanupStatus,
     displayedNoteIds,
     handleBulkArchive,

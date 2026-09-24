@@ -86,7 +86,7 @@ export interface KeeperClient {
     create(input: AutoTagRuleInput): Promise<AutoTagRule>;
     update(input: UpdateAutoTagRuleInput): Promise<AutoTagRule>;
     delete(id: number): Promise<void>;
-    run(): Promise<AutoTagRunResult>;
+    run(sourceId?: string): Promise<AutoTagRunResult>;
   };
   settings: {
     get(options?: RequestOptions): Promise<AppSettings>;
@@ -234,7 +234,10 @@ export function createHttpClient(fetchFn: FetchFn = (...args) => globalThis.fetc
       update: (input) =>
         fetchJson<AutoTagRule>(fetchFn, `/api/auto-tag-rules/${String(input.id)}`, jsonOpts('PUT', input)),
       delete: (id) => fetchVoid(fetchFn, `/api/auto-tag-rules/${String(id)}`, { method: 'DELETE' }),
-      run: () => fetchJson<AutoTagRunResult>(fetchFn, '/api/auto-tag-rules/run', { method: 'POST' }),
+      run: (sourceId) => fetchJson<AutoTagRunResult>(fetchFn, '/api/auto-tag-rules/run', {
+        method: 'POST',
+        ...(sourceId === undefined ? {} : { headers: { 'x-keeper-source-id': sourceId } }),
+      }),
     },
     settings: {
       get: (options) => fetchJson<AppSettings>(fetchFn, '/api/settings', withSignal(options)),

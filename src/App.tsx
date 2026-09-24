@@ -93,14 +93,14 @@ function KeeperApp() {
   }, [acknowledgeDue, activeFilter.type, unreadReminderSet]);
   const bulkActions = useBulkNoteActions({
     archiveNotes: noteMutations.archiveNotes,
-    archiveTaggedNotes: noteMutations.archiveTaggedNotes,
+    runCleanup: noteMutations.runCleanup,
+    cleaningUp: noteMutations.cleaningUp,
     cleanupArchiveTaggedEnabled: appSettings.cleanupArchiveTaggedEnabled,
     cleanupAutoTagRulesEnabled: appSettings.cleanupAutoTagRulesEnabled,
     deleteNotes: noteMutations.deleteNotes,
     displayedNotes,
     isTrashView,
     restoreNotes: noteMutations.restoreNotes,
-    runAutoTagRules: noteMutations.runAutoTagRules,
     trashNotes: noteMutations.trashNotes,
   });
   const { handleBulkDelete, selectedNoteIds, selectedNotes, setSelectedNoteIds } = bulkActions;

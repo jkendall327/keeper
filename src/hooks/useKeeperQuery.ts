@@ -18,6 +18,8 @@ import type { SystemStatus } from '../system-status.ts';
 import type { FilterType } from '../components/Sidebar.tsx';
 import { canPatchNoteTags, patchCachedNoteTags, type TagChange } from './note-tag-cache.ts';
 
+const eventSourceId = crypto.randomUUID();
+
 const EMPTY_NOTES: NoteWithTags[] = [];
 
 export const keeperKeys = {
@@ -221,7 +223,7 @@ export function useExtensionEvents() {
       void queryClient.invalidateQueries({ queryKey: keeperKeys.reminders });
     };
 
-    const events = new EventSource('/api/events');
+    const events = new EventSource(`/api/events?sourceId=${eventSourceId}`);
     events.addEventListener('open', invalidateReminders);
     events.addEventListener('refresh', invalidateExternalData);
     events.addEventListener('reminders-due', invalidateReminders);
@@ -271,7 +273,10 @@ export function useNoteMutations() {
   const deleteNotes = useMutation({ mutationFn: (ids: NoteId[]) => client.notes.deleteMany(ids), onSuccess: invalidateNotes });
   const archiveNotes = useMutation({ mutationFn: (ids: NoteId[]) => client.notes.archiveMany(ids), onSuccess: invalidateNotes });
   const deduplicateNotes = useMutation({ mutationFn: () => client.notes.deduplicate(), onSuccess: invalidateNotesAndTags });
-  const archiveTaggedNotes = useMutation({ mutationFn: () => client.notes.archiveTagged(), onSuccess: invalidateNotes });
+  const archiveTaggedNotes = useMutation({
+    mutationFn: () => client.notes.archiveTagged(),
+    onSuccess: (result) => result.archivedNoteCount > 0 ? invalidateNotes() : undefined,
+  });
   const trashNote = useMutation({ mutationFn: (id: NoteId) => client.notes.trash(id), onSuccess: invalidateNotes });
   const trashNotes = useMutation({ mutationFn: (ids: NoteId[]) => client.notes.trashMany(ids), onSuccess: invalidateNotes });
   const restoreNote = useMutation({ mutationFn: (id: NoteId) => client.notes.restore(id), onSuccess: invalidateNotes });
@@ -327,9 +332,32 @@ export function useNoteMutations() {
     mutationFn: ({ noteIds, tagName }: { noteIds: NoteId[]; tagName: string }) => client.tags.removeFromNotes(noteIds, tagName),
     onSuccess: (_result, { noteIds, tagName }) => finishTagChange(noteIds, { remove: tagName }),
   });
-  const runAutoTagRules = useMutation({
-    mutationFn: () => client.autoTagRules.run(),
-    onSuccess: invalidateNotesAndTags,
+  const runCleanup = useMutation({
+    mutationFn: async ({ autoTag, archiveTagged }: { autoTag: boolean; archiveTagged: boolean }) => {
+      let matchedNoteCount = 0;
+      let archivedNoteCount = 0;
+      let appliedTagCount = 0;
+      let failed = false;
+      try {
+        if (autoTag) {
+          const result = await client.autoTagRules.run(eventSourceId);
+          matchedNoteCount = result.matchedNoteCount;
+          archivedNoteCount = result.archivedNoteCount;
+          appliedTagCount = result.appliedTagCount;
+        }
+        if (archiveTagged) {
+          archivedNoteCount += (await client.notes.archiveTagged()).archivedNoteCount;
+        }
+        return { matchedNoteCount, archivedNoteCount };
+      } catch (error) {
+        failed = true;
+        throw error;
+      } finally {
+        // Refresh once, including partial success or an uncertain server result.
+        if (failed || appliedTagCount > 0) await invalidateNotesAndTags();
+        else if (archivedNoteCount > 0) await invalidateNotes();
+      }
+    },
   });
 
   return {
@@ -351,7 +379,8 @@ export function useNoteMutations() {
     removeTag: (noteId: NoteId, tagName: string) => removeTag.mutateAsync({ noteId, tagName }),
     addTagToNotes: (noteIds: NoteId[], tagName: string) => addTagToNotes.mutateAsync({ noteIds, tagName }),
     removeTagFromNotes: (noteIds: NoteId[], tagName: string) => removeTagFromNotes.mutateAsync({ noteIds, tagName }),
-    runAutoTagRules: runAutoTagRules.mutateAsync,
+    runCleanup: runCleanup.mutateAsync,
+    cleaningUp: runCleanup.isPending,
   };
 }
 

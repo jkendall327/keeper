@@ -401,9 +401,12 @@ export function registerRoutes(
     },
   );
 
-  app.post("/api/auto-tag-rules/run", async () => {
+  app.post("/api/auto-tag-rules/run", async (req) => {
     const result = await db.runAutoTagRules();
-    broadcast("refresh");
+    if (result.appliedTagCount > 0 || result.archivedNoteCount > 0) {
+      const sourceId = req.headers["x-keeper-source-id"];
+      broadcast("refresh", typeof sourceId === "string" ? sourceId : undefined);
+    }
     return result;
   });
 

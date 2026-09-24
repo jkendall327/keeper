@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createTestDb } from './test-db.ts';
 import { createKeeperDB } from '../db-impl.ts';
 import type { KeeperDB } from '../types.ts';
@@ -135,4 +135,43 @@ describe('Auto tag rules', () => {
     expect(trashedAfter?.trashed).toBe(true);
     expect(trashedAfter?.tags.some((tag) => tag.name === 'matched')).toBe(false);
   });
+});
+
+it('keeps autotag database and matching work linear, skipping non-link bodies and existing writes', async () => {
+  const counts: number[] = [];
+  for (const size of [16, 32, 64]) {
+    const db = createTestDb();
+    let id = 0;
+    const api = createKeeperDB({ db, generateId: () => `scale-${String(++id)}`, now: () => "2025-01-01 00:00:00" });
+    try {
+      await api.createAutoTagRule({ pattern: 'scale\\.example', tagNames: ['shared'] });
+      for (let i = 0; i < size; i++) {
+        await api.createNote({ body: 'https://scale.example/path' });
+        await api.createNote({ body: 'Plain text' });
+      }
+      const queries = vi.spyOn(db, 'query');
+      const writes = vi.spyOn(db, 'run');
+      const regexTests = vi.spyOn(RegExp.prototype, 'test');
+      const result = await api.runAutoTagRules();
+      expect(result.appliedTagCount).toBe(size);
+      const matches = regexTests.mock.calls.filter((args) => args[0] === 'https://scale.example/path').length;
+      expect(matches).toBe(size);
+      const noteReads = queries.mock.calls.flatMap(([sql], index) =>
+        sql.startsWith('SELECT id, body FROM notes') ? [queries.mock.results[index]?.value as unknown[]] : []);
+      expect(noteReads).toHaveLength(1);
+      expect(noteReads[0]).toHaveLength(size);
+      expect(writes.mock.calls.filter(([sql]) => sql.startsWith('INSERT OR IGNORE INTO tags'))).toHaveLength(1);
+      const rowsRead = queries.mock.results.reduce((total, result) => total + (result.value as unknown[]).length, 0);
+      counts.push(queries.mock.calls.length + writes.mock.calls.length + rowsRead + matches);
+      writes.mockClear();
+      expect((await api.runAutoTagRules()).appliedTagCount).toBe(0);
+      expect(writes.mock.calls.filter(([sql]) => sql.includes('INTO note_tags'))).toHaveLength(0);
+      regexTests.mockRestore();
+    } finally {
+      vi.restoreAllMocks();
+      db.close?.();
+    }
+  }
+  expect(counts[1]).toBeLessThanOrEqual(2 * (counts[0] ?? 0));
+  expect(counts[2]).toBeLessThanOrEqual(2 * (counts[1] ?? 0));
 });

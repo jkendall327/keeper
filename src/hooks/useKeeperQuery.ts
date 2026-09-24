@@ -16,6 +16,7 @@ import type {
 } from '../db/types.ts';
 import type { SystemStatus } from '../system-status.ts';
 import type { FilterType } from '../components/Sidebar.tsx';
+import { canPatchNoteTags, patchCachedNoteTags, type TagChange } from './note-tag-cache.ts';
 
 const EMPTY_NOTES: NoteWithTags[] = [];
 
@@ -277,21 +278,54 @@ export function useNoteMutations() {
   const restoreNotes = useMutation({ mutationFn: (ids: NoteId[]) => client.notes.restoreMany(ids), onSuccess: invalidateNotes });
   const togglePinNote = useMutation({ mutationFn: (id: NoteId) => client.notes.togglePin(id), onSuccess: invalidateNotes });
   const toggleArchiveNote = useMutation({ mutationFn: (id: NoteId) => client.notes.toggleArchive(id), onSuccess: invalidateNotes });
+  const finishTagChange = async (noteIds: NoteId[], change: TagChange, tagsAlreadyFetched = false) => {
+    await patchCachedNoteTags(queryClient, noteIds, change);
+    await Promise.all([
+      queryClient.invalidateQueries({
+        queryKey: keeperKeys.notes,
+        predicate: (query) => !canPatchNoteTags(query.queryKey),
+      }),
+      queryClient.invalidateQueries({
+        queryKey: keeperKeys.tags,
+        predicate: (query) => !tagsAlreadyFetched || query.queryKey.length > 1,
+      }),
+      queryClient.invalidateQueries({ queryKey: keeperKeys.reminders }),
+    ]);
+  };
   const addTag = useMutation({
+    // Keep cache patches in the same order as label writes, even across cards.
+    scope: { id: 'note-tags' },
     mutationFn: ({ noteId, tagName }: { noteId: NoteId; tagName: string }) => client.tags.addToNote(noteId, tagName),
-    onSuccess: invalidateNotesAndTags,
+    onSuccess: (note, { noteId, tagName }) => {
+      const tag = note.tags.find((candidate) => candidate.name === tagName);
+      return tag === undefined ? invalidateNotesAndTags() : finishTagChange([noteId], { add: tag });
+    },
   });
   const removeTag = useMutation({
+    scope: { id: 'note-tags' },
     mutationFn: ({ noteId, tagName }: { noteId: NoteId; tagName: string }) => client.tags.removeFromNote(noteId, tagName),
-    onSuccess: invalidateNotesAndTags,
+    onSuccess: (_note, { noteId, tagName }) => finishTagChange([noteId], { remove: tagName }),
   });
   const addTagToNotes = useMutation({
+    scope: { id: 'note-tags' },
     mutationFn: ({ noteIds, tagName }: { noteIds: NoteId[]; tagName: string }) => client.tags.addToNotes(noteIds, tagName),
-    onSuccess: invalidateNotesAndTags,
+    onSuccess: async (_result, { noteIds, tagName }) => {
+      // Bulk writes return no notes. Fetch the small label catalog once to obtain
+      // the canonical ID, including when this operation created a new label.
+      const tags = await queryClient.fetchQuery({
+        queryKey: keeperKeys.tags,
+        queryFn: ({ signal }) => client.tags.list({ signal }),
+        staleTime: 0,
+      });
+      const tag = tags.find((candidate) => candidate.name === tagName);
+      if (tag === undefined) return invalidateNotesAndTags();
+      await finishTagChange(noteIds, { add: tag }, true);
+    },
   });
   const removeTagFromNotes = useMutation({
+    scope: { id: 'note-tags' },
     mutationFn: ({ noteIds, tagName }: { noteIds: NoteId[]; tagName: string }) => client.tags.removeFromNotes(noteIds, tagName),
-    onSuccess: invalidateNotesAndTags,
+    onSuccess: (_result, { noteIds, tagName }) => finishTagChange(noteIds, { remove: tagName }),
   });
   const runAutoTagRules = useMutation({
     mutationFn: () => client.autoTagRules.run(),

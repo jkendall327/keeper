@@ -285,6 +285,52 @@ describe('Tags', () => {
   });
 
   describe('addTagToNotes', () => {
+    it('rolls back the whole batch, including a new label, on failure', async () => {
+      const note = await api.createNote({ body: 'Valid note' });
+      expect(() => api.addTagToNotes([note.id, toNoteId('missing')], 'rollback')).toThrow();
+      expect((await api.getNote(note.id))?.tags).toEqual([]);
+      expect(await api.getAllTags()).toEqual([]);
+    });
+
+    it('uses one transaction and linear SQL work for growing batches', async () => {
+      for (const size of [8, 16, 32]) {
+        const sql = createTestDb();
+        let statements = 0;
+        let transactions = 0;
+        let insideTransaction = false;
+        const counted = {
+          ...sql,
+          run: (...args: Parameters<typeof sql.run>) => {
+            statements++;
+            expect(insideTransaction).toBe(true);
+            sql.run(...args);
+          },
+          query: (...args: Parameters<typeof sql.query>) => { statements++; return sql.query(...args); },
+          transaction: <T,>(fn: () => T): T => {
+            transactions++;
+            return sql.transaction(() => {
+              insideTransaction = true;
+              try { return fn(); } finally { insideTransaction = false; }
+            });
+          },
+        };
+        let nextId = 0;
+        const deps = { db: sql, generateId: () => String(++nextId), now: () => '2025-01-15 12:00:00' };
+        const seed = createKeeperDB(deps);
+        const ids = [];
+        for (let i = 0; i < size; i++) ids.push((await seed.createNote({ body: 'Batch note' })).id);
+        // Instrument only the real label method, after migrations and setup.
+        const { createKeeperDBContext } = await import('../impl/context.ts');
+        const { createTagMethods } = await import('../impl/tags.ts');
+        const methods = createTagMethods(createKeeperDBContext({ ...deps, db: counted }), (id) => seed.getNote(id));
+        await methods.addTagToNotes(ids, 'batch');
+        expect(transactions).toBe(1);
+        expect(statements).toBe(size + 2);
+        expect((await seed.getAllNotes()).every((note) => note.tags.length === 1)).toBe(true);
+        sql.close?.();
+      }
+    });
+
     it('adds a tag to multiple notes in one call', async () => {
       const note1 = await api.createNote({ body: 'first' });
       const note2 = await api.createNote({ body: 'second' });

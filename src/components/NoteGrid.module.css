@@ -18,7 +18,10 @@
 }
 
 .selectionRectangle {
-  position: absolute;
+  position: fixed;
+  top: 0;
+  left: 0;
+  contain: strict;
   z-index: 10;
   pointer-events: none;
   border: 2px solid rgba(100, 108, 255, 0.5);

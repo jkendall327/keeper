@@ -10,10 +10,12 @@ import { TagApplier } from './TagApplier.tsx';
 import { selectNotePreviewImage, type SelectedPreviewImage } from './link-preview-selection.ts';
 import type { NoteCommands } from './note-commands.ts';
 import styles from './NoteCard.module.css';
+import { useNoteCardVisibility } from '../hooks/useNoteCardVisibility.ts';
 
 const LONG_PRESS_MS = 500;
 const LONG_PRESS_MOVE_TOLERANCE = 10;
 const DEFAULT_PREVIEW_ASPECT_RATIO = '16 / 9';
+const noteDateFormatter = new Intl.DateTimeFormat();
 
 interface NoteCardProps {
   note: NoteWithTags;
@@ -34,6 +36,11 @@ interface NoteCardProps {
 
 export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle, onLongPress, noteCommands, isSelected, showLinkPreviews, isMobile, isTrashView, searchQuery = '', substringSearch = false, onTagSelect }: NoteCardProps) {
   const [showTagApplier, setShowTagApplier] = useState(false);
+  const [hasFocus, setHasFocus] = useState(false);
+  const { cardRef, visible, height } = useNoteCardVisibility(
+    { note, reminder, showLinkPreviews, isMobile, searchQuery, substringSearch },
+    showTagApplier || hasFocus,
+  );
   const tagBtnRef = useRef<HTMLButtonElement>(null);
   const closeTagApplier = () => { setShowTagApplier(false); };
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,6 +87,14 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
 
   return (
     <div
+      ref={cardRef}
+      style={visible ? undefined : { height, boxSizing: 'border-box' }}
+      data-note-placeholder={visible ? undefined : ''}
+      aria-label={visible ? undefined : note.title !== '' ? note.title : note.body.slice(0, 160)}
+      onFocusCapture={() => { setHasFocus(true); }}
+      onBlurCapture={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setHasFocus(false);
+      }}
       className={clsx(
         styles.card,
         note.pinned && styles.pinned,
@@ -114,6 +129,7 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
         }
       }}
     >
+      {visible && <>
       <button
         type="button"
         className={styles.selectionCheck}
@@ -216,7 +232,7 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
       )}
       <div className={styles.footer}>
         <time className={styles.time}>
-          {new Date(note.updated_at.replace(' ', 'T') + 'Z').toLocaleDateString()}
+          {noteDateFormatter.format(new Date(note.updated_at.replace(' ', 'T') + 'Z'))}
         </time>
         {!isMobile && (
           <div className={styles.bottomActions}>
@@ -254,6 +270,7 @@ export function NoteCard({ note, reminder, allTags, onSelect, onSelectionToggle,
           </div>
         )}
       </div>
+      </>}
     </div>
   );
 }

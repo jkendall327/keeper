@@ -64,6 +64,7 @@
 .card:hover .selectionCheck,
 .card:focus-within .selectionCheck,
 .selected .selectionCheck {
+  transition: none;
   opacity: 1;
   pointer-events: auto;
 }
@@ -79,6 +80,7 @@
 }
 
 .card:hover .topActions {
+  transition: none;
   opacity: 1;
 }
 
@@ -96,6 +98,7 @@
 
 .card:hover .bottomActions,
 .tagOpen .bottomActions {
+  transition: none;
   opacity: 1;
 }
 

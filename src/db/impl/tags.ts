@@ -50,14 +50,15 @@ export function createTagMethods(
     addTagToNotes(noteIds: NoteId[], tagName: string): Promise<void> {
       if (noteIds.length === 0) return Promise.resolve();
 
-      const tagId = ensureTag(tagName);
-
-      for (const noteId of noteIds) {
-        db.run(
-          "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
-          [noteId, tagId],
-        );
-      }
+      db.transaction(() => {
+        const tagId = ensureTag(tagName);
+        for (const noteId of noteIds) {
+          db.run(
+            "INSERT OR IGNORE INTO note_tags (note_id, tag_id) VALUES (?, ?)",
+            [noteId, tagId],
+          );
+        }
+      });
       return Promise.resolve();
     },
 
